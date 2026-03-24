@@ -210,6 +210,62 @@
 
     .empty-hint { font-size:11px; color:#ccc; text-align:center; padding:14px 0; }
 
+    /* ── タスクトレー ── */
+    .tray-section {
+      max-width: 960px;
+      margin: 0 auto 20px;
+    }
+    .tray-box {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+      border-top: 3px solid #f39c12;
+      padding: 14px 16px;
+    }
+    .tray-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px; gap: 8px; flex-wrap: wrap;
+    }
+    .tray-title {
+      font-size: 14px; font-weight: 700; color: #333;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .tray-count {
+      font-size: 11px; background: #f39c12; color: #fff;
+      padding: 1px 7px; border-radius: 99px; font-weight: 700;
+    }
+    .tray-hint {
+      font-size: 11px; color: #aaa; margin-top: 2px;
+    }
+    .tray-list {
+      display: flex; flex-direction: column; gap: 6px;
+      min-height: 36px;
+    }
+    .tray-list .task-item {
+      border-left: 3px solid #f39c12;
+      background: #fffdf7;
+    }
+    .tray-list .task-item:hover { background: #fef9ee; }
+    .tray-add-row {
+      display: flex; gap: 6px; margin-top: 10px;
+    }
+    .tray-add-input {
+      flex: 1; padding: 10px 12px;
+      border: 1.5px solid #f0c070; border-radius: 10px;
+      font-size: 14px; font-family: inherit; color: #333; outline: none;
+      transition: border-color 0.2s; min-width: 0;
+      background: #fffdf7;
+    }
+    .tray-add-input:focus { border-color: #f39c12; }
+    .tray-add-btn {
+      padding: 10px 16px; background: #f39c12; color: #fff;
+      border: none; border-radius: 10px; font-size: 18px;
+      cursor: pointer; font-weight: 700; flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .tray-add-btn:hover { background: #d68910; }
+    .tray-empty { font-size:11px; color:#ccc; text-align:center; padding:8px 0; }
+
     /* ── ドラッグ＆ドロップ ── */
     .task-item { cursor: grab; }
     .task-item:active { cursor: grabbing; }
@@ -559,6 +615,12 @@
       .add-task-input { font-size: 14px; padding: 10px 10px; min-width: 0; }
       .add-task-btn   { padding: 10px 14px; font-size: 16px; flex-shrink: 0; }
 
+      /* ── トレー ── */
+      .tray-section        { margin-bottom: 14px; }
+      .tray-title          { font-size: 14px; }
+      .tray-add-input      { font-size: 15px; padding: 11px 12px; }
+      .tray-add-btn        { padding: 11px 16px; font-size: 18px; }
+
       /* ── 定型タスク ── */
       .recurring-section   { margin-top: 14px; }
       .section-header      { flex-direction: column; align-items: stretch; gap: 6px; }
@@ -633,6 +695,26 @@
   <div id="app">
     <h1>📋 タスク管理マトリクス</h1>
     <p class="subtitle">アイゼンハワーの法則 — 緊急度 × 重要度で優先順位を整理</p>
+
+    <!-- ── タスクトレー ── -->
+    <div class="tray-section">
+      <div class="tray-box">
+        <div class="tray-header">
+          <div>
+            <div class="tray-title">
+              📥 タスクトレー
+              <span class="tray-count" id="tray-count">0</span>
+            </div>
+            <div class="tray-hint">とりあえずここに入れて、あとから4象限に振り分ける</div>
+          </div>
+        </div>
+        <div class="tray-list" id="list-tray"></div>
+        <div class="tray-add-row">
+          <input class="tray-add-input" id="input-tray" type="text" placeholder="タスクをとりあえず入れておく…" />
+          <button class="tray-add-btn" id="btn-tray" onclick="addTask('tray')">＋</button>
+        </div>
+      </div>
+    </div>
 
     <!-- 4象限 -->
     <div class="axis-labels">
@@ -822,7 +904,7 @@
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let currentUser = null;
-    let tasks       = { q1:[], q2:[], q3:[], q4:[] };
+    let tasks       = { tray:[], q1:[], q2:[], q3:[], q4:[] };
     let recurringTasks = [];
     let doneRT      = {};  // key: `${recurring_task_id}_${year}_${month}` → true
 
@@ -911,7 +993,7 @@
         .select('*')
         .eq('user_id', currentUser.id)
         .order('created_at');
-      tasks = { q1:[], q2:[], q3:[], q4:[] };
+      tasks = { tray:[], q1:[], q2:[], q3:[], q4:[] };
       (data || []).forEach(t => { if (tasks[t.quadrant]) tasks[t.quadrant].push(t); });
       renderMatrix();
     }
@@ -951,18 +1033,30 @@
       if (error) { tasks[qid] = original; renderMatrix(); showToast('❌ 削除に失敗しました'); }
     }
 
+    function taskItemHTML(t, qid) {
+      return `<div class="task-item ${t.done ? 'done' : ''}" data-id="${t.id}" data-qid="${qid}">
+        <div class="task-check" onclick="toggleTask('${qid}',${t.id})">
+          <div class="task-check-inner"></div>
+        </div>
+        <span class="task-text">${esc(t.text)}</span>
+        <button class="task-delete" onclick="deleteTask('${qid}',${t.id})">✕</button>
+      </div>`;
+    }
+
     function renderMatrix() {
+      // トレー
+      const trayList = document.getElementById('list-tray');
+      const trayItems = tasks['tray'] || [];
+      trayList.innerHTML = trayItems.length
+        ? trayItems.map(t => taskItemHTML(t, 'tray')).join('')
+        : '<div class="tray-empty">タスクなし — 上の入力欄から追加できます</div>';
+      document.getElementById('tray-count').textContent = trayItems.length;
+
+      // 4象限
       ['q1','q2','q3','q4'].forEach(qid => {
         const list = document.getElementById('list-' + qid);
         if (!tasks[qid].length) { list.innerHTML = '<div class="empty-hint">タスクなし</div>'; return; }
-        list.innerHTML = tasks[qid].map(t => `
-          <div class="task-item ${t.done ? 'done' : ''}" data-id="${t.id}" data-qid="${qid}">
-            <div class="task-check" onclick="toggleTask('${qid}',${t.id})">
-              <div class="task-check-inner"></div>
-            </div>
-            <span class="task-text">${esc(t.text)}</span>
-            <button class="task-delete" onclick="deleteTask('${qid}',${t.id})">✕</button>
-          </div>`).join('');
+        list.innerHTML = tasks[qid].map(t => taskItemHTML(t, qid)).join('');
       });
       initSortable();
     }
@@ -972,7 +1066,7 @@
     function initSortable() {
       _sortables.forEach(s => s.destroy());
       _sortables = [];
-      ['q1','q2','q3','q4'].forEach(qid => {
+      ['tray','q1','q2','q3','q4'].forEach(qid => {
         const list = document.getElementById('list-' + qid);
         _sortables.push(Sortable.create(list, {
           group:       'tasks',  // 全象限間で移動可能
@@ -1013,7 +1107,7 @@
       });
     }
 
-    ['q1','q2','q3','q4'].forEach(qid => {
+    ['tray','q1','q2','q3','q4'].forEach(qid => {
       document.getElementById('input-' + qid).addEventListener('keydown', e => {
         if (e.key === 'Enter') addTask(qid);
       });
@@ -1317,7 +1411,7 @@
           await sb.from('recurring_tasks').delete().eq('user_id', currentUser.id);
 
           // タスク挿入
-          const allTasks = ['q1','q2','q3','q4'].flatMap(qid =>
+          const allTasks = ['tray','q1','q2','q3','q4'].flatMap(qid =>
             (data.tasks[qid] || []).map(t => ({
               user_id: currentUser.id, quadrant: qid, text: t.text, done: t.done || false
             }))
