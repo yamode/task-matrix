@@ -488,6 +488,114 @@
     .loading-text { font-size: 13px; color: #888; }
 
     .footer { text-align: center; margin-top: 20px; font-size: 11px; color: #bbb; }
+
+    /* ════════════════════════════════════════
+       レスポンシブ対応（スマホ最適化）
+       ════════════════════════════════════════ */
+
+    /* タブレット〜スマホ共通 */
+    @media (max-width: 768px) {
+
+      /* ユーザーバー */
+      .user-bar { padding: 8px 12px; }
+      .user-bar-name { font-size: 12px; }
+
+      /* ヘッダー */
+      #app { padding: 12px 10px 40px; }
+      h1 { font-size: 17px; }
+      .subtitle { font-size: 11px; margin-bottom: 14px; }
+
+      /* ── 4象限：サイドラベルを非表示にして2×2グリッドに ── */
+      .axis-labels {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto auto auto;
+        gap: 6px;
+      }
+
+      /* 上部ラベル（緊急・緊急でない）を横並び2列に */
+      .label-urgent {
+        grid-column: 1;
+        grid-row: 1;
+      }
+      .label-not-urgent {
+        grid-column: 2;
+        grid-row: 1;
+      }
+
+      /* サイドラベルを非表示 */
+      .label-important,
+      .label-not-important {
+        display: none;
+      }
+
+      /* 象限を2×2配置 */
+      .quadrant.q1 { grid-column: 1; grid-row: 2; }
+      .quadrant.q2 { grid-column: 2; grid-row: 2; }
+      .quadrant.q3 { grid-column: 1; grid-row: 3; }
+      .quadrant.q4 { grid-column: 2; grid-row: 3; }
+
+      /* 象限カードをコンパクトに */
+      .quadrant {
+        min-height: 180px;
+        padding: 10px 8px;
+      }
+      .quadrant-icon   { font-size: 15px; }
+      .quadrant-title  { font-size: 11px; }
+      .quadrant-hint   { font-size: 9px; }
+      .quadrant-header { gap: 5px; margin-bottom: 8px; }
+
+      /* タスクアイテム */
+      .task-item   { padding: 6px 7px; gap: 6px; }
+      .task-text   { font-size: 12px; }
+      .task-check  { width: 18px; height: 18px; min-width: 18px; } /* タッチしやすく */
+      .task-delete { font-size: 13px; padding: 0 4px; }
+
+      /* 追加フォーム */
+      .add-task-input { font-size: 13px; padding: 8px 8px; }
+      .add-task-btn   { padding: 8px 10px; font-size: 13px; }
+
+      /* 定型タスクセクション */
+      .recurring-section { margin-top: 16px; }
+      .section-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .section-title  { font-size: 14px; }
+      .section-actions { display: flex; gap: 6px; width: 100%; }
+      .section-actions .btn-secondary { flex: 1; font-size: 11px; padding: 7px 8px; text-align: center; }
+
+      .month-view-title { font-size: 13px; }
+      .month-view-sub   { font-size: 10px; }
+
+      .tab-btn  { padding: 9px 10px; font-size: 11px; }
+
+      .rt-item  { padding: 8px 8px; gap: 7px; }
+      .rt-name  { font-size: 12px; }
+      .rt-check { width: 20px; height: 20px; min-width: 20px; } /* タッチしやすく */
+      .rt-deadline-badge { font-size: 10px; padding: 3px 6px; }
+      .rt-quadrant-badge { font-size: 9px; padding: 2px 5px; }
+
+      /* バックアップバー */
+      .backup-bar { flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px 14px; }
+      .backup-bar-label { font-size: 12px; }
+      .backup-bar-actions { width: 100%; display: flex; gap: 6px; }
+      .btn-export, .btn-import { flex: 1; text-align: center; font-size: 11px; padding: 8px 6px; }
+
+      /* モーダルをほぼ全画面に */
+      .modal {
+        width: 100%;
+        max-width: 100%;
+        max-height: 95vh;
+        border-radius: 14px 14px 0 0;
+        margin-top: auto;
+      }
+      .modal-overlay { align-items: flex-end; }
+    }
+
+    /* 極小画面（〜390px）追加調整 */
+    @media (max-width: 390px) {
+      .quadrant-title { font-size: 10px; }
+      .task-text      { font-size: 11px; }
+      .add-task-input { font-size: 12px; }
+      .tab-btn        { padding: 8px 6px; font-size: 10px; }
+    }
   </style>
 </head>
 <body>
