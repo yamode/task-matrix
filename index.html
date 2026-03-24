@@ -19,11 +19,17 @@
     .login-card { background:#fff; border-radius:16px; box-shadow:0 4px 24px rgba(0,0,0,0.1); padding:36px 32px; width:100%; max-width:400px; text-align:center; }
     .login-logo  { font-size:40px; margin-bottom:12px; }
     .login-title { font-size:21px; font-weight:700; color:#1a1a2e; margin-bottom:6px; }
-    .login-sub   { font-size:14px; color:#888; margin-bottom:28px; line-height:1.5; }
-    .login-input { width:100%; padding:12px 14px; border:1.5px solid #ddd; border-radius:10px; font-size:16px; font-family:inherit; color:#333; outline:none; transition:border-color .2s; margin-bottom:14px; text-align:center; }
+    .login-sub   { font-size:14px; color:#888; margin-bottom:20px; line-height:1.5; }
+    .login-tabs  { display:flex; border-bottom:2px solid #eee; margin-bottom:20px; }
+    .login-tab   { flex:1; padding:10px; background:none; border:none; font-size:14px; font-weight:600; color:#aaa; cursor:pointer; font-family:inherit; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all .15s; }
+    .login-tab.active { color:#667eea; border-bottom-color:#667eea; }
+    .login-input { width:100%; padding:12px 14px; border:1.5px solid #ddd; border-radius:10px; font-size:16px; font-family:inherit; color:#333; outline:none; transition:border-color .2s; margin-bottom:12px; text-align:left; }
     .login-input:focus { border-color:#667eea; }
-    .login-btn   { width:100%; padding:14px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; border-radius:10px; font-size:16px; font-weight:700; cursor:pointer; font-family:inherit; transition:opacity .15s; }
+    .login-btn   { width:100%; padding:14px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; border-radius:10px; font-size:16px; font-weight:700; cursor:pointer; font-family:inherit; transition:opacity .15s; margin-top:4px; }
     .login-btn:hover { opacity:.9; } .login-btn:disabled { opacity:.5; cursor:not-allowed; }
+    .login-forgot { text-align:right; margin-top:-4px; margin-bottom:12px; }
+    .login-forgot a { font-size:12px; color:#aaa; text-decoration:none; }
+    .login-forgot a:hover { color:#667eea; }
     .login-error { font-size:13px; color:#e74c3c; margin-top:10px; min-height:18px; }
 
     /* ── ユーザーバー ── */
@@ -347,9 +353,29 @@
   <div class="login-card">
     <div class="login-logo">📋</div>
     <div class="login-title">タスク管理マトリクス</div>
-    <div class="login-sub">あなたの名前を入力してください。<br>同じ名前で次回から継続して使えます。</div>
-    <input class="login-input" id="login-name" type="text" placeholder="例: 山田 太郎" maxlength="30" autocomplete="name" />
-    <button class="login-btn" id="login-btn" onclick="handleLogin()">開始する</button>
+    <div class="login-sub">山人 業務タスク管理</div>
+    <div class="login-tabs">
+      <button class="login-tab active" id="tab-login"  onclick="switchLoginTab('login')">ログイン</button>
+      <button class="login-tab"        id="tab-signup" onclick="switchLoginTab('signup')">新規登録</button>
+    </div>
+
+    <!-- ログインフォーム -->
+    <div id="form-login">
+      <input class="login-input" id="login-email"    type="email"    placeholder="メールアドレス" autocomplete="email" />
+      <input class="login-input" id="login-password" type="password" placeholder="パスワード"     autocomplete="current-password" />
+      <div class="login-forgot"><a href="#" onclick="handleForgotPassword(event)">パスワードを忘れた方</a></div>
+      <button class="login-btn" id="login-btn" onclick="handleLogin()">ログイン</button>
+    </div>
+
+    <!-- 新規登録フォーム -->
+    <div id="form-signup" style="display:none;">
+      <input class="login-input" id="signup-name"      type="text"     placeholder="表示名（例: 山田 太郎）" maxlength="30" autocomplete="name" />
+      <input class="login-input" id="signup-email"     type="email"    placeholder="メールアドレス" autocomplete="email" />
+      <input class="login-input" id="signup-password"  type="password" placeholder="パスワード（8文字以上）" autocomplete="new-password" />
+      <input class="login-input" id="signup-password2" type="password" placeholder="パスワード（確認）"      autocomplete="new-password" />
+      <button class="login-btn" id="signup-btn" onclick="handleSignUp()">登録する</button>
+    </div>
+
     <div class="login-error" id="login-error"></div>
   </div>
 </div>
@@ -710,43 +736,109 @@
     showLoading();
     const now = new Date();
     viewYear = now.getFullYear(); viewMonth = now.getMonth() + 1;
-    const storedId = localStorage.getItem('tm_user_id');
-    if (storedId) {
-      const { data } = await sb.from('users').select('*').eq('id', storedId).maybeSingle();
+
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      const { data } = await sb.from('users').select('*').eq('auth_id', session.user.id).maybeSingle();
       if (data) {
         currentUser = data;
         usersCache[data.id] = data.name;
         await showApp(); hideLoading(); return;
       }
-      localStorage.removeItem('tm_user_id');
     }
     hideLoading();
     document.getElementById('login-screen').style.display = 'flex';
-    setTimeout(() => document.getElementById('login-name').focus(), 100);
+    setTimeout(() => document.getElementById('login-email').focus(), 100);
   }
 
   // ── 認証 ──────────────────────────────────────────────────────
-  async function handleLogin() {
-    const name  = document.getElementById('login-name').value.trim();
+  function switchLoginTab(tab) {
+    document.getElementById('form-login').style.display  = tab === 'login'  ? 'block' : 'none';
+    document.getElementById('form-signup').style.display = tab === 'signup' ? 'block' : 'none';
+    document.getElementById('tab-login').classList.toggle('active',  tab === 'login');
+    document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
     const errEl = document.getElementById('login-error');
-    errEl.textContent = '';
-    if (!name) { errEl.textContent = '名前を入力してください'; return; }
+    errEl.textContent = ''; errEl.style.color = '#e74c3c';
+  }
+
+  async function handleLogin() {
+    const email    = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    const errEl    = document.getElementById('login-error');
+    errEl.textContent = ''; errEl.style.color = '#e74c3c';
+    if (!email || !password) { errEl.textContent = 'メールアドレスとパスワードを入力してください'; return; }
     const btn = document.getElementById('login-btn');
     btn.disabled = true; btn.textContent = '確認中…';
-    let { data } = await sb.from('users').select('*').eq('name', name).maybeSingle();
-    if (!data) {
-      const res = await sb.from('users').insert({ name }).select().single();
-      if (res.error) { errEl.textContent = '登録に失敗しました'; btn.disabled=false; btn.textContent='開始する'; return; }
-      data = res.data; showToast('✅ アカウントを作成しました');
-    } else { showToast(`👋 おかえりなさい、${data.name}さん`); }
-    currentUser = data;
-    usersCache[data.id] = data.name;
-    localStorage.setItem('tm_user_id', data.id);
+
+    const { data: authData, error: authError } = await sb.auth.signInWithPassword({ email, password });
+    if (authError) {
+      errEl.textContent = 'メールアドレスまたはパスワードが正しくありません';
+      btn.disabled = false; btn.textContent = 'ログイン'; return;
+    }
+    const { data: user } = await sb.from('users').select('*').eq('auth_id', authData.user.id).maybeSingle();
+    if (!user) {
+      errEl.textContent = 'ユーザー情報が見つかりません。管理者にお問い合わせください。';
+      await sb.auth.signOut(); btn.disabled = false; btn.textContent = 'ログイン'; return;
+    }
+    currentUser = user;
+    usersCache[user.id] = user.name;
     document.getElementById('login-screen').style.display = 'none';
     showLoading(); await showApp(); hideLoading();
-    btn.disabled = false; btn.textContent = '開始する';
+    btn.disabled = false; btn.textContent = 'ログイン';
+    showToast(`👋 おかえりなさい、${user.name}さん`);
   }
-  document.getElementById('login-name').addEventListener('keydown', e => { if (e.key==='Enter') handleLogin(); });
+
+  async function handleSignUp() {
+    const name      = document.getElementById('signup-name').value.trim();
+    const email     = document.getElementById('signup-email').value.trim();
+    const password  = document.getElementById('signup-password').value;
+    const password2 = document.getElementById('signup-password2').value;
+    const errEl     = document.getElementById('login-error');
+    errEl.textContent = ''; errEl.style.color = '#e74c3c';
+    if (!name)              { errEl.textContent = '表示名を入力してください'; return; }
+    if (!email)             { errEl.textContent = 'メールアドレスを入力してください'; return; }
+    if (password.length < 8){ errEl.textContent = 'パスワードは8文字以上で入力してください'; return; }
+    if (password !== password2){ errEl.textContent = 'パスワードが一致しません'; return; }
+    const btn = document.getElementById('signup-btn');
+    btn.disabled = true; btn.textContent = '登録中…';
+
+    const { data: authData, error: authError } = await sb.auth.signUp({ email, password });
+    if (authError) {
+      errEl.textContent = authError.message.includes('already') ? 'このメールアドレスは既に登録されています' : '登録に失敗しました: ' + authError.message;
+      btn.disabled = false; btn.textContent = '登録する'; return;
+    }
+    const { data: user, error: userError } = await sb.from('users')
+      .insert({ name, email, auth_id: authData.user.id }).select().single();
+    if (userError) {
+      errEl.textContent = userError.message.includes('unique') ? 'この表示名またはメールアドレスは既に使われています' : 'ユーザー情報の作成に失敗しました';
+      await sb.auth.signOut(); btn.disabled = false; btn.textContent = '登録する'; return;
+    }
+    if (authData.session) {
+      currentUser = user; usersCache[user.id] = user.name;
+      document.getElementById('login-screen').style.display = 'none';
+      showLoading(); await showApp(); hideLoading();
+      showToast('✅ アカウントを作成しました');
+    } else {
+      errEl.style.color = '#27ae60';
+      errEl.textContent = '確認メールを送信しました。メール内のリンクをクリックしてからログインしてください。';
+      switchLoginTab('login');
+    }
+    btn.disabled = false; btn.textContent = '登録する';
+  }
+
+  async function handleForgotPassword(e) {
+    e.preventDefault();
+    const email = document.getElementById('login-email').value.trim();
+    const errEl = document.getElementById('login-error');
+    errEl.style.color = '#e74c3c';
+    if (!email) { errEl.textContent = 'メールアドレスを入力してから押してください'; return; }
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.href });
+    errEl.style.color = error ? '#e74c3c' : '#27ae60';
+    errEl.textContent = error ? 'メール送信に失敗しました' : 'パスワードリセットメールを送信しました';
+  }
+
+  document.getElementById('login-email').addEventListener('keydown',    e => { if (e.key==='Enter') handleLogin(); });
+  document.getElementById('login-password').addEventListener('keydown', e => { if (e.key==='Enter') handleLogin(); });
 
   async function showApp() {
     document.getElementById('user-bar').style.display = 'flex';
@@ -756,9 +848,9 @@
     await Promise.all([loadTasks(), loadRT()]);
   }
 
-  function handleLogout() {
+  async function handleLogout() {
     if (!confirm('ログアウトしますか？')) return;
-    localStorage.removeItem('tm_user_id');
+    await sb.auth.signOut();
     currentUser = null;
     tasks = { tray:[], q1:[], q2:[], q3:[], q4:[] };
     receivedTasks = []; assignedOutTasks = []; usersCache = {};
@@ -766,9 +858,10 @@
     currentTaskId = null; currentInstanceId = null; assignedOutOpen = false;
     document.getElementById('app').style.display = 'none';
     document.getElementById('user-bar').style.display = 'none';
-    document.getElementById('login-name').value = '';
+    document.getElementById('login-email').value = '';
+    document.getElementById('login-password').value = '';
     document.getElementById('login-screen').style.display = 'flex';
-    document.getElementById('login-name').focus();
+    document.getElementById('login-email').focus();
   }
 
   // ── タスク読み込み ────────────────────────────────────────────

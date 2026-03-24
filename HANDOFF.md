@@ -166,56 +166,19 @@ git push origin main
 
 ---
 
-## ロードマップ
+## 今後の優先実装候補（未着手）
 
-### ✅ Phase 0（完了）— コア機能
-- タスクトレー＋4象限・D&D
-- タスク詳細シート（サブタスク・メモ・URL・ファイル添付）
-- タスク配布ワークフロー（承認/不服/完了確認）
-- 定型タスク（月次・年次）＋インスタンス管理
-- マスタ管理・共有設定
-- iPhone UX改善（ズーム防止・スワイプで閉じる）
+1. **LINE WORKS OAuth認証**（Phase 2）
+   - WOFFアプリとしてLINE WORKS内に組み込む
+   - `users` テーブルに `lw_user_id` カラムを追加予定
+   - 現在の名前ベースログインを置き換える
 
----
+2. **LINE WORKSカレンダー同期**
+   - 定型タスクのインスタンス生成時にLW Calendarにイベント登録
+   - `recurring_instances.lw_calendar_event_id` カラムが既にある
 
-### 🔨 Phase 1（着手中）— ID/パスワード認証
-
-**目的**: 名前入力のみの現状からセキュアな認証へ移行
-
-- [ ] Supabase Auth（メールアドレス or ユーザー名 + パスワード）導入
-- [ ] 既存 `users` テーブルを `auth.users` に紐づけ（マイグレーション）
-- [ ] ログイン画面をSupabase Auth対応に書き換え
-- [ ] セッション管理をJWTベースに切り替え（localStorageのUUID方式を廃止）
-- [ ] RLSポリシーを `auth.uid()` ベースに整備
-
-**方針**:
-- Supabase Auth の Username/Password 方式を採用
-- パスワードハッシュ・セッション管理はSupabase任せ
-- PCブラウザからのアクセスはこの認証を継続利用
-
----
-
-### Phase 2 — LINE WORKS WOFF OAuth
-
-**目的**: LINE WORKSアプリ内からシームレスにアクセス
-
-- [ ] Developer Console で WOFFアプリ登録
-- [ ] WOFF SDK によるLINE WORKSユーザーID取得
-- [ ] LW ユーザーID ↔ Supabase Auth アカウントのマッピング
-- [ ] LINE WORKSから開いた場合は自動ログイン（ログイン画面スキップ）
-- [ ] ブラウザからは Phase 1 のID/パスワードを継続
-
-**前提**: Phase 1 完了後に着手
-
----
-
-### Phase 3 — LINE WORKS 深化連携
-
-- [ ] カレンダー同期（定型タスク生成時にLWカレンダーへイベント登録）
-  - `recurring_instances.lw_calendar_event_id` カラム既設
-- [ ] Bot通知（配布タスクの承認/不服/完了確認時）
-
-**前提**: Phase 2 完了後に着手
+3. **通知**
+   - 配布タスクの承認/不服/完了確認時にLINE WORKSに通知（Bot）
 
 ---
 
