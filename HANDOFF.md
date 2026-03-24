@@ -30,8 +30,8 @@ KEY: sb_publishable_iumeCKdl6tr3AU3DL0roWA_B_WiCOwn
 ## 現在のDBスキーマ（Supabase上に実在）
 
 ```sql
--- ユーザー（名前がユニークキー、同名=同一ユーザー）
-users: id uuid PK, name text UNIQUE, created_at
+-- ユーザー（Phase 1: Supabase Auth 連携済み）
+users: id uuid PK, name text UNIQUE, email text UNIQUE, auth_id uuid UNIQUE, created_at
 
 -- 1-shotタスク
 tasks: id bigserial PK,
@@ -166,19 +166,57 @@ git push origin main
 
 ---
 
-## 今後の優先実装候補（未着手）
+## ロードマップ
 
-1. **LINE WORKS OAuth認証**（Phase 2）
-   - WOFFアプリとしてLINE WORKS内に組み込む
-   - `users` テーブルに `lw_user_id` カラムを追加予定
-   - 現在の名前ベースログインを置き換える
+### ✅ Phase 1（完了）— ID/パスワード認証
 
-2. **LINE WORKSカレンダー同期**
-   - 定型タスクのインスタンス生成時にLW Calendarにイベント登録
-   - `recurring_instances.lw_calendar_event_id` カラムが既にある
+- Supabase Auth（メール+パスワード）導入済み
+- 新規登録フォーム・パスワードリセット（メール送信）実装済み
+- `users` テーブルに `email`, `auth_id` カラム追加済み
+- RLS有効・全テーブルに `allow_all` ポリシー（`TO anon, authenticated`）設定済み
+- `get_my_user_id()` ヘルパー関数作成済み
+- セッション管理は Supabase Auth（JWT）に移行済み
 
-3. **通知**
-   - 配布タスクの承認/不服/完了確認時にLINE WORKSに通知（Bot）
+**Supabase設定済み事項：**
+- Authentication → Sign In / Providers → Email：Confirm email = OFF
+- Authentication → URL Configuration：Site URL = `https://yamode.github.io/task-matrix/`
+- RLS：全テーブル有効、`allow_all (TO anon, authenticated)` ポリシー
+- GRANT：`anon`, `authenticated` ロールに全テーブルのアクセス権付与済み
+
+---
+
+### ✅ Phase 0（完了）— コア機能
+- タスクトレー＋4象限・D&D
+- タスク詳細シート（サブタスク・メモ・URL・ファイル添付）
+- タスク配布ワークフロー（承認/不服/完了確認）
+- 定型タスク（月次・年次）＋インスタンス管理
+- マスタ管理・共有設定
+- iPhone UX改善（ズーム防止・スワイプで閉じる）
+
+---
+
+
+### Phase 2 — LINE WORKS WOFF OAuth
+
+**目的**: LINE WORKSアプリ内からシームレスにアクセス
+
+- [ ] Developer Console で WOFFアプリ登録
+- [ ] WOFF SDK によるLINE WORKSユーザーID取得
+- [ ] LW ユーザーID ↔ Supabase Auth アカウントのマッピング
+- [ ] LINE WORKSから開いた場合は自動ログイン（ログイン画面スキップ）
+- [ ] ブラウザからは Phase 1 のID/パスワードを継続
+
+**前提**: Phase 1 完了後に着手
+
+---
+
+### Phase 3 — LINE WORKS 深化連携
+
+- [ ] カレンダー同期（定型タスク生成時にLWカレンダーへイベント登録）
+  - `recurring_instances.lw_calendar_event_id` カラム既設
+- [ ] Bot通知（配布タスクの承認/不服/完了確認時）
+
+**前提**: Phase 2 完了後に着手
 
 ---
 
