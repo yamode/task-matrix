@@ -508,40 +508,46 @@
       .user-bar     { padding: 7px 10px; }
       .user-bar-name { font-size: 12px; }
 
-      /* ── 4象限：サイドラベル非表示 → 2×2グリッド ── */
+      /* ── 4象限：1カラム縦積み ── */
       .axis-labels {
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: auto auto auto;
-        gap: 5px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
         padding: 0;
       }
-      .label-urgent     { grid-column: 1; grid-row: 1; font-size: 10px; padding: 4px 0; }
-      .label-not-urgent { grid-column: 2; grid-row: 1; font-size: 10px; padding: 4px 0; }
+      /* 軸ラベルをすべて非表示 */
+      .label-urgent, .label-not-urgent,
       .label-important, .label-not-important { display: none; }
 
-      .quadrant.q1 { grid-column: 1; grid-row: 2; }
-      .quadrant.q2 { grid-column: 2; grid-row: 2; }
-      .quadrant.q3 { grid-column: 1; grid-row: 3; }
-      .quadrant.q4 { grid-column: 2; grid-row: 3; }
+      /* 象限カード：フルwidth、順番通りに並ぶ */
+      .quadrant.q1, .quadrant.q2,
+      .quadrant.q3, .quadrant.q4 {
+        order: unset;
+        width: 100%;
+      }
+      .quadrant.q1 { order: 1; }
+      .quadrant.q2 { order: 2; }
+      .quadrant.q3 { order: 3; }
+      .quadrant.q4 { order: 4; }
 
       /* 象限カード */
-      .quadrant       { min-height: 160px; padding: 8px 6px; min-width: 0; }
-      .quadrant-header{ gap: 4px; margin-bottom: 6px; }
-      .quadrant-icon  { font-size: 14px; }
-      .quadrant-title { font-size: 10px; }
-      .quadrant-hint  { display: none; }      /* ヒントは非表示でスペース確保 */
+      .quadrant       { min-height: auto; padding: 12px 12px; min-width: 0; }
+      .quadrant-header{ gap: 8px; margin-bottom: 8px; }
+      .quadrant-icon  { font-size: 18px; }
+      .quadrant-title { font-size: 13px; }
+      .quadrant-hint  { font-size: 10px; }
 
       /* タスクアイテム */
-      .task-list  { gap: 4px; }
-      .task-item  { padding: 5px 6px; gap: 5px; border-radius: 6px; }
-      .task-text  { font-size: 11px; word-break: break-all; min-width: 0; }
-      .task-check { width: 20px; height: 20px; min-width: 20px; }
-      .task-delete{ font-size: 14px; padding: 0 4px; }
+      .task-list  { gap: 6px; }
+      .task-item  { padding: 8px 10px; gap: 8px; border-radius: 8px; }
+      .task-text  { font-size: 13px; word-break: break-all; min-width: 0; }
+      .task-check { width: 22px; height: 22px; min-width: 22px; }
+      .task-delete{ font-size: 15px; padding: 0 4px; }
 
       /* 追加フォーム */
-      .add-task-row   { gap: 4px; margin-top: 6px; }
-      .add-task-input { font-size: 12px; padding: 7px 6px; min-width: 0; }
-      .add-task-btn   { padding: 7px 8px; font-size: 14px; flex-shrink: 0; }
+      .add-task-row   { gap: 6px; margin-top: 8px; }
+      .add-task-input { font-size: 14px; padding: 10px 10px; min-width: 0; }
+      .add-task-btn   { padding: 10px 14px; font-size: 16px; flex-shrink: 0; }
 
       /* ── 定型タスク ── */
       .recurring-section   { margin-top: 14px; }
