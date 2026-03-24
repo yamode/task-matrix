@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>タスク管理 — 4象限マトリクス</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -208,6 +209,15 @@
     .q4 .add-task-input:focus { border-color:#95a5a6; }
 
     .empty-hint { font-size:11px; color:#ccc; text-align:center; padding:14px 0; }
+
+    /* ── ドラッグ＆ドロップ ── */
+    .task-item { cursor: grab; }
+    .task-item:active { cursor: grabbing; }
+    .sortable-ghost  { opacity: 0.35; background: #e8eaff !important; border: 1.5px dashed #667eea !important; }
+    .sortable-chosen { box-shadow: 0 6px 18px rgba(0,0,0,0.18); transform: scale(1.02); }
+    .sortable-drag   { opacity: 0; }
+    /* ドラッグ中の受け入れ可能エリアをハイライト */
+    .task-list.drag-over { background: rgba(102,126,234,0.06); border-radius: 8px; min-height: 48px; }
 
     /* ── 定型タスクセクション ── */
     .recurring-section {
@@ -501,8 +511,8 @@
        ════════════════════════════════════════ */
     @media (max-width: 768px) {
 
-      /* ── 基本：横スクロール完全防止 ── */
-      #app          { padding: 10px 8px 40px; }
+      /* ── 基本：横スクロール完全防止、左右に余白 ── */
+      #app          { padding: 10px 16px 40px; }
       h1            { font-size: 16px; }
       .subtitle     { font-size: 11px; margin-bottom: 12px; }
       .user-bar     { padding: 7px 10px; }
@@ -946,13 +956,60 @@
         const list = document.getElementById('list-' + qid);
         if (!tasks[qid].length) { list.innerHTML = '<div class="empty-hint">タスクなし</div>'; return; }
         list.innerHTML = tasks[qid].map(t => `
-          <div class="task-item ${t.done ? 'done' : ''}">
+          <div class="task-item ${t.done ? 'done' : ''}" data-id="${t.id}" data-qid="${qid}">
             <div class="task-check" onclick="toggleTask('${qid}',${t.id})">
               <div class="task-check-inner"></div>
             </div>
             <span class="task-text">${esc(t.text)}</span>
             <button class="task-delete" onclick="deleteTask('${qid}',${t.id})">✕</button>
           </div>`).join('');
+      });
+      initSortable();
+    }
+
+    // ── ドラッグ＆ドロップ（SortableJS）────────────────────────
+    let _sortables = [];
+    function initSortable() {
+      _sortables.forEach(s => s.destroy());
+      _sortables = [];
+      ['q1','q2','q3','q4'].forEach(qid => {
+        const list = document.getElementById('list-' + qid);
+        _sortables.push(Sortable.create(list, {
+          group:       'tasks',  // 全象限間で移動可能
+          animation:   150,
+          ghostClass:  'sortable-ghost',
+          chosenClass: 'sortable-chosen',
+          dragClass:   'sortable-drag',
+          delay:       50,       // タップとドラッグを区別（スマホ対応）
+          delayOnTouchOnly: true,
+          onAdd: async function(evt) {
+            // 別象限への移動
+            const taskId  = Number(evt.item.dataset.id);
+            const fromQid = evt.item.dataset.qid;
+            const toQid   = qid;
+            if (fromQid === toQid) return;
+
+            // ローカル状態を更新
+            const task = tasks[fromQid].find(t => t.id === taskId);
+            if (!task) return;
+            tasks[fromQid] = tasks[fromQid].filter(t => t.id !== taskId);
+            task.quadrant = toQid;
+            tasks[toQid].push(task);
+
+            // Supabase に同期（楽観的更新済みなので再renderは不要）
+            const { error } = await sb.from('tasks')
+              .update({ quadrant: toQid, updated_at: new Date().toISOString() })
+              .eq('id', taskId);
+            if (error) {
+              // ロールバック
+              tasks[toQid] = tasks[toQid].filter(t => t.id !== taskId);
+              task.quadrant = fromQid;
+              tasks[fromQid].push(task);
+              showToast('❌ 移動に失敗しました');
+            }
+            renderMatrix();
+          }
+        }));
       });
     }
 
