@@ -11,76 +11,93 @@
     html, body { overflow-x: hidden; }
     body {
       font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
-      background: #f4f5f7; min-height: 100vh;
+      background: #f4f5f7; min-height: 100vh; font-size: 15px;
     }
 
     /* ── ログイン ── */
     #login-screen { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:24px; }
     .login-card { background:#fff; border-radius:16px; box-shadow:0 4px 24px rgba(0,0,0,0.1); padding:36px 32px; width:100%; max-width:400px; text-align:center; }
-    .login-logo  { font-size:36px; margin-bottom:12px; }
-    .login-title { font-size:20px; font-weight:700; color:#1a1a2e; margin-bottom:6px; }
-    .login-sub   { font-size:13px; color:#888; margin-bottom:28px; line-height:1.5; }
-    .login-input { width:100%; padding:12px 14px; border:1.5px solid #ddd; border-radius:10px; font-size:15px; font-family:inherit; color:#333; outline:none; transition:border-color .2s; margin-bottom:14px; text-align:center; }
+    .login-logo  { font-size:40px; margin-bottom:12px; }
+    .login-title { font-size:21px; font-weight:700; color:#1a1a2e; margin-bottom:6px; }
+    .login-sub   { font-size:14px; color:#888; margin-bottom:28px; line-height:1.5; }
+    .login-input { width:100%; padding:12px 14px; border:1.5px solid #ddd; border-radius:10px; font-size:16px; font-family:inherit; color:#333; outline:none; transition:border-color .2s; margin-bottom:14px; text-align:center; }
     .login-input:focus { border-color:#667eea; }
-    .login-btn   { width:100%; padding:13px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; transition:opacity .15s; }
+    .login-btn   { width:100%; padding:14px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; border-radius:10px; font-size:16px; font-weight:700; cursor:pointer; font-family:inherit; transition:opacity .15s; }
     .login-btn:hover { opacity:.9; } .login-btn:disabled { opacity:.5; cursor:not-allowed; }
-    .login-error { font-size:12px; color:#e74c3c; margin-top:10px; min-height:18px; }
+    .login-error { font-size:13px; color:#e74c3c; margin-top:10px; min-height:18px; }
 
     /* ── ユーザーバー ── */
-    .user-bar { background:#fff; border-bottom:1px solid #eee; padding:8px 20px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
-    .user-bar-name { font-size:13px; font-weight:700; color:#444; }
+    .user-bar { background:#fff; border-bottom:1px solid #eee; padding:9px 20px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+    .user-bar-name { font-size:14px; font-weight:700; color:#444; }
     .user-bar-name span { color:#667eea; }
-    .btn-logout { padding:5px 12px; background:none; border:1px solid #ddd; border-radius:6px; font-size:11px; cursor:pointer; color:#888; font-family:inherit; transition:all .15s; }
+    .btn-logout { padding:6px 13px; background:none; border:1px solid #ddd; border-radius:6px; font-size:12px; cursor:pointer; color:#888; font-family:inherit; transition:all .15s; }
     .btn-logout:hover { border-color:#e74c3c; color:#e74c3c; }
 
     /* ── メインアプリ ── */
     #app { padding:20px 20px 60px; display:none; }
-    h1   { text-align:center; font-size:20px; font-weight:700; color:#1a1a2e; margin-bottom:4px; letter-spacing:.04em; }
-    .subtitle { text-align:center; font-size:12px; color:#888; margin-bottom:20px; }
+    h1   { text-align:center; font-size:21px; font-weight:700; color:#1a1a2e; margin-bottom:4px; letter-spacing:.04em; }
+    .subtitle { text-align:center; font-size:13px; color:#888; margin-bottom:20px; }
+
+    /* ── 受信タスクセクション ── */
+    .received-section { max-width:960px; margin:0 auto 16px; background:#fffbf0; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.06); padding:14px 16px; border-top:3px solid #f0ad4e; }
+    .received-header  { display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+    .received-header-title { font-size:15px; font-weight:700; color:#7d5a00; }
+    .received-count   { font-size:12px; background:#f0ad4e; color:#fff; padding:2px 8px; border-radius:99px; font-weight:700; }
+    .received-sub     { font-size:12px; color:#999; }
+    .received-item    { background:#fff; border-radius:10px; border:1px solid #fde68a; padding:12px 14px; margin-bottom:8px; }
+    .received-item:last-child { margin-bottom:0; }
+    .received-from    { font-size:12px; color:#aaa; margin-bottom:4px; }
+    .received-text    { font-size:15px; font-weight:600; color:#333; margin-bottom:10px; line-height:1.4; }
+    .received-actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .btn-approve { padding:8px 18px; background:#27ae60; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; transition:background .15s; }
+    .btn-approve:hover { background:#1e8449; }
+    .btn-dispute-open { padding:8px 16px; background:#fff; color:#e74c3c; border:1.5px solid #e74c3c; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; transition:all .15s; }
+    .btn-dispute-open:hover { background:#ffeaea; }
 
     /* ── タスクトレー ── */
     .tray-section { max-width:960px; margin:0 auto 20px; background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.06); padding:14px 16px; border-top:3px solid #8e9eab; }
     .tray-header { display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
-    .tray-header-title { font-size:14px; font-weight:700; color:#444; }
-    .tray-header-sub   { font-size:11px; color:#aaa; }
-    .tray-count { font-size:11px; background:#eee; color:#666; padding:2px 7px; border-radius:99px; font-weight:700; }
+    .tray-header-title { font-size:15px; font-weight:700; color:#444; }
+    .tray-header-sub   { font-size:12px; color:#aaa; }
+    .tray-count { font-size:12px; background:#eee; color:#666; padding:2px 7px; border-radius:99px; font-weight:700; }
     .tray-add-row { display:flex; gap:6px; margin-top:10px; }
-    .tray-add-input { flex:1; padding:9px 12px; border:1px solid #ddd; border-radius:8px; font-size:13px; font-family:inherit; color:#333; outline:none; }
+    .tray-add-input { flex:1; padding:9px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; font-family:inherit; color:#333; outline:none; }
     .tray-add-input:focus { border-color:#8e9eab; }
-    .tray-add-btn { padding:9px 14px; background:#8e9eab; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; transition:background .15s; }
+    .tray-add-btn { padding:9px 14px; background:#8e9eab; color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; transition:background .15s; }
     .tray-add-btn:hover { background:#717d7e; }
 
     /* ── 4象限グリッド ── */
-    .axis-labels { display:grid; grid-template-columns:80px 1fr 1fr; grid-template-rows:auto 1fr 1fr; gap:8px; max-width:960px; margin:0 auto; }
-    .label-urgent,.label-not-urgent { text-align:center; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; padding:6px 0; border-radius:6px; }
+    .axis-labels { display:grid; grid-template-columns:72px 1fr 1fr; grid-template-rows:auto 1fr 1fr; gap:8px; max-width:960px; margin:0 auto; }
+    .label-urgent,.label-not-urgent { text-align:center; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; padding:6px 0; border-radius:6px; }
     .label-urgent     { background:#ffeaea; color:#c0392b; }
     .label-not-urgent { background:#eaf2ff; color:#2980b9; }
-    .label-important,.label-not-important { display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; letter-spacing:.08em; writing-mode:vertical-rl; text-orientation:mixed; border-radius:6px; padding:8px 6px; }
+    .label-important,.label-not-important { display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; letter-spacing:.08em; writing-mode:vertical-rl; text-orientation:mixed; border-radius:6px; padding:8px 6px; }
     .label-important     { background:#eafaf1; color:#1e8449; }
     .label-not-important { background:#fdf5e6; color:#b7770d; }
-    .quadrant { background:#fff; border-radius:12px; padding:14px; min-height:220px; box-shadow:0 2px 8px rgba(0,0,0,.06); display:flex; flex-direction:column; transition:box-shadow .2s; }
+    .quadrant { background:#fff; border-radius:12px; padding:14px; min-height:200px; box-shadow:0 2px 8px rgba(0,0,0,.06); display:flex; flex-direction:column; transition:box-shadow .2s; }
     .quadrant:hover { box-shadow:0 4px 16px rgba(0,0,0,.1); }
     .quadrant-header { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
-    .quadrant-icon  { font-size:18px; }
-    .quadrant-title { font-size:12px; font-weight:700; color:#333; }
-    .quadrant-hint  { font-size:10px; color:#aaa; margin-top:1px; }
+    .quadrant-icon  { font-size:20px; }
+    .quadrant-title { font-size:13px; font-weight:700; color:#333; }
+    .quadrant-hint  { font-size:11px; color:#aaa; margin-top:1px; }
     .task-list { flex:1; display:flex; flex-direction:column; gap:5px; min-height:36px; }
-    .task-item { display:flex; align-items:flex-start; gap:8px; padding:7px 9px; border-radius:8px; background:#f9f9f9; border:1px solid #eee; transition:background .15s; cursor:grab; }
-    .task-item:active { cursor:grabbing; }
+    .task-item { display:flex; align-items:flex-start; gap:8px; padding:8px 10px; border-radius:8px; background:#f9f9f9; border:1px solid #eee; transition:background .15s; cursor:pointer; }
     .task-item:hover { background:#f0f0f0; }
     .task-item.done { opacity:.45; }
     .task-item.done .task-text { text-decoration:line-through; }
-    .task-check { width:16px; height:16px; min-width:16px; border:2px solid #ccc; border-radius:50%; cursor:pointer; margin-top:1px; display:flex; align-items:center; justify-content:center; transition:background .15s,border-color .15s; }
-    .task-check-inner { width:6px; height:6px; border-radius:50%; background:white; display:none; }
+    .task-check { width:18px; height:18px; min-width:18px; border:2px solid #ccc; border-radius:50%; cursor:pointer; margin-top:2px; display:flex; align-items:center; justify-content:center; transition:background .15s,border-color .15s; flex-shrink:0; }
+    .task-check-inner { width:7px; height:7px; border-radius:50%; background:white; display:none; }
     .task-item.done .task-check-inner { display:block; }
-    .task-text   { flex:1; font-size:12px; color:#333; line-height:1.4; word-break:break-all; }
-    .task-delete { background:none; border:none; cursor:pointer; color:#ccc; font-size:13px; padding:0 2px; line-height:1; transition:color .15s; flex-shrink:0; }
+    .task-text-wrap { flex:1; min-width:0; }
+    .task-text   { font-size:14px; color:#333; line-height:1.4; word-break:break-all; }
+    .task-badges { display:flex; gap:4px; flex-wrap:wrap; margin-top:3px; }
+    .task-delete { background:none; border:none; cursor:pointer; color:#ccc; font-size:14px; padding:0 2px; line-height:1; transition:color .15s; flex-shrink:0; }
     .task-delete:hover { color:#e74c3c; }
     .add-task-row  { display:flex; gap:6px; margin-top:8px; }
-    .add-task-input { flex:1; padding:7px 9px; border:1px solid #ddd; border-radius:8px; font-size:12px; font-family:inherit; color:#333; outline:none; }
-    .add-task-btn  { padding:7px 11px; color:white; border:none; border-radius:8px; font-size:12px; cursor:pointer; font-weight:600; transition:background .15s; }
+    .add-task-input { flex:1; padding:8px 10px; border:1px solid #ddd; border-radius:8px; font-size:13px; font-family:inherit; color:#333; outline:none; }
+    .add-task-btn  { padding:8px 12px; color:white; border:none; border-radius:8px; font-size:13px; cursor:pointer; font-weight:600; transition:background .15s; }
     .add-task-btn:disabled { opacity:.5; cursor:not-allowed; }
-    .empty-hint { font-size:11px; color:#ccc; text-align:center; padding:14px 0; }
+    .empty-hint { font-size:12px; color:#ccc; text-align:center; padding:14px 0; }
     .q1 { border-top:3px solid #e74c3c; } .q2 { border-top:3px solid #27ae60; }
     .q3 { border-top:3px solid #e67e22; } .q4 { border-top:3px solid #95a5a6; }
     .q1 .task-check:hover,.q1 .task-item.done .task-check { background:#e74c3c; border-color:#e74c3c; }
@@ -99,163 +116,216 @@
     .sortable-chosen { box-shadow:0 6px 18px rgba(0,0,0,.18); transform:scale(1.02); }
     .sortable-drag   { opacity:0; }
 
+    /* ── ステータスバッジ ── */
+    .status-badge { font-size:11px; font-weight:700; padding:3px 8px; border-radius:99px; white-space:nowrap; }
+    .status-pending      { background:#fef3e2; color:#e67e22; }
+    .status-accepted     { background:#eaf2ff; color:#2980b9; }
+    .status-disputed     { background:#ffeaea; color:#e74c3c; }
+    .status-done-pending { background:#f0e6ff; color:#8e44ad; }
+    .status-confirmed    { background:#eafaf1; color:#27ae60; }
+
+    /* ── 配布したタスクセクション ── */
+    .assigned-out-section { max-width:960px; margin:16px auto 0; background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.06); overflow:hidden; border-top:3px solid #8e44ad; }
+    .assigned-out-header  { display:flex; align-items:center; gap:8px; padding:14px 16px; cursor:pointer; user-select:none; }
+    .assigned-out-header:hover { background:#fafafa; }
+    .assigned-out-header-title { font-size:15px; font-weight:700; color:#444; flex:1; }
+    .assigned-out-count   { font-size:12px; background:#eee; color:#666; padding:2px 8px; border-radius:99px; font-weight:700; }
+    .assigned-out-list    { padding:0 16px 12px; }
+    .ao-item { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid #f5f5f5; }
+    .ao-item:last-child { border-bottom:none; }
+    .ao-info { flex:1; min-width:0; }
+    .ao-text { font-size:14px; font-weight:600; color:#333; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .ao-to   { font-size:12px; color:#888; margin-top:2px; }
+    .ao-actions { display:flex; gap:6px; flex-shrink:0; align-items:center; }
+
     /* ── 定型タスクセクション ── */
-    .recurring-section { max-width:960px; margin:28px auto 0; }
+    .recurring-section { max-width:960px; margin:24px auto 0; }
     .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px; }
-    .section-title  { font-size:16px; font-weight:700; color:#1a1a2e; }
+    .section-title  { font-size:17px; font-weight:700; color:#1a1a2e; }
     .section-actions { display:flex; gap:8px; flex-wrap:wrap; }
     .rec-card { background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.06); overflow:hidden; }
 
     /* 月ナビ */
     .cal-nav { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; }
-    .cal-nav-btn { width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,.2); border:none; color:#fff; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s; }
+    .cal-nav-btn { width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,.2); border:none; color:#fff; font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s; }
     .cal-nav-btn:hover { background:rgba(255,255,255,.35); }
     .cal-nav-center { text-align:center; }
-    .cal-nav-label { font-size:16px; font-weight:700; }
-    .cal-nav-sub   { font-size:11px; opacity:.85; margin-top:2px; }
+    .cal-nav-label { font-size:17px; font-weight:700; }
+    .cal-nav-sub   { font-size:12px; opacity:.85; margin-top:2px; }
 
     /* インスタンスリスト */
-    .cal-section-label { font-size:11px; font-weight:700; color:#aaa; text-transform:uppercase; letter-spacing:.08em; padding:10px 18px 4px; }
-    .inst-item { display:flex; align-items:center; gap:10px; padding:12px 18px; border-bottom:1px solid #f5f5f5; cursor:pointer; transition:background .15s; }
+    .cal-section-label { font-size:12px; font-weight:700; color:#aaa; text-transform:uppercase; letter-spacing:.08em; padding:10px 18px 4px; }
+    .inst-item { display:flex; align-items:center; gap:10px; padding:13px 18px; border-bottom:1px solid #f5f5f5; cursor:pointer; transition:background .15s; }
     .inst-item:last-child { border-bottom:none; }
     .inst-item:hover { background:#fafafa; }
     .inst-item.done-inst { opacity:.55; }
     .inst-item.done-inst .inst-name { text-decoration:line-through; }
-    .inst-check { width:22px; height:22px; min-width:22px; border:2px solid #ddd; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .15s; flex-shrink:0; }
-    .inst-check-inner { width:8px; height:8px; border-radius:50%; background:#fff; display:none; }
+    .inst-check { width:24px; height:24px; min-width:24px; border:2px solid #ddd; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .15s; flex-shrink:0; }
+    .inst-check-inner { width:9px; height:9px; border-radius:50%; background:#fff; display:none; }
     .inst-item.done-inst .inst-check { background:#27ae60; border-color:#27ae60; }
     .inst-item.done-inst .inst-check-inner { display:block; }
-    .inst-name { font-size:13px; font-weight:600; color:#333; flex:1; }
+    .inst-name { font-size:14px; font-weight:600; color:#333; flex:1; }
     .inst-meta { display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex-shrink:0; }
-    .inst-sub-progress { font-size:10px; color:#aaa; }
-    .inst-arrow { font-size:14px; color:#ccc; margin-left:4px; flex-shrink:0; }
-    .cal-empty { text-align:center; color:#ccc; font-size:12px; padding:28px; }
+    .inst-sub-progress { font-size:11px; color:#aaa; }
+    .inst-arrow { font-size:15px; color:#ccc; margin-left:4px; flex-shrink:0; }
+    .cal-empty { text-align:center; color:#ccc; font-size:13px; padding:28px; }
 
     /* 締切バッジ */
-    .rt-deadline-badge { font-size:10px; font-weight:700; padding:2px 7px; border-radius:99px; white-space:nowrap; }
+    .rt-deadline-badge { font-size:11px; font-weight:700; padding:2px 7px; border-radius:99px; white-space:nowrap; }
     .deadline-ok     { background:#eafaf1; color:#1e8449; }
     .deadline-soon   { background:#fdf5e6; color:#b7770d; }
     .deadline-urgent { background:#ffeaea; color:#c0392b; }
     .deadline-past   { background:#f2f3f4; color:#888; }
 
-    /* タブ */
-    .rec-tabs { display:flex; border-bottom:1px solid #eee; background:#fafafa; }
-    .rec-tab  { flex:1; padding:10px; font-size:12px; font-weight:600; color:#999; cursor:pointer; border-bottom:2px solid transparent; background:none; border-top:none; border-left:none; border-right:none; font-family:inherit; transition:color .15s,border-color .15s; }
-    .rec-tab.active { color:#667eea; border-bottom-color:#667eea; }
-    .rec-tab-content { display:none; padding:16px 18px; }
-    .rec-tab-content.active { display:block; }
-
-    /* マスタ一覧 */
-    .master-item { display:flex; align-items:center; gap:10px; padding:12px 0; border-bottom:1px solid #f5f5f5; }
-    .master-item:last-child { border-bottom:none; }
-    .master-info { flex:1; min-width:0; }
-    .master-name     { font-size:13px; font-weight:700; color:#333; }
-    .master-schedule { font-size:11px; color:#aaa; margin-top:2px; }
-    .master-shared-badge { font-size:10px; background:#eaf2ff; color:#2980b9; padding:1px 6px; border-radius:99px; font-weight:700; }
-    .master-actions { display:flex; gap:6px; flex-shrink:0; }
-    .btn-icon { background:none; border:1px solid #eee; border-radius:6px; padding:4px 8px; font-size:11px; cursor:pointer; color:#666; font-family:inherit; transition:all .15s; }
-    .btn-icon:hover { background:#f0f0f0; border-color:#ccc; }
-    .btn-icon.danger:hover { background:#ffeaea; border-color:#e74c3c; color:#e74c3c; }
-
-    /* ── インスタンス詳細（ボトムシート） ── */
+    /* ── ボトムシート共通 ── */
     .bottom-sheet { position:fixed; inset:0; z-index:1100; background:rgba(0,0,0,.45); display:none; align-items:flex-end; justify-content:center; }
     .bottom-sheet.open { display:flex; }
-    .bottom-sheet-content { background:#fff; width:100%; max-height:88vh; border-radius:20px 20px 0 0; overflow-y:auto; padding:16px 20px 40px; }
+    .bottom-sheet-content { background:#fff; width:100%; max-height:92vh; border-radius:20px 20px 0 0; overflow-y:auto; padding:16px 20px 44px; }
     .bottom-sheet-handle { width:36px; height:4px; background:#ddd; border-radius:2px; margin:0 auto 16px; }
-    .detail-title    { font-size:16px; font-weight:700; color:#1a1a2e; margin-bottom:6px; flex:1; }
+    .detail-title    { font-size:17px; font-weight:700; color:#1a1a2e; margin-bottom:6px; flex:1; }
     .detail-meta     { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
     .detail-section  { margin-bottom:18px; }
-    .detail-sec-label { font-size:11px; font-weight:700; color:#aaa; text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; }
+    .detail-sec-label { font-size:12px; font-weight:700; color:#aaa; text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; }
     .subtask-detail-item { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #f5f5f5; }
     .subtask-detail-item:last-child { border-bottom:none; }
-    .subtask-chk { width:20px; height:20px; min-width:20px; border:2px solid #ddd; border-radius:4px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff; transition:all .15s; }
+    .subtask-chk { width:22px; height:22px; min-width:22px; border:2px solid #ddd; border-radius:5px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:13px; color:#fff; transition:all .15s; flex-shrink:0; }
     .subtask-chk.checked { background:#27ae60; border-color:#27ae60; }
-    .subtask-chk-text { font-size:13px; color:#333; flex:1; line-height:1.4; }
+    .subtask-chk-text { font-size:14px; color:#333; flex:1; line-height:1.4; }
     .subtask-chk-text.done { text-decoration:line-through; opacity:.5; }
-    .detail-memo-input { width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:13px; font-family:inherit; color:#333; outline:none; resize:vertical; min-height:72px; }
+    .detail-memo-input { width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; font-family:inherit; color:#333; outline:none; resize:vertical; min-height:72px; }
     .detail-memo-input:focus { border-color:#667eea; }
-    .detail-url-link { display:flex; align-items:center; gap:6px; padding:10px 12px; background:#f0f1ff; border-radius:8px; color:#667eea; font-size:13px; font-weight:600; text-decoration:none; word-break:break-all; }
+    .detail-url-link { display:flex; align-items:center; gap:6px; padding:10px 12px; background:#f0f1ff; border-radius:8px; color:#667eea; font-size:14px; font-weight:600; text-decoration:none; word-break:break-all; }
     .detail-url-link:hover { background:#e0e2ff; }
     .file-item { display:flex; align-items:center; gap:10px; padding:9px 12px; background:#f9f9f9; border-radius:8px; border:1px solid #eee; margin-bottom:6px; }
-    .file-icon { font-size:20px; flex-shrink:0; }
+    .file-icon { font-size:22px; flex-shrink:0; }
     .file-info { flex:1; min-width:0; }
-    .file-name { font-size:12px; font-weight:600; color:#333; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .file-size { font-size:10px; color:#aaa; }
-    .btn-file-del  { background:none; border:none; color:#ccc; cursor:pointer; font-size:16px; transition:color .15s; flex-shrink:0; }
+    .file-name { font-size:13px; font-weight:600; color:#333; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .file-size { font-size:11px; color:#aaa; }
+    .btn-file-del  { background:none; border:none; color:#ccc; cursor:pointer; font-size:17px; transition:color .15s; flex-shrink:0; }
     .btn-file-del:hover { color:#e74c3c; }
-    .btn-file-dl   { background:none; border:1px solid #ddd; border-radius:6px; padding:4px 8px; font-size:11px; color:#4a90d9; cursor:pointer; text-decoration:none; transition:all .15s; flex-shrink:0; }
+    .btn-file-dl   { background:none; border:1px solid #ddd; border-radius:6px; padding:4px 9px; font-size:12px; color:#4a90d9; cursor:pointer; text-decoration:none; transition:all .15s; flex-shrink:0; }
     .btn-file-dl:hover { background:#eaf2ff; }
-    .btn-upload { display:flex; align-items:center; justify-content:center; gap:6px; width:100%; padding:10px; background:#f9f9f9; border:1.5px dashed #ddd; border-radius:8px; font-size:12px; font-weight:700; color:#888; cursor:pointer; font-family:inherit; transition:all .15s; margin-top:4px; }
+    .btn-upload { display:flex; align-items:center; justify-content:center; gap:6px; width:100%; padding:11px; background:#f9f9f9; border:1.5px dashed #ddd; border-radius:8px; font-size:13px; font-weight:700; color:#888; cursor:pointer; font-family:inherit; transition:all .15s; margin-top:4px; }
     .btn-upload:hover { background:#f0f1ff; border-color:#667eea; color:#667eea; }
-    .btn-done-toggle { width:100%; padding:13px; border-radius:10px; border:none; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; transition:all .15s; margin-top:8px; }
+    .btn-done-toggle { width:100%; padding:14px; border-radius:10px; border:none; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; transition:all .15s; margin-top:10px; }
     .btn-done-toggle.incomplete { background:#27ae60; color:#fff; }
     .btn-done-toggle.incomplete:hover { background:#1e8449; }
     .btn-done-toggle.complete { background:#f2f3f4; color:#888; }
     .btn-done-toggle.complete:hover { background:#e8e8e8; }
 
-    /* ── 共有設定 ── */
+    /* ── タスク詳細シート固有 ── */
+    .td-name-input { width:100%; font-size:17px; font-weight:700; color:#1a1a2e; border:none; border-bottom:2px solid transparent; outline:none; padding:0 0 4px; font-family:inherit; background:transparent; transition:border-color .2s; }
+    .td-name-input:focus { border-bottom-color:#667eea; }
+    .td-assigner-row { background:#fffbf0; border:1px solid #fde68a; border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:13px; color:#7d5a00; }
+    .td-assigner-label { font-weight:700; margin-bottom:3px; }
+    .quadrant-sel-row { display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 16px; }
+    .qsel-btn { padding:6px 11px; border-radius:7px; border:2px solid #eee; background:#fafafa; font-size:12px; font-weight:700; cursor:pointer; transition:all .15s; color:#999; font-family:inherit; }
+    .qsel-btn:hover { border-color:#bbb; color:#666; }
+    .qsel-tray.active  { border-color:#8e9eab; color:#555; background:#f5f6f7; }
+    .qsel-q1.active    { border-color:#e74c3c; color:#e74c3c; background:#ffeaea; }
+    .qsel-q2.active    { border-color:#27ae60; color:#27ae60; background:#eafaf1; }
+    .qsel-q3.active    { border-color:#e67e22; color:#e67e22; background:#fef3e2; }
+    .qsel-q4.active    { border-color:#95a5a6; color:#95a5a6; background:#f2f3f4; }
+    .form-field { width:100%; padding:9px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; font-family:inherit; color:#333; outline:none; transition:border-color .2s; }
+    .form-field:focus { border-color:#667eea; }
+    .subtask-add-row { display:flex; gap:6px; margin-top:6px; }
+    .subtask-add-input { flex:1; padding:8px 10px; border:1px solid #ddd; border-radius:7px; font-size:13px; font-family:inherit; outline:none; }
+    .subtask-add-input:focus { border-color:#667eea; }
+    .btn-subtask-add { padding:8px 12px; background:#667eea; color:#fff; border:none; border-radius:7px; font-size:13px; cursor:pointer; transition:background .15s; }
+    .btn-subtask-add:hover { background:#5a6fd6; }
+    .td-assign-section { margin-top:6px; }
+    .assign-row { display:flex; gap:8px; margin-top:6px; }
+    .btn-td-assign { padding:9px 16px; background:#8e44ad; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; transition:background .15s; white-space:nowrap; }
+    .btn-td-assign:hover { background:#7d3c98; }
+    .td-delete-btn { width:100%; margin-top:8px; padding:11px; background:none; border:1.5px solid #e74c3c; color:#e74c3c; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; transition:all .15s; }
+    .td-delete-btn:hover { background:#ffeaea; }
+
+    /* ── マスタ設定オーバーレイ ── */
+    .master-overlay { position:fixed; inset:0; z-index:1200; background:#fff; overflow-y:auto; display:none; flex-direction:column; }
+    .master-overlay.open { display:flex; }
+    .master-overlay-header { position:sticky; top:0; background:#fff; border-bottom:1px solid #eee; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; z-index:10; flex-wrap:wrap; gap:8px; }
+    .master-overlay-title { font-size:18px; font-weight:700; color:#1a1a2e; }
+    .master-overlay-header-actions { display:flex; gap:8px; }
+    .master-overlay-body { padding:0 20px 40px; flex:1; }
+    .mo-tabs { display:flex; border-bottom:1px solid #eee; margin-bottom:16px; }
+    .mo-tab  { flex:1; padding:12px; font-size:13px; font-weight:600; color:#999; cursor:pointer; border-bottom:2px solid transparent; background:none; border-top:none; border-left:none; border-right:none; font-family:inherit; transition:color .15s; }
+    .mo-tab.active { color:#667eea; border-bottom-color:#667eea; }
+
+    /* マスタ一覧 */
+    .master-item { display:flex; align-items:center; gap:10px; padding:13px 0; border-bottom:1px solid #f5f5f5; }
+    .master-item:last-child { border-bottom:none; }
+    .master-info { flex:1; min-width:0; }
+    .master-name     { font-size:14px; font-weight:700; color:#333; }
+    .master-schedule { font-size:12px; color:#aaa; margin-top:2px; }
+    .master-shared-badge { font-size:11px; background:#eaf2ff; color:#2980b9; padding:1px 6px; border-radius:99px; font-weight:700; }
+    .master-actions { display:flex; gap:6px; flex-shrink:0; }
+    .btn-icon { background:none; border:1px solid #eee; border-radius:6px; padding:5px 9px; font-size:12px; cursor:pointer; color:#666; font-family:inherit; transition:all .15s; }
+    .btn-icon:hover { background:#f0f0f0; border-color:#ccc; }
+    .btn-icon.danger:hover { background:#ffeaea; border-color:#e74c3c; color:#e74c3c; }
+
+    /* 共有設定 */
     .share-user-item { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid #f5f5f5; }
     .share-user-item:last-child { border-bottom:none; }
-    .share-avatar { width:30px; height:30px; background:#667eea; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; font-weight:700; flex-shrink:0; }
-    .share-user-name { font-size:13px; color:#333; flex:1; font-weight:600; }
+    .share-avatar { width:32px; height:32px; background:#667eea; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; font-weight:700; flex-shrink:0; }
+    .share-user-name { font-size:14px; color:#333; flex:1; font-weight:600; }
     .share-add-row { display:flex; gap:8px; margin-top:12px; }
 
     /* ── 汎用モーダル ── */
-    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; align-items:center; justify-content:center; }
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1300; align-items:center; justify-content:center; }
     .modal-overlay.open { display:flex; }
     .modal { background:#fff; border-radius:14px; padding:24px; width:500px; max-width:95vw; max-height:90vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,.18); }
-    .modal-title { font-size:16px; font-weight:700; color:#1a1a2e; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center; }
-    .modal-close { background:none; border:none; cursor:pointer; font-size:20px; color:#aaa; line-height:1; }
+    .modal-title { font-size:17px; font-weight:700; color:#1a1a2e; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center; }
+    .modal-close { background:none; border:none; cursor:pointer; font-size:22px; color:#aaa; line-height:1; }
     .modal-close:hover { color:#333; }
     .form-group { margin-bottom:14px; }
-    .form-label { display:block; font-size:12px; font-weight:700; color:#555; margin-bottom:5px; }
-    .form-input,.form-select { width:100%; padding:8px 11px; border:1px solid #ddd; border-radius:8px; font-size:13px; font-family:inherit; color:#333; outline:none; transition:border-color .2s; }
+    .form-label { display:block; font-size:13px; font-weight:700; color:#555; margin-bottom:5px; }
+    .form-input,.form-select { width:100%; padding:9px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; font-family:inherit; color:#333; outline:none; transition:border-color .2s; }
     .form-input:focus,.form-select:focus { border-color:#667eea; }
     .form-row { display:flex; gap:10px; }
     .form-row .form-group { flex:1; }
     .type-tabs { display:flex; gap:8px; margin-bottom:18px; }
-    .type-tab  { flex:1; padding:8px; text-align:center; border:2px solid #eee; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; transition:all .15s; color:#999; background:#fafafa; }
+    .type-tab  { flex:1; padding:9px; text-align:center; border:2px solid #eee; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; transition:all .15s; color:#999; background:#fafafa; }
     .type-tab.active { border-color:#667eea; color:#667eea; background:#f0f1ff; }
     .form-footer { display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
     .subtask-input-row { display:flex; gap:6px; margin-bottom:6px; align-items:center; }
-    .subtask-input-row input { flex:1; padding:7px 10px; border:1px solid #ddd; border-radius:7px; font-size:12px; font-family:inherit; outline:none; }
+    .subtask-input-row input { flex:1; padding:8px 10px; border:1px solid #ddd; border-radius:7px; font-size:13px; font-family:inherit; outline:none; }
     .subtask-input-row input:focus { border-color:#667eea; }
-    .btn-remove-sub { background:none; border:none; color:#ccc; cursor:pointer; font-size:18px; line-height:1; transition:color .15s; }
+    .btn-remove-sub { background:none; border:none; color:#ccc; cursor:pointer; font-size:19px; line-height:1; transition:color .15s; }
     .btn-remove-sub:hover { color:#e74c3c; }
-    .btn-add-sub { width:100%; padding:7px; background:none; border:1.5px dashed #ddd; border-radius:7px; font-size:12px; color:#aaa; cursor:pointer; font-family:inherit; transition:all .15s; }
+    .btn-add-sub { width:100%; padding:8px; background:none; border:1.5px dashed #ddd; border-radius:7px; font-size:13px; color:#aaa; cursor:pointer; font-family:inherit; transition:all .15s; }
     .btn-add-sub:hover { border-color:#667eea; color:#667eea; }
 
     /* ── ボタン共通 ── */
-    .btn-secondary { padding:7px 14px; background:#fff; border:1px solid #ddd; border-radius:8px; font-size:12px; cursor:pointer; font-family:inherit; color:#555; font-weight:600; transition:background .15s,border-color .15s; }
+    .btn-secondary { padding:8px 15px; background:#fff; border:1px solid #ddd; border-radius:8px; font-size:13px; cursor:pointer; font-family:inherit; color:#555; font-weight:600; transition:background .15s,border-color .15s; }
     .btn-secondary:hover { background:#f0f0f0; border-color:#bbb; }
-    .btn-primary { padding:7px 16px; background:#4a90d9; border:none; border-radius:8px; font-size:12px; cursor:pointer; font-family:inherit; color:#fff; font-weight:600; transition:background .15s; }
+    .btn-primary { padding:8px 17px; background:#4a90d9; border:none; border-radius:8px; font-size:13px; cursor:pointer; font-family:inherit; color:#fff; font-weight:600; transition:background .15s; }
     .btn-primary:hover { background:#357abd; } .btn-primary:disabled { opacity:.5; cursor:not-allowed; }
 
     /* ── バックアップ ── */
     .backup-bar { max-width:960px; margin:20px auto 0; background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.06); padding:14px 20px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-    .backup-bar-label { font-size:13px; font-weight:700; color:#444; flex:1; min-width:120px; }
-    .backup-bar-label span { font-size:11px; color:#aaa; font-weight:400; margin-left:6px; }
+    .backup-bar-label { font-size:14px; font-weight:700; color:#444; flex:1; min-width:120px; }
+    .backup-bar-label span { font-size:12px; color:#aaa; font-weight:400; margin-left:6px; }
     .backup-actions { display:flex; gap:8px; flex-wrap:wrap; }
-    .btn-export { padding:7px 16px; background:#27ae60; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; transition:background .15s; }
+    .btn-export { padding:8px 17px; background:#27ae60; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; transition:background .15s; }
     .btn-export:hover { background:#1e8449; }
-    .btn-import { padding:7px 16px; background:#fff; color:#4a90d9; border:2px solid #4a90d9; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; transition:all .15s; }
+    .btn-import { padding:8px 17px; background:#fff; color:#4a90d9; border:2px solid #4a90d9; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; transition:all .15s; }
     .btn-import:hover { background:#eaf2ff; }
 
     /* ── トースト / ローディング ── */
-    .toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(20px); background:#1a1a2e; color:#fff; padding:10px 22px; border-radius:99px; font-size:13px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .25s,transform .25s; z-index:9999; white-space:nowrap; }
+    .toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(20px); background:#1a1a2e; color:#fff; padding:11px 24px; border-radius:99px; font-size:14px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .25s,transform .25s; z-index:9999; white-space:nowrap; }
     .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
     #loading-overlay { display:none; position:fixed; inset:0; background:rgba(255,255,255,.75); z-index:500; align-items:center; justify-content:center; flex-direction:column; gap:12px; }
     #loading-overlay.show { display:flex; }
-    .spinner { width:32px; height:32px; border:3px solid #eee; border-top-color:#667eea; border-radius:50%; animation:spin .7s linear infinite; }
+    .spinner { width:34px; height:34px; border:3px solid #eee; border-top-color:#667eea; border-radius:50%; animation:spin .7s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
-    .loading-text { font-size:13px; color:#888; }
-    .no-tasks-msg { text-align:center; color:#ccc; font-size:12px; padding:16px 0; }
-    .footer { text-align:center; margin-top:20px; font-size:11px; color:#bbb; }
+    .loading-text { font-size:14px; color:#888; }
+    .no-tasks-msg { text-align:center; color:#ccc; font-size:13px; padding:20px 0; }
+    .footer { text-align:center; margin-top:20px; font-size:12px; color:#bbb; }
 
     /* ── モバイル ── */
     @media (max-width: 767px) {
-      #app { padding:12px 16px 60px; }
-      h1   { font-size:17px; }
+      #app { padding:12px 14px 60px; }
+      h1   { font-size:18px; }
       .axis-labels { grid-template-columns:1fr; grid-template-rows:none; }
       .label-urgent,.label-not-urgent,.label-important,.label-not-important { display:none; }
       .quadrant { min-height:auto; }
@@ -263,7 +333,7 @@
     }
     @media (min-width: 768px) {
       .bottom-sheet { align-items:center; }
-      .bottom-sheet-content { border-radius:14px; max-width:520px; width:90%; max-height:82vh; }
+      .bottom-sheet-content { border-radius:14px; max-width:540px; width:90%; max-height:84vh; }
       .bottom-sheet-handle { display:none; }
     }
   </style>
@@ -295,10 +365,21 @@
   <h1>📋 タスク管理マトリクス</h1>
   <p class="subtitle">アイゼンハワーの法則 — 緊急度 × 重要度で優先順位を整理</p>
 
+  <!-- 受信タスク（承認待ち） -->
+  <div class="received-section" id="received-section" style="display:none;">
+    <div class="received-header">
+      <span style="font-size:20px;">📩</span>
+      <span class="received-header-title">受信タスク</span>
+      <span class="received-count" id="received-count">0</span>
+      <span class="received-sub">承認または不服申請してください</span>
+    </div>
+    <div id="received-list"></div>
+  </div>
+
   <!-- タスクトレー -->
   <div class="tray-section">
     <div class="tray-header">
-      <span style="font-size:18px;">📥</span>
+      <span style="font-size:20px;">📥</span>
       <span class="tray-header-title">タスクトレー</span>
       <span class="tray-header-sub">ここに溜めて、あとで4象限に整理</span>
       <span class="tray-count" id="tray-count">0</span>
@@ -339,12 +420,24 @@
     </div>
   </div>
 
+  <!-- 配布したタスク -->
+  <div class="assigned-out-section" id="assigned-out-section" style="display:none;">
+    <div class="assigned-out-header" onclick="toggleAssignedOut()">
+      <span style="font-size:20px;">📤</span>
+      <span class="assigned-out-header-title">配布したタスク</span>
+      <span class="assigned-out-count" id="assigned-out-count">0</span>
+      <span id="assigned-out-chevron" style="color:#aaa;font-size:13px;margin-left:4px;">▼</span>
+    </div>
+    <div id="assigned-out-list" style="display:none;"></div>
+  </div>
+
   <!-- 定型タスク -->
   <div class="recurring-section">
     <div class="section-header">
       <div class="section-title">📅 定型タスク</div>
       <div class="section-actions">
-        <button class="btn-secondary" onclick="openMasterModal()">＋ マスタを追加</button>
+        <button class="btn-secondary" onclick="openMasterOverlay()">⚙️ マスタ管理</button>
+        <button class="btn-secondary" onclick="openMasterModal()">＋ 追加</button>
       </div>
     </div>
     <div class="rec-card">
@@ -357,12 +450,6 @@
         <button class="cal-nav-btn" onclick="changeMonth(1)">▶</button>
       </div>
       <div id="cal-task-list"></div>
-      <div class="rec-tabs">
-        <button class="rec-tab active" onclick="switchRecTab('master')">マスタ管理</button>
-        <button class="rec-tab"        onclick="switchRecTab('share')">共有設定</button>
-      </div>
-      <div class="rec-tab-content active" id="rec-tab-master"></div>
-      <div class="rec-tab-content"        id="rec-tab-share"></div>
     </div>
   </div>
 
@@ -376,6 +463,148 @@
     </div>
   </div>
   <p class="footer">データは Supabase クラウドに保存されています</p>
+</div>
+
+<!-- ═══════════════════════ SHEETS & MODALS ═══════════════════════ -->
+
+<!-- タスク詳細 ボトムシート -->
+<div class="bottom-sheet" id="task-detail-sheet">
+  <div class="bottom-sheet-content">
+    <div class="bottom-sheet-handle"></div>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px;">
+      <input class="td-name-input" id="td-name" type="text" placeholder="タスク名" oninput="debounceTaskName()" />
+      <button class="modal-close" onclick="closeTaskDetail()" style="margin-top:2px;flex-shrink:0;">✕</button>
+    </div>
+
+    <!-- 象限セレクター -->
+    <div style="font-size:12px;font-weight:700;color:#aaa;margin-bottom:4px;">象限</div>
+    <div class="quadrant-sel-row">
+      <button class="qsel-btn qsel-tray" data-qid="tray"  onclick="selectQuadrant('tray')">📥 トレー</button>
+      <button class="qsel-btn qsel-q1"   data-qid="q1"   onclick="selectQuadrant('q1')">🚨 Q1</button>
+      <button class="qsel-btn qsel-q2"   data-qid="q2"   onclick="selectQuadrant('q2')">🎯 Q2</button>
+      <button class="qsel-btn qsel-q3"   data-qid="q3"   onclick="selectQuadrant('q3')">📨 Q3</button>
+      <button class="qsel-btn qsel-q4"   data-qid="q4"   onclick="selectQuadrant('q4')">🗑️ Q4</button>
+    </div>
+
+    <!-- 設定者情報 -->
+    <div class="td-assigner-row" id="td-assigner-row" style="display:none;">
+      <div class="td-assigner-label">📬 配布されたタスク</div>
+      <div id="td-assigner-name" style="font-size:13px;"></div>
+    </div>
+
+    <!-- 期限 -->
+    <div class="detail-section">
+      <div class="detail-sec-label">期限</div>
+      <input class="form-field" id="td-deadline" type="date" onchange="saveTaskDeadline()" />
+    </div>
+
+    <!-- サブタスク -->
+    <div class="detail-section">
+      <div class="detail-sec-label">
+        <span>サブタスク</span>
+        <span id="td-subtask-progress" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:12px;color:#aaa;"></span>
+      </div>
+      <div id="td-subtask-list"></div>
+      <div class="subtask-add-row">
+        <input class="subtask-add-input" id="td-new-subtask" type="text" placeholder="サブタスクを追加…" onkeydown="if(event.key==='Enter')addTaskSubtask()" />
+        <button class="btn-subtask-add" onclick="addTaskSubtask()">＋</button>
+      </div>
+    </div>
+
+    <!-- メモ -->
+    <div class="detail-section">
+      <div class="detail-sec-label">メモ</div>
+      <textarea class="detail-memo-input" id="td-memo" placeholder="メモを入力…" oninput="debounceTaskMemo()"></textarea>
+    </div>
+
+    <!-- URL -->
+    <div class="detail-section">
+      <div class="detail-sec-label">URL</div>
+      <input class="form-field" id="td-url" type="url" placeholder="https://..." oninput="debounceTaskUrl()" />
+    </div>
+
+    <!-- 添付ファイル -->
+    <div class="detail-section">
+      <div class="detail-sec-label">添付ファイル</div>
+      <div id="td-files"></div>
+      <button class="btn-upload" onclick="document.getElementById('td-file-input').click()">
+        📎 ファイルを追加（写真・PDF など）
+      </button>
+      <input type="file" id="td-file-input" multiple style="display:none;" onchange="handleTaskFileUpload(event)" />
+    </div>
+
+    <!-- 配布 -->
+    <div class="detail-section td-assign-section" id="td-assign-section">
+      <div class="detail-sec-label">このタスクを配布する</div>
+      <div class="assign-row">
+        <input class="form-field" id="td-assign-input" type="text" placeholder="相手の名前を入力" style="font-size:14px;" onkeydown="if(event.key==='Enter')assignTask()" />
+        <button class="btn-td-assign" onclick="assignTask()">配布する</button>
+      </div>
+    </div>
+
+    <button class="btn-done-toggle incomplete" id="td-done-btn" onclick="toggleCurrentTask()">完了にする</button>
+    <button class="td-delete-btn" onclick="deleteCurrentTask()">🗑 タスクを削除</button>
+  </div>
+</div>
+
+<!-- インスタンス詳細 ボトムシート -->
+<div class="bottom-sheet" id="instance-sheet">
+  <div class="bottom-sheet-content">
+    <div class="bottom-sheet-handle"></div>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;">
+      <div class="detail-title" id="detail-title"></div>
+      <button class="modal-close" onclick="closeInstanceSheet()" style="margin-top:-4px;">✕</button>
+    </div>
+    <div class="detail-meta" id="detail-meta"></div>
+
+    <div class="detail-section" id="detail-subtasks-section">
+      <div class="detail-sec-label">
+        <span>サブタスク</span>
+        <span id="detail-subtask-progress" style="font-weight:400;text-transform:none;letter-spacing:0;"></span>
+      </div>
+      <div id="detail-subtasks"></div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-sec-label">メモ（この回のみ）</div>
+      <textarea class="detail-memo-input" id="detail-memo" placeholder="この月特有のメモを入力…" oninput="debounceSaveMemo()"></textarea>
+    </div>
+
+    <div class="detail-section" id="detail-url-section" style="display:none;">
+      <div class="detail-sec-label">参考URL（マスタから継承）</div>
+      <a class="detail-url-link" id="detail-url-link" target="_blank" rel="noopener"></a>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-sec-label">添付ファイル</div>
+      <div id="detail-files"></div>
+      <button class="btn-upload" onclick="document.getElementById('file-upload-input').click()">
+        📎 ファイルを追加（写真・PDF など）
+      </button>
+      <input type="file" id="file-upload-input" multiple style="display:none;" onchange="handleFileUpload(event)" />
+    </div>
+
+    <button class="btn-done-toggle incomplete" id="detail-done-btn" onclick="toggleCurrentInstance()"></button>
+  </div>
+</div>
+
+<!-- マスタ設定オーバーレイ -->
+<div class="master-overlay" id="master-overlay">
+  <div class="master-overlay-header">
+    <div class="master-overlay-title">⚙️ 定型タスク マスタ管理</div>
+    <div class="master-overlay-header-actions">
+      <button class="btn-primary" onclick="openMasterModal()">＋ 追加</button>
+      <button class="modal-close" onclick="closeMasterOverlay()">✕</button>
+    </div>
+  </div>
+  <div class="master-overlay-body">
+    <div class="mo-tabs">
+      <button class="mo-tab active" data-tab="master" onclick="switchMoTab('master')">マスタ一覧</button>
+      <button class="mo-tab"        data-tab="share"  onclick="switchMoTab('share')">共有設定</button>
+    </div>
+    <div id="mo-tab-master"></div>
+    <div id="mo-tab-share" style="display:none;"></div>
+  </div>
 </div>
 
 <!-- マスタ追加/編集モーダル -->
@@ -428,44 +657,21 @@
   </div>
 </div>
 
-<!-- インスタンス詳細 ボトムシート -->
-<div class="bottom-sheet" id="instance-sheet">
-  <div class="bottom-sheet-content">
-    <div class="bottom-sheet-handle"></div>
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;">
-      <div class="detail-title" id="detail-title"></div>
-      <button class="modal-close" onclick="closeInstanceSheet()" style="margin-top:-4px;">✕</button>
+<!-- 不服申請モーダル -->
+<div class="modal-overlay" id="dispute-modal">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-title">
+      <span>📩 不服申請</span>
+      <button class="modal-close" onclick="closeDisputeModal()">✕</button>
     </div>
-    <div class="detail-meta" id="detail-meta"></div>
-
-    <div class="detail-section" id="detail-subtasks-section">
-      <div class="detail-sec-label">
-        <span>サブタスク</span>
-        <span id="detail-subtask-progress" style="font-weight:400;text-transform:none;letter-spacing:0;"></span>
-      </div>
-      <div id="detail-subtasks"></div>
+    <div class="form-group">
+      <label class="form-label">不服の理由を入力してください</label>
+      <textarea class="form-input detail-memo-input" id="dispute-reason-input" placeholder="理由を詳しく記入してください" rows="4" style="resize:vertical;"></textarea>
     </div>
-
-    <div class="detail-section">
-      <div class="detail-sec-label">メモ（この回のみ）</div>
-      <textarea class="detail-memo-input" id="detail-memo" placeholder="この月特有のメモを入力…" oninput="debounceSaveMemo()"></textarea>
+    <div class="form-footer">
+      <button class="btn-secondary" onclick="closeDisputeModal()">キャンセル</button>
+      <button class="btn-primary" style="background:#e74c3c;" onclick="submitDispute()">申請する</button>
     </div>
-
-    <div class="detail-section" id="detail-url-section" style="display:none;">
-      <div class="detail-sec-label">参考URL（マスタから継承）</div>
-      <a class="detail-url-link" id="detail-url-link" target="_blank" rel="noopener"></a>
-    </div>
-
-    <div class="detail-section">
-      <div class="detail-sec-label">添付ファイル</div>
-      <div id="detail-files"></div>
-      <button class="btn-upload" onclick="document.getElementById('file-upload-input').click()">
-        📎 ファイルを追加（写真・PDF など）
-      </button>
-      <input type="file" id="file-upload-input" multiple style="display:none;" onchange="handleFileUpload(event)" />
-    </div>
-
-    <button class="btn-done-toggle incomplete" id="detail-done-btn" onclick="toggleCurrentInstance()"></button>
   </div>
 </div>
 
@@ -481,13 +687,19 @@
   const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // ── State ─────────────────────────────────────────────────────
-  let currentUser    = null;
-  let tasks          = { tray:[], q1:[], q2:[], q3:[], q4:[] };
-  let recurringTasks = [];
-  let allInstances   = {};   // { masterId: { "year_month": instance } }
-  let shares         = {};   // { masterId: [{ id, user_id, name }] }
+  let currentUser       = null;
+  let tasks             = { tray:[], q1:[], q2:[], q3:[], q4:[] };
+  let receivedTasks     = [];   // tasks assigned TO me with status=pending
+  let assignedOutTasks  = [];   // tasks I assigned to others
+  let usersCache        = {};   // { userId: name }
+  let recurringTasks    = [];
+  let allInstances      = {};   // { masterId: { "year_month": instance } }
+  let shares            = {};   // { masterId: [{ id, user_id, name }] }
   let viewYear, viewMonth;
   let currentInstanceId = null;
+  let currentTaskId     = null;
+  let disputingTaskId   = null;
+  let assignedOutOpen   = false;
 
   // ── ローディング ──────────────────────────────────────────────
   function showLoading() { document.getElementById('loading-overlay').classList.add('show'); }
@@ -501,7 +713,11 @@
     const storedId = localStorage.getItem('tm_user_id');
     if (storedId) {
       const { data } = await sb.from('users').select('*').eq('id', storedId).maybeSingle();
-      if (data) { currentUser = data; await showApp(); hideLoading(); return; }
+      if (data) {
+        currentUser = data;
+        usersCache[data.id] = data.name;
+        await showApp(); hideLoading(); return;
+      }
       localStorage.removeItem('tm_user_id');
     }
     hideLoading();
@@ -523,7 +739,9 @@
       if (res.error) { errEl.textContent = '登録に失敗しました'; btn.disabled=false; btn.textContent='開始する'; return; }
       data = res.data; showToast('✅ アカウントを作成しました');
     } else { showToast(`👋 おかえりなさい、${data.name}さん`); }
-    currentUser = data; localStorage.setItem('tm_user_id', data.id);
+    currentUser = data;
+    usersCache[data.id] = data.name;
+    localStorage.setItem('tm_user_id', data.id);
     document.getElementById('login-screen').style.display = 'none';
     showLoading(); await showApp(); hideLoading();
     btn.disabled = false; btn.textContent = '開始する';
@@ -541,8 +759,11 @@
   function handleLogout() {
     if (!confirm('ログアウトしますか？')) return;
     localStorage.removeItem('tm_user_id');
-    currentUser = null; tasks = { tray:[], q1:[], q2:[], q3:[], q4:[] };
+    currentUser = null;
+    tasks = { tray:[], q1:[], q2:[], q3:[], q4:[] };
+    receivedTasks = []; assignedOutTasks = []; usersCache = {};
     recurringTasks = []; allInstances = {}; shares = {};
+    currentTaskId = null; currentInstanceId = null; assignedOutOpen = false;
     document.getElementById('app').style.display = 'none';
     document.getElementById('user-bar').style.display = 'none';
     document.getElementById('login-name').value = '';
@@ -550,49 +771,144 @@
     document.getElementById('login-name').focus();
   }
 
-  // ── 1-shot タスク ─────────────────────────────────────────────
+  // ── タスク読み込み ────────────────────────────────────────────
   const QUADRANTS = ['tray','q1','q2','q3','q4'];
 
   async function loadTasks() {
-    const { data } = await sb.from('tasks').select('*').eq('user_id', currentUser.id).order('created_at');
+    const [{ data: myTasks }, { data: outTasks }] = await Promise.all([
+      sb.from('tasks').select('*').eq('user_id', currentUser.id).order('created_at'),
+      sb.from('tasks').select('*').eq('assigner_id', currentUser.id).neq('user_id', currentUser.id).order('created_at')
+    ]);
+
     tasks = { tray:[], q1:[], q2:[], q3:[], q4:[] };
-    (data||[]).forEach(t => { if (tasks[t.quadrant]) tasks[t.quadrant].push(t); });
+    receivedTasks = [];
+
+    (myTasks||[]).forEach(t => {
+      if (t.approval_status === 'pending') {
+        receivedTasks.push(t);
+      } else if (tasks[t.quadrant] !== undefined) {
+        tasks[t.quadrant].push(t);
+      } else {
+        tasks.tray.push(t);
+      }
+    });
+
+    assignedOutTasks = outTasks || [];
+    await cacheUsersFromTasks([...receivedTasks, ...assignedOutTasks]);
+
     renderMatrix();
+    renderReceivedSection();
+    renderAssignedOutSection();
   }
 
+  async function cacheUsersFromTasks(taskList) {
+    const ids = new Set();
+    taskList.forEach(t => {
+      if (t.user_id) ids.add(t.user_id);
+      if (t.assigner_id) ids.add(t.assigner_id);
+    });
+    const uncached = [...ids].filter(id => id && !usersCache[id]);
+    if (!uncached.length) return;
+    const { data } = await sb.from('users').select('id, name').in('id', uncached);
+    (data||[]).forEach(u => { usersCache[u.id] = u.name; });
+  }
+
+  function findTask(taskId) {
+    for (const qid of QUADRANTS) {
+      const t = tasks[qid].find(t => t.id === taskId);
+      if (t) return t;
+    }
+    return null;
+  }
+
+  function findTaskQid(taskId) {
+    for (const qid of QUADRANTS) {
+      if (tasks[qid].find(t => t.id === taskId)) return qid;
+    }
+    return null;
+  }
+
+  // ── タスク追加 ────────────────────────────────────────────────
   async function addTask(qid) {
     const inp = document.getElementById('input-'+qid);
     const text = inp.value.trim(); if (!text) return;
     const btn = document.getElementById('btn-'+qid); btn.disabled = true;
-    const { data, error } = await sb.from('tasks').insert({ user_id:currentUser.id, quadrant:qid, text, done:false }).select().single();
+    const { data, error } = await sb.from('tasks').insert({
+      user_id: currentUser.id, quadrant: qid, text, done: false
+    }).select().single();
     btn.disabled = false;
     if (error) { showToast('❌ 保存に失敗しました'); return; }
-    tasks[qid].push(data); inp.value = ''; renderMatrix();
+    tasks[qid].push(data); inp.value = '';
+    renderMatrix();
   }
 
+  // ── タスク操作 ────────────────────────────────────────────────
   async function toggleTask(qid, id) {
-    const t = tasks[qid].find(t=>t.id===id); if (!t) return;
-    t.done = !t.done; renderMatrix();
-    const { error } = await sb.from('tasks').update({ done:t.done, updated_at:new Date().toISOString() }).eq('id',id);
-    if (error) { t.done=!t.done; renderMatrix(); showToast('❌ 更新に失敗しました'); }
+    const t = tasks[qid].find(t => t.id === id); if (!t) return;
+    t.done = !t.done;
+    renderMatrix();
+    const update = { done: t.done, updated_at: new Date().toISOString() };
+    // 配布されたタスクを完了→アサイナーに通知
+    if (t.assigner_id && t.assigner_id !== currentUser.id) {
+      update.approval_status = t.done ? 'done_pending' : 'accepted';
+      t.approval_status = update.approval_status;
+    }
+    const { error } = await sb.from('tasks').update(update).eq('id', id);
+    if (error) { t.done = !t.done; renderMatrix(); showToast('❌ 更新に失敗しました'); }
   }
 
   async function deleteTask(qid, id) {
-    const orig = [...tasks[qid]]; tasks[qid] = tasks[qid].filter(t=>t.id!==id); renderMatrix();
-    const { error } = await sb.from('tasks').delete().eq('id',id);
-    if (error) { tasks[qid]=orig; renderMatrix(); showToast('❌ 削除に失敗しました'); }
+    const orig = [...tasks[qid]];
+    tasks[qid] = tasks[qid].filter(t => t.id !== id);
+    renderMatrix();
+    const { error } = await sb.from('tasks').delete().eq('id', id);
+    if (error) { tasks[qid] = orig; renderMatrix(); showToast('❌ 削除に失敗しました'); }
+  }
+
+  // ── タスク描画 ────────────────────────────────────────────────
+  function taskDeadlineBadge(deadline) {
+    if (!deadline) return '';
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const target = new Date(deadline + 'T00:00:00');
+    const d = Math.ceil((target - today) / 86400000);
+    if (d < 0)  return `<span class="rt-deadline-badge deadline-past">期限切れ</span>`;
+    if (d === 0) return `<span class="rt-deadline-badge deadline-urgent">⚡ 本日</span>`;
+    if (d <= 3)  return `<span class="rt-deadline-badge deadline-urgent">🔴 あと${d}日</span>`;
+    if (d <= 7)  return `<span class="rt-deadline-badge deadline-soon">🟡 あと${d}日</span>`;
+    return `<span class="rt-deadline-badge deadline-ok">📅 ${deadline.slice(5)}</span>`;
+  }
+
+  function renderTaskItem(t, qid) {
+    const subs = Array.isArray(t.subtasks) ? t.subtasks : [];
+    const doneSubs = subs.filter(s => s.done).length;
+    const hasExtra = t.deadline || subs.length || t.memo || t.url || t.assigner_id;
+    const extraIcon = hasExtra ? '<span style="font-size:11px;color:#ccc;flex-shrink:0;margin-top:2px;">📋</span>' : '';
+    const fromBadge = t.assigner_id && t.assigner_id !== currentUser.id
+      ? `<span style="font-size:11px;color:#e67e22;background:#fef3e2;padding:1px 6px;border-radius:99px;font-weight:700;white-space:nowrap;">from ${esc(usersCache[t.assigner_id]||'?')}</span>` : '';
+    const dlBadge = taskDeadlineBadge(t.deadline);
+    const subProg = subs.length ? `<span style="font-size:11px;color:#aaa;">✓${doneSubs}/${subs.length}</span>` : '';
+    const badges = [fromBadge, dlBadge, subProg].filter(Boolean).join('');
+
+    return `<div class="task-item ${t.done?'done':''}" data-id="${t.id}" data-qid="${qid}" onclick="openTaskDetail(${t.id})">
+      <div class="task-check" onclick="event.stopPropagation();toggleTask('${qid}',${t.id})">
+        <div class="task-check-inner"></div>
+      </div>
+      <div class="task-text-wrap">
+        <span class="task-text">${esc(t.text)}</span>
+        ${badges ? `<div class="task-badges">${badges}</div>` : ''}
+      </div>
+      ${extraIcon}
+      <button class="task-delete" onclick="event.stopPropagation();deleteTask('${qid}',${t.id})">✕</button>
+    </div>`;
   }
 
   function renderMatrix() {
     QUADRANTS.forEach(qid => {
       const list = document.getElementById('list-'+qid); if (!list) return;
-      list.innerHTML = !tasks[qid].length ? '<div class="empty-hint">タスクなし</div>'
-        : tasks[qid].map(t=>`
-          <div class="task-item ${t.done?'done':''}" data-id="${t.id}" data-qid="${qid}">
-            <div class="task-check" onclick="toggleTask('${qid}',${t.id})"><div class="task-check-inner"></div></div>
-            <span class="task-text">${esc(t.text)}</span>
-            <button class="task-delete" onclick="deleteTask('${qid}',${t.id})">✕</button>
-          </div>`).join('');
+      list.innerHTML = !tasks[qid].length
+        ? '<div class="empty-hint">タスクなし</div>'
+        : tasks[qid].map(t => renderTaskItem(t, qid)).join('');
     });
     document.getElementById('tray-count').textContent = tasks.tray.length;
     initSortable();
@@ -600,142 +916,519 @@
 
   QUADRANTS.forEach(qid => {
     const inp = document.getElementById('input-'+qid);
-    if (inp) inp.addEventListener('keydown', e=>{ if (e.key==='Enter') addTask(qid); });
+    if (inp) inp.addEventListener('keydown', e => { if (e.key==='Enter') addTask(qid); });
   });
 
-  // ── ドラッグ＆ドロップ ───────────────────────────────────────
+  // ── ドラッグ＆ドロップ ────────────────────────────────────────
   let _sortables = [];
   function initSortable() {
-    _sortables.forEach(s=>s.destroy()); _sortables = [];
+    _sortables.forEach(s => s.destroy()); _sortables = [];
     QUADRANTS.forEach(qid => {
       const list = document.getElementById('list-'+qid); if (!list) return;
       _sortables.push(Sortable.create(list, {
-        group:'tasks', animation:150,
-        ghostClass:'sortable-ghost', chosenClass:'sortable-chosen', dragClass:'sortable-drag',
-        delay:50, delayOnTouchOnly:true,
+        group: 'tasks', animation: 150,
+        ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen', dragClass: 'sortable-drag',
+        delay: 50, delayOnTouchOnly: true,
         onAdd: async function(evt) {
-          const taskId=Number(evt.item.dataset.id), fromQid=evt.item.dataset.qid, toQid=qid;
-          if (fromQid===toQid) return;
-          const task=tasks[fromQid].find(t=>t.id===taskId); if (!task) return;
-          tasks[fromQid]=tasks[fromQid].filter(t=>t.id!==taskId); task.quadrant=toQid; tasks[toQid].push(task);
-          const { error }=await sb.from('tasks').update({ quadrant:toQid, updated_at:new Date().toISOString() }).eq('id',taskId);
-          if (error) { tasks[toQid]=tasks[toQid].filter(t=>t.id!==taskId); task.quadrant=fromQid; tasks[fromQid].push(task); showToast('❌ 移動に失敗しました'); }
+          const taskId = Number(evt.item.dataset.id);
+          const fromQid = evt.item.dataset.qid;
+          const toQid = qid;
+          if (fromQid === toQid) return;
+          const task = tasks[fromQid].find(t => t.id === taskId); if (!task) return;
+          tasks[fromQid] = tasks[fromQid].filter(t => t.id !== taskId);
+          task.quadrant = toQid; tasks[toQid].push(task);
+          const { error } = await sb.from('tasks').update({ quadrant: toQid, updated_at: new Date().toISOString() }).eq('id', taskId);
+          if (error) {
+            tasks[toQid] = tasks[toQid].filter(t => t.id !== taskId);
+            task.quadrant = fromQid; tasks[fromQid].push(task);
+            showToast('❌ 移動に失敗しました');
+          }
           renderMatrix();
         }
       }));
     });
   }
 
+  // ── 受信タスクセクション ──────────────────────────────────────
+  function renderReceivedSection() {
+    const sec = document.getElementById('received-section');
+    if (!receivedTasks.length) { sec.style.display = 'none'; return; }
+    sec.style.display = 'block';
+    document.getElementById('received-count').textContent = receivedTasks.length;
+    document.getElementById('received-list').innerHTML = receivedTasks.map(t => {
+      const fromName = usersCache[t.assigner_id] || '不明';
+      return `<div class="received-item">
+        <div class="received-from">from: ${esc(fromName)}</div>
+        <div class="received-text">${esc(t.text)}</div>
+        <div class="received-actions">
+          <button class="btn-approve" onclick="approveTask(${t.id})">✅ 承認してトレーへ</button>
+          <button class="btn-dispute-open" onclick="openDisputeModal(${t.id})">⚠️ 不服申請</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function approveTask(taskId) {
+    const t = receivedTasks.find(t => t.id === taskId); if (!t) return;
+    t.approval_status = 'accepted'; t.quadrant = 'tray';
+    receivedTasks = receivedTasks.filter(x => x.id !== taskId);
+    tasks.tray.push(t);
+    renderReceivedSection(); renderMatrix();
+    const { error } = await sb.from('tasks').update({
+      approval_status: 'accepted', quadrant: 'tray', updated_at: new Date().toISOString()
+    }).eq('id', taskId);
+    if (error) { showToast('❌ 承認に失敗しました'); await loadTasks(); }
+    else showToast('✅ タスクを承認しました');
+  }
+
+  function openDisputeModal(taskId) {
+    disputingTaskId = taskId;
+    document.getElementById('dispute-reason-input').value = '';
+    document.getElementById('dispute-modal').classList.add('open');
+    setTimeout(() => document.getElementById('dispute-reason-input').focus(), 50);
+  }
+
+  function closeDisputeModal() {
+    document.getElementById('dispute-modal').classList.remove('open');
+    disputingTaskId = null;
+  }
+
+  async function submitDispute() {
+    const reason = document.getElementById('dispute-reason-input').value.trim();
+    if (!reason) { showToast('⚠️ 不服の理由を入力してください'); return; }
+    const { error } = await sb.from('tasks').update({
+      approval_status: 'disputed', dispute_reason: reason, updated_at: new Date().toISOString()
+    }).eq('id', disputingTaskId);
+    if (error) { showToast('❌ 送信に失敗しました'); return; }
+    closeDisputeModal();
+    showToast('📩 不服申請を送信しました');
+    receivedTasks = receivedTasks.filter(t => t.id !== disputingTaskId);
+    renderReceivedSection();
+    await loadTasks();
+  }
+
+  // ── 配布したタスクセクション ──────────────────────────────────
+  const STATUS_LABEL = { pending:'承認待ち', accepted:'対応中', disputed:'不服申請中', done_pending:'完了確認待ち', confirmed:'確認済み' };
+  const STATUS_CLASS = { pending:'status-pending', accepted:'status-accepted', disputed:'status-disputed', done_pending:'status-done-pending', confirmed:'status-confirmed' };
+
+  function renderAssignedOutSection() {
+    const sec = document.getElementById('assigned-out-section');
+    const list = document.getElementById('assigned-out-list');
+    document.getElementById('assigned-out-count').textContent = assignedOutTasks.length;
+    if (!assignedOutTasks.length) { sec.style.display = 'none'; return; }
+    sec.style.display = 'block';
+    list.innerHTML = assignedOutTasks.map(t => {
+      const toName = usersCache[t.user_id] || '?';
+      const status = t.approval_status || 'accepted';
+      const sl = STATUS_LABEL[status] || status;
+      const sc = STATUS_CLASS[status] || '';
+      const actions = [];
+      if (status === 'done_pending') {
+        actions.push(`<button class="btn-approve" onclick="confirmDone(${t.id})" style="padding:6px 12px;font-size:13px;">確認済みにする</button>`);
+      }
+      if (status === 'pending' || status === 'disputed') {
+        actions.push(`<button class="btn-icon danger" onclick="cancelAssignment(${t.id})">取消</button>`);
+      }
+      return `<div class="ao-item">
+        <div class="ao-info">
+          <div class="ao-text">${esc(t.text)}</div>
+          <div class="ao-to">→ ${esc(toName)}${t.dispute_reason ? `<span style="color:#e74c3c;margin-left:6px;">理由: ${esc(t.dispute_reason)}</span>` : ''}</div>
+        </div>
+        <div class="ao-actions">
+          <span class="status-badge ${sc}">${sl}</span>
+          ${actions.join('')}
+        </div>
+      </div>`;
+    }).join('');
+    if (assignedOutOpen) list.style.display = 'block';
+  }
+
+  function toggleAssignedOut() {
+    assignedOutOpen = !assignedOutOpen;
+    const list = document.getElementById('assigned-out-list');
+    const chevron = document.getElementById('assigned-out-chevron');
+    list.style.display = assignedOutOpen ? 'block' : 'none';
+    chevron.textContent = assignedOutOpen ? '▲' : '▼';
+  }
+
+  async function confirmDone(taskId) {
+    const { error } = await sb.from('tasks').update({
+      approval_status: 'confirmed', updated_at: new Date().toISOString()
+    }).eq('id', taskId);
+    if (error) { showToast('❌ 確認に失敗しました'); return; }
+    showToast('✅ 完了を確認しました');
+    await loadTasks();
+  }
+
+  async function cancelAssignment(taskId) {
+    if (!confirm('このタスクの配布をキャンセルしますか？\nタスクが自分のトレーに戻ります。')) return;
+    const { error } = await sb.from('tasks').update({
+      user_id: currentUser.id, assigner_id: null, approval_status: null, quadrant: 'tray',
+      updated_at: new Date().toISOString()
+    }).eq('id', taskId);
+    if (error) { showToast('❌ キャンセルに失敗しました'); return; }
+    showToast('↩️ タスクをトレーに戻しました');
+    await loadTasks();
+  }
+
+  // ── タスク詳細シート ──────────────────────────────────────────
+  async function openTaskDetail(taskId) {
+    const t = findTask(taskId); if (!t) return;
+    currentTaskId = taskId;
+
+    document.getElementById('td-name').value = t.text;
+    renderQuadrantSelector(t.quadrant);
+    document.getElementById('td-deadline').value = t.deadline || '';
+
+    const assignerRow = document.getElementById('td-assigner-row');
+    const assignSec   = document.getElementById('td-assign-section');
+    if (t.assigner_id && t.assigner_id !== currentUser.id) {
+      document.getElementById('td-assigner-name').textContent =
+        `配布者: ${usersCache[t.assigner_id] || t.assigner_id}`;
+      assignerRow.style.display = 'block';
+      assignSec.style.display = 'none';
+    } else {
+      assignerRow.style.display = 'none';
+      assignSec.style.display = 'block';
+      document.getElementById('td-assign-input').value = '';
+    }
+
+    renderTaskSubtasks(t);
+    document.getElementById('td-memo').value = t.memo || '';
+    document.getElementById('td-url').value  = t.url  || '';
+    updateTaskDoneBtn(t.done);
+    await loadTaskFiles(taskId);
+    document.getElementById('task-detail-sheet').classList.add('open');
+  }
+
+  function closeTaskDetail() {
+    document.getElementById('task-detail-sheet').classList.remove('open');
+    currentTaskId = null;
+  }
+  document.getElementById('task-detail-sheet').addEventListener('click', e => {
+    if (e.target === document.getElementById('task-detail-sheet')) closeTaskDetail();
+  });
+
+  function renderQuadrantSelector(activeQid) {
+    document.querySelectorAll('.qsel-btn').forEach(btn => {
+      const qid = btn.dataset.qid;
+      btn.className = `qsel-btn qsel-${qid}${qid === activeQid ? ' active' : ''}`;
+    });
+  }
+
+  async function selectQuadrant(qid) {
+    if (!currentTaskId) return;
+    const oldQid = findTaskQid(currentTaskId);
+    if (oldQid === qid) return;
+    const t = findTask(currentTaskId); if (!t) return;
+    tasks[oldQid] = tasks[oldQid].filter(x => x.id !== currentTaskId);
+    t.quadrant = qid; tasks[qid].push(t);
+    renderQuadrantSelector(qid); renderMatrix();
+    await sb.from('tasks').update({ quadrant: qid, updated_at: new Date().toISOString() }).eq('id', currentTaskId);
+  }
+
+  function updateTaskDoneBtn(isDone) {
+    const btn = document.getElementById('td-done-btn');
+    btn.className = `btn-done-toggle ${isDone ? 'complete' : 'incomplete'}`;
+    btn.textContent = isDone ? '✓ 完了済み（タップで戻す）' : '完了にする';
+  }
+
+  async function toggleCurrentTask() {
+    if (!currentTaskId) return;
+    const t = findTask(currentTaskId); if (!t) return;
+    t.done = !t.done;
+    updateTaskDoneBtn(t.done);
+    renderMatrix();
+    const update = { done: t.done, updated_at: new Date().toISOString() };
+    if (t.assigner_id && t.assigner_id !== currentUser.id) {
+      update.approval_status = t.done ? 'done_pending' : 'accepted';
+      t.approval_status = update.approval_status;
+    }
+    const { error } = await sb.from('tasks').update(update).eq('id', currentTaskId);
+    if (error) { t.done = !t.done; updateTaskDoneBtn(t.done); renderMatrix(); showToast('❌ 更新に失敗しました'); }
+  }
+
+  async function deleteCurrentTask() {
+    if (!currentTaskId) return;
+    if (!confirm('このタスクを削除しますか？')) return;
+    const qid = findTaskQid(currentTaskId);
+    if (qid) tasks[qid] = tasks[qid].filter(t => t.id !== currentTaskId);
+    closeTaskDetail(); renderMatrix();
+    await sb.from('tasks').delete().eq('id', currentTaskId);
+    showToast('🗑 削除しました');
+  }
+
+  // ── タスク詳細: フィールド保存 ────────────────────────────────
+  let _tdNameTimer, _tdMemoTimer, _tdUrlTimer;
+
+  function debounceTaskName() {
+    clearTimeout(_tdNameTimer);
+    _tdNameTimer = setTimeout(saveTaskName, 800);
+  }
+  async function saveTaskName() {
+    if (!currentTaskId) return;
+    const name = document.getElementById('td-name').value.trim(); if (!name) return;
+    const t = findTask(currentTaskId); if (!t) return;
+    t.text = name;
+    await sb.from('tasks').update({ text: name, updated_at: new Date().toISOString() }).eq('id', currentTaskId);
+    renderMatrix();
+  }
+
+  async function saveTaskDeadline() {
+    if (!currentTaskId) return;
+    const deadline = document.getElementById('td-deadline').value || null;
+    const t = findTask(currentTaskId); if (!t) return;
+    t.deadline = deadline;
+    await sb.from('tasks').update({ deadline, updated_at: new Date().toISOString() }).eq('id', currentTaskId);
+    renderMatrix();
+  }
+
+  function debounceTaskMemo() {
+    clearTimeout(_tdMemoTimer);
+    _tdMemoTimer = setTimeout(saveTaskMemo, 800);
+  }
+  async function saveTaskMemo() {
+    if (!currentTaskId) return;
+    const memo = document.getElementById('td-memo').value;
+    const t = findTask(currentTaskId); if (!t) return;
+    t.memo = memo;
+    await sb.from('tasks').update({ memo, updated_at: new Date().toISOString() }).eq('id', currentTaskId);
+  }
+
+  function debounceTaskUrl() {
+    clearTimeout(_tdUrlTimer);
+    _tdUrlTimer = setTimeout(saveTaskUrl, 800);
+  }
+  async function saveTaskUrl() {
+    if (!currentTaskId) return;
+    const url = document.getElementById('td-url').value.trim();
+    const t = findTask(currentTaskId); if (!t) return;
+    t.url = url;
+    await sb.from('tasks').update({ url, updated_at: new Date().toISOString() }).eq('id', currentTaskId);
+  }
+
+  // ── タスク詳細: サブタスク ────────────────────────────────────
+  function renderTaskSubtasks(t) {
+    const subs = Array.isArray(t.subtasks) ? t.subtasks : [];
+    const prog = document.getElementById('td-subtask-progress');
+    const list = document.getElementById('td-subtask-list');
+    const done = subs.filter(s => s.done).length;
+    prog.textContent = subs.length ? `${done}/${subs.length}` : '';
+    list.innerHTML = subs.map(s => `
+      <div class="subtask-detail-item">
+        <div class="subtask-chk ${s.done?'checked':''}" onclick="toggleTaskSubtask(${t.id},'${s.id}')">${s.done?'✓':''}</div>
+        <span class="subtask-chk-text ${s.done?'done':''}">${esc(s.text)}</span>
+        <button class="btn-file-del" onclick="deleteTaskSubtask('${s.id}')" title="削除">✕</button>
+      </div>`).join('');
+  }
+
+  async function toggleTaskSubtask(taskId, subtaskId) {
+    const t = findTask(taskId); if (!t) return;
+    const subs = Array.isArray(t.subtasks) ? [...t.subtasks] : [];
+    const sub = subs.find(s => s.id === subtaskId); if (!sub) return;
+    sub.done = !sub.done; t.subtasks = subs;
+    renderTaskSubtasks(t);
+    await sb.from('tasks').update({ subtasks: subs, updated_at: new Date().toISOString() }).eq('id', taskId);
+    renderMatrix();
+  }
+
+  async function addTaskSubtask() {
+    if (!currentTaskId) return;
+    const t = findTask(currentTaskId); if (!t) return;
+    const input = document.getElementById('td-new-subtask');
+    const text = input.value.trim(); if (!text) return;
+    const subs = Array.isArray(t.subtasks) ? [...t.subtasks] : [];
+    subs.push({ id: uuid(), text, done: false, order: subs.length });
+    t.subtasks = subs; input.value = '';
+    renderTaskSubtasks(t);
+    await sb.from('tasks').update({ subtasks: subs, updated_at: new Date().toISOString() }).eq('id', currentTaskId);
+    renderMatrix();
+  }
+
+  async function deleteTaskSubtask(subtaskId) {
+    if (!currentTaskId) return;
+    const t = findTask(currentTaskId); if (!t) return;
+    t.subtasks = (Array.isArray(t.subtasks) ? t.subtasks : []).filter(s => s.id !== subtaskId);
+    renderTaskSubtasks(t);
+    await sb.from('tasks').update({ subtasks: t.subtasks, updated_at: new Date().toISOString() }).eq('id', currentTaskId);
+    renderMatrix();
+  }
+
+  // ── タスク詳細: ファイル ──────────────────────────────────────
+  async function loadTaskFiles(taskId) {
+    const c = document.getElementById('td-files');
+    c.innerHTML = '<div style="font-size:12px;color:#aaa;padding:4px 0;">読み込み中…</div>';
+    const { data } = await sb.from('task_files').select('*').eq('task_id', taskId).order('created_at');
+    if (!data?.length) { c.innerHTML = ''; return; }
+    const html = await Promise.all(data.map(async f => {
+      const icon = fileIcon(f.file_type);
+      const { data: ud } = await sb.storage.from('task-attachments').createSignedUrl(f.file_path, 3600);
+      const su = ud?.signedUrl || '#';
+      return `<div class="file-item">
+        <span class="file-icon">${icon}</span>
+        <div class="file-info"><div class="file-name">${esc(f.file_name)}</div><div class="file-size">${formatBytes(f.file_size)}</div></div>
+        <a class="btn-file-dl" href="${su}" target="_blank">開く</a>
+        <button class="btn-file-del" onclick="deleteTaskFile(${f.id},'${f.file_path}')">✕</button>
+      </div>`;
+    }));
+    c.innerHTML = html.join('');
+  }
+
+  async function handleTaskFileUpload(e) {
+    const files = Array.from(e.target.files);
+    if (!files.length || !currentTaskId) return;
+    showToast('📎 アップロード中…');
+    for (const file of files) {
+      const path = `tasks/${currentUser.id}/${currentTaskId}/${Date.now()}_${file.name}`;
+      const { error: upErr } = await sb.storage.from('task-attachments').upload(path, file);
+      if (upErr) { showToast(`❌ ${file.name} のアップロードに失敗`); continue; }
+      await sb.from('task_files').insert({
+        task_id: currentTaskId, user_id: currentUser.id,
+        file_path: path, file_name: file.name, file_type: file.type, file_size: file.size
+      });
+    }
+    e.target.value = '';
+    await loadTaskFiles(currentTaskId);
+    showToast('✅ アップロード完了');
+  }
+
+  async function deleteTaskFile(fileId, filePath) {
+    if (!confirm('このファイルを削除しますか？')) return;
+    await sb.storage.from('task-attachments').remove([filePath]);
+    await sb.from('task_files').delete().eq('id', fileId);
+    if (currentTaskId) await loadTaskFiles(currentTaskId);
+    showToast('🗑 削除しました');
+  }
+
+  // ── タスク配布 ────────────────────────────────────────────────
+  async function assignTask() {
+    const targetName = document.getElementById('td-assign-input').value.trim();
+    if (!targetName) return;
+    if (targetName === currentUser.name) { showToast('⚠️ 自分自身には配布できません'); return; }
+    const { data: target } = await sb.from('users').select('*').eq('name', targetName).maybeSingle();
+    if (!target) { showToast(`❌「${targetName}」というユーザーが見つかりません`); return; }
+    if (!currentTaskId) return;
+    const qid = findTaskQid(currentTaskId);
+    const { error } = await sb.from('tasks').update({
+      user_id: target.id, assigner_id: currentUser.id, approval_status: 'pending',
+      updated_at: new Date().toISOString()
+    }).eq('id', currentTaskId);
+    if (error) { showToast('❌ 配布に失敗しました'); return; }
+    if (qid) tasks[qid] = tasks[qid].filter(t => t.id !== currentTaskId);
+    closeTaskDetail(); renderMatrix();
+    await loadTasks();
+    showToast(`✅ ${targetName}さんにタスクを配布しました`);
+  }
+
   // ── 定型タスク ────────────────────────────────────────────────
   async function loadRT() {
-    const { data:own } = await sb.from('recurring_tasks').select('*').eq('user_id',currentUser.id).order('created_at');
-    const { data:shareRows } = await sb.from('recurring_task_shares').select('master_id').eq('shared_with_user_id',currentUser.id);
+    const { data: own } = await sb.from('recurring_tasks').select('*').eq('user_id', currentUser.id).order('created_at');
+    const { data: shareRows } = await sb.from('recurring_task_shares').select('master_id').eq('shared_with_user_id', currentUser.id);
     let sharedMasters = [];
     if (shareRows?.length) {
-      const ids = shareRows.map(s=>s.master_id);
-      const { data } = await sb.from('recurring_tasks').select('*').in('id',ids);
-      sharedMasters = data||[];
+      const ids = shareRows.map(s => s.master_id);
+      const { data } = await sb.from('recurring_tasks').select('*').in('id', ids);
+      sharedMasters = data || [];
     }
     recurringTasks = [...(own||[]), ...sharedMasters];
 
-    const masterIds = recurringTasks.map(m=>m.id);
+    const masterIds = recurringTasks.map(m => m.id);
     allInstances = {};
     if (masterIds.length) {
-      const { data:inst } = await sb.from('recurring_instances').select('*').in('master_id',masterIds);
+      const { data: inst } = await sb.from('recurring_instances').select('*').in('master_id', masterIds);
       (inst||[]).forEach(i => {
-        if (!allInstances[i.master_id]) allInstances[i.master_id]={};
-        allInstances[i.master_id][`${i.year}_${i.month}`]=i;
+        if (!allInstances[i.master_id]) allInstances[i.master_id] = {};
+        allInstances[i.master_id][`${i.year}_${i.month}`] = i;
       });
     }
 
     shares = {};
     if (own?.length) {
-      const ownIds = own.map(m=>m.id);
-      const { data:sd } = await sb.from('recurring_task_shares')
+      const ownIds = own.map(m => m.id);
+      const { data: sd } = await sb.from('recurring_task_shares')
         .select('*, users!recurring_task_shares_shared_with_user_id_fkey(name)')
-        .in('master_id',ownIds);
+        .in('master_id', ownIds);
       (sd||[]).forEach(s => {
-        if (!shares[s.master_id]) shares[s.master_id]=[];
-        shares[s.master_id].push({ id:s.id, user_id:s.shared_with_user_id, name:s.users?.name||'不明' });
+        if (!shares[s.master_id]) shares[s.master_id] = [];
+        shares[s.master_id].push({ id: s.id, user_id: s.shared_with_user_id, name: s.users?.name || '不明' });
       });
     }
 
     await ensureInstances();
     renderCalendar();
-    renderMasterTab();
-    renderShareTab();
   }
 
   async function ensureInstances() {
     const now = new Date();
     const toInsert = [];
-    for (const master of recurringTasks.filter(m=>m.user_id===currentUser.id)) {
-      for (let i=0; i<=12; i++) {
-        const d=new Date(now.getFullYear(), now.getMonth()+i, 1);
-        const y=d.getFullYear(), m=d.getMonth()+1;
-        const shouldGen = master.type==='monthly' || (master.type==='annual' && Number(master.month)===m);
+    for (const master of recurringTasks.filter(m => m.user_id === currentUser.id)) {
+      for (let i = 0; i <= 12; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth()+i, 1);
+        const y = d.getFullYear(), m = d.getMonth()+1;
+        const shouldGen = master.type === 'monthly' || (master.type === 'annual' && Number(master.month) === m);
         if (shouldGen && !allInstances[master.id]?.[`${y}_${m}`])
-          toInsert.push({ master_id:master.id, year:y, month:m });
+          toInsert.push({ master_id: master.id, year: y, month: m });
       }
     }
     if (!toInsert.length) return;
     const { data } = await sb.from('recurring_instances').insert(toInsert).select();
     (data||[]).forEach(i => {
-      if (!allInstances[i.master_id]) allInstances[i.master_id]={};
-      allInstances[i.master_id][`${i.year}_${i.month}`]=i;
+      if (!allInstances[i.master_id]) allInstances[i.master_id] = {};
+      allInstances[i.master_id][`${i.year}_${i.month}`] = i;
     });
   }
 
   async function changeMonth(delta) {
     viewMonth += delta;
-    if (viewMonth>12) { viewMonth=1; viewYear++; }
-    if (viewMonth<1)  { viewMonth=12; viewYear--; }
+    if (viewMonth > 12) { viewMonth = 1; viewYear++; }
+    if (viewMonth < 1)  { viewMonth = 12; viewYear--; }
     await ensureInstancesForMonth(viewYear, viewMonth);
     renderCalendar();
   }
 
   async function ensureInstancesForMonth(y, m) {
     const toInsert = [];
-    for (const master of recurringTasks.filter(x=>x.user_id===currentUser.id)) {
-      const shouldGen = master.type==='monthly' || (master.type==='annual' && Number(master.month)===m);
+    for (const master of recurringTasks.filter(x => x.user_id === currentUser.id)) {
+      const shouldGen = master.type === 'monthly' || (master.type === 'annual' && Number(master.month) === m);
       if (shouldGen && !allInstances[master.id]?.[`${y}_${m}`])
-        toInsert.push({ master_id:master.id, year:y, month:m });
+        toInsert.push({ master_id: master.id, year: y, month: m });
     }
     if (!toInsert.length) return;
     const { data } = await sb.from('recurring_instances').insert(toInsert).select();
     (data||[]).forEach(i => {
-      if (!allInstances[i.master_id]) allInstances[i.master_id]={};
-      allInstances[i.master_id][`${i.year}_${i.month}`]=i;
+      if (!allInstances[i.master_id]) allInstances[i.master_id] = {};
+      allInstances[i.master_id][`${i.year}_${i.month}`] = i;
     });
   }
 
   function renderCalendar() {
-    const monthly=[], annual=[];
+    const monthly = [], annual = [];
     recurringTasks.forEach(master => {
-      const inst = allInstances[master.id]?.[`${viewYear}_${viewMonth}`]; if (!inst) return;
-      if (master.type==='monthly') monthly.push({master,inst});
-      else if (master.type==='annual' && Number(master.month)===viewMonth) annual.push({master,inst});
+      const inst = allInstances[master.id]?.[`${viewYear}_${viewMonth}`];
+      if (!inst) return;
+      if (master.type === 'monthly') monthly.push({ master, inst });
+      else if (master.type === 'annual' && Number(master.month) === viewMonth) annual.push({ master, inst });
     });
-    monthly.sort((a,b)=>a.master.day-b.master.day);
-    annual.sort((a,b) =>a.master.day-b.master.day);
-    const all=[...monthly,...annual];
-    const doneCount=all.filter(x=>x.inst.done).length;
-    document.getElementById('cal-nav-label').textContent=`${viewYear}年${viewMonth}月`;
-    document.getElementById('cal-nav-sub').textContent=all.length ? `${doneCount}/${all.length}件完了` : '定型タスクなし';
-    let html='';
-    if (!all.length) { html='<div class="cal-empty">この月の定型タスクはありません</div>'; }
+    monthly.sort((a,b) => a.master.day - b.master.day);
+    annual.sort((a,b)  => a.master.day - b.master.day);
+    const all = [...monthly, ...annual];
+    const doneCount = all.filter(x => x.inst.done).length;
+    document.getElementById('cal-nav-label').textContent = `${viewYear}年${viewMonth}月`;
+    document.getElementById('cal-nav-sub').textContent = all.length ? `${doneCount}/${all.length}件完了` : '定型タスクなし';
+    let html = '';
+    if (!all.length) { html = '<div class="cal-empty">この月の定型タスクはありません</div>'; }
     else {
-      if (monthly.length) { html+=`<div class="cal-section-label">月次タスク（${monthly.length}件）</div>`+monthly.map(x=>instItemHTML(x.master,x.inst)).join(''); }
-      if (annual.length)  { html+=`<div class="cal-section-label">年次タスク（${annual.length}件）</div>`+annual.map(x=>instItemHTML(x.master,x.inst)).join(''); }
+      if (monthly.length) html += `<div class="cal-section-label">月次タスク（${monthly.length}件）</div>` + monthly.map(x => instItemHTML(x.master, x.inst)).join('');
+      if (annual.length)  html += `<div class="cal-section-label">年次タスク（${annual.length}件）</div>`  + annual.map(x => instItemHTML(x.master, x.inst)).join('');
     }
-    document.getElementById('cal-task-list').innerHTML=html;
+    document.getElementById('cal-task-list').innerHTML = html;
   }
 
   function instItemHTML(master, inst) {
-    const subs=(Array.isArray(master.subtasks)?master.subtasks:[]);
-    const doneCount=subs.filter(s=>inst.subtask_done?.[s.id]).length;
-    const badge=deadlineBadge(viewYear,viewMonth,master.day,inst.done);
-    const prog=subs.length?`<span class="inst-sub-progress">✓ ${doneCount}/${subs.length}</span>`:'';
+    const subs = Array.isArray(master.subtasks) ? master.subtasks : [];
+    const doneCount = subs.filter(s => inst.subtask_done?.[s.id]).length;
+    const badge = deadlineBadge(viewYear, viewMonth, master.day, inst.done);
+    const prog  = subs.length ? `<span class="inst-sub-progress">✓ ${doneCount}/${subs.length}</span>` : '';
     return `<div class="inst-item ${inst.done?'done-inst':''}" onclick="openInstanceSheet(${master.id},${inst.id})">
       <div class="inst-check" onclick="event.stopPropagation();quickToggle(${inst.id},${master.id})">
         <div class="inst-check-inner"></div>
@@ -748,122 +1441,131 @@
 
   function deadlineBadge(y, m, day, isDone) {
     if (isDone) return `<span class="rt-deadline-badge deadline-past">✓ 完了</span>`;
-    const now=new Date();
-    const target=new Date(y,m-1,day);
-    const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-    const d=Math.ceil((target-today)/86400000);
-    if (d<0)   return `<span class="rt-deadline-badge deadline-past">${day}日（終了）</span>`;
-    if (d===0) return `<span class="rt-deadline-badge deadline-urgent">⚡ 本日締切</span>`;
-    if (d<=3)  return `<span class="rt-deadline-badge deadline-urgent">🔴 あと${d}日</span>`;
-    if (d<=7)  return `<span class="rt-deadline-badge deadline-soon">🟡 あと${d}日</span>`;
+    const now = new Date();
+    const target = new Date(y, m-1, day);
+    const today  = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const d = Math.ceil((target - today) / 86400000);
+    if (d < 0)   return `<span class="rt-deadline-badge deadline-past">${day}日（終了）</span>`;
+    if (d === 0) return `<span class="rt-deadline-badge deadline-urgent">⚡ 本日締切</span>`;
+    if (d <= 3)  return `<span class="rt-deadline-badge deadline-urgent">🔴 あと${d}日</span>`;
+    if (d <= 7)  return `<span class="rt-deadline-badge deadline-soon">🟡 あと${d}日</span>`;
     return `<span class="rt-deadline-badge deadline-ok">🟢 ${day}日まで</span>`;
   }
 
   async function quickToggle(instId, masterId) {
-    const key=Object.keys(allInstances[masterId]||{}).find(k=>allInstances[masterId][k].id===instId); if (!key) return;
-    const inst=allInstances[masterId][key]; inst.done=!inst.done;
+    const key = Object.keys(allInstances[masterId]||{}).find(k => allInstances[masterId][k].id === instId);
+    if (!key) return;
+    const inst = allInstances[masterId][key]; inst.done = !inst.done;
     renderCalendar();
-    await sb.from('recurring_instances').update({ done:inst.done }).eq('id',instId);
+    await sb.from('recurring_instances').update({ done: inst.done }).eq('id', instId);
   }
 
   // ── インスタンス詳細 ──────────────────────────────────────────
   async function openInstanceSheet(masterId, instId) {
-    const master=recurringTasks.find(m=>m.id===masterId); if (!master) return;
-    const key=Object.keys(allInstances[masterId]||{}).find(k=>allInstances[masterId][k].id===instId); if (!key) return;
-    const inst=allInstances[masterId][key];
-    currentInstanceId=instId;
+    const master = recurringTasks.find(m => m.id === masterId); if (!master) return;
+    const key = Object.keys(allInstances[masterId]||{}).find(k => allInstances[masterId][k].id === instId);
+    if (!key) return;
+    const inst = allInstances[masterId][key];
+    currentInstanceId = instId;
 
-    document.getElementById('detail-title').textContent=master.name;
-    document.getElementById('detail-meta').innerHTML=`${deadlineBadge(viewYear,viewMonth,master.day,inst.done)}
-      <span style="font-size:11px;color:#aaa;">${viewYear}年${viewMonth}月${master.day}日まで</span>
-      ${master.memo?`<span style="font-size:11px;color:#666;">📝 ${esc(master.memo)}</span>`:''}`;
+    document.getElementById('detail-title').textContent = master.name;
+    document.getElementById('detail-meta').innerHTML = `${deadlineBadge(viewYear, viewMonth, master.day, inst.done)}
+      <span style="font-size:12px;color:#aaa;">${viewYear}年${viewMonth}月${master.day}日まで</span>
+      ${master.memo ? `<span style="font-size:12px;color:#666;">📝 ${esc(master.memo)}</span>` : ''}`;
 
-    const subs=Array.isArray(master.subtasks)?master.subtasks:[];
-    const stSec=document.getElementById('detail-subtasks-section');
+    const subs = Array.isArray(master.subtasks) ? master.subtasks : [];
+    const stSec = document.getElementById('detail-subtasks-section');
     if (subs.length) {
-      stSec.style.display='block';
-      const dc=subs.filter(s=>inst.subtask_done?.[s.id]).length;
-      document.getElementById('detail-subtask-progress').textContent=`${dc}/${subs.length}`;
-      document.getElementById('detail-subtasks').innerHTML=subs.map(s=>{
-        const chk=!!inst.subtask_done?.[s.id];
+      stSec.style.display = 'block';
+      const dc = subs.filter(s => inst.subtask_done?.[s.id]).length;
+      document.getElementById('detail-subtask-progress').textContent = `${dc}/${subs.length}`;
+      document.getElementById('detail-subtasks').innerHTML = subs.map(s => {
+        const chk = !!inst.subtask_done?.[s.id];
         return `<div class="subtask-detail-item">
           <div class="subtask-chk ${chk?'checked':''}" onclick="toggleSubtask(${instId},${masterId},'${s.id}')">${chk?'✓':''}</div>
           <span class="subtask-chk-text ${chk?'done':''}">${esc(s.text)}</span>
         </div>`;
       }).join('');
-    } else { stSec.style.display='none'; }
+    } else { stSec.style.display = 'none'; }
 
-    document.getElementById('detail-memo').value=inst.instance_memo||'';
+    document.getElementById('detail-memo').value = inst.instance_memo || '';
 
-    const urlSec=document.getElementById('detail-url-section');
+    const urlSec = document.getElementById('detail-url-section');
     if (master.url) {
-      urlSec.style.display='block';
-      const link=document.getElementById('detail-url-link');
-      link.href=master.url; link.textContent=master.url;
-    } else { urlSec.style.display='none'; }
+      urlSec.style.display = 'block';
+      const link = document.getElementById('detail-url-link');
+      link.href = master.url; link.textContent = master.url;
+    } else { urlSec.style.display = 'none'; }
 
-    updateDoneBtn(inst.done);
+    updateInstanceDoneBtn(inst.done);
     await loadInstanceFiles(instId);
     document.getElementById('instance-sheet').classList.add('open');
   }
 
-  function updateDoneBtn(isDone) {
-    const btn=document.getElementById('detail-done-btn');
-    btn.className=`btn-done-toggle ${isDone?'complete':'incomplete'}`;
-    btn.textContent=isDone?'✓ 完了済み（タップで戻す）':'完了にする';
+  function updateInstanceDoneBtn(isDone) {
+    const btn = document.getElementById('detail-done-btn');
+    btn.className = `btn-done-toggle ${isDone ? 'complete' : 'incomplete'}`;
+    btn.textContent = isDone ? '✓ 完了済み（タップで戻す）' : '完了にする';
   }
 
-  function closeInstanceSheet() { document.getElementById('instance-sheet').classList.remove('open'); currentInstanceId=null; }
-  document.getElementById('instance-sheet').addEventListener('click', e=>{ if (e.target===document.getElementById('instance-sheet')) closeInstanceSheet(); });
+  function closeInstanceSheet() {
+    document.getElementById('instance-sheet').classList.remove('open');
+    currentInstanceId = null;
+  }
+  document.getElementById('instance-sheet').addEventListener('click', e => {
+    if (e.target === document.getElementById('instance-sheet')) closeInstanceSheet();
+  });
 
   async function toggleCurrentInstance() {
     if (!currentInstanceId) return;
     for (const mid in allInstances) {
-      const key=Object.keys(allInstances[mid]).find(k=>allInstances[mid][k].id===currentInstanceId); if (!key) continue;
-      const inst=allInstances[mid][key]; inst.done=!inst.done;
-      updateDoneBtn(inst.done);
-      const master=recurringTasks.find(m=>m.id===Number(mid));
-      if (master) document.getElementById('detail-meta').innerHTML=`${deadlineBadge(viewYear,viewMonth,master.day,inst.done)}
-        <span style="font-size:11px;color:#aaa;">${viewYear}年${viewMonth}月${master.day}日まで</span>
-        ${master.memo?`<span style="font-size:11px;color:#666;">📝 ${esc(master.memo)}</span>`:''}`;
+      const key = Object.keys(allInstances[mid]).find(k => allInstances[mid][k].id === currentInstanceId);
+      if (!key) continue;
+      const inst = allInstances[mid][key]; inst.done = !inst.done;
+      updateInstanceDoneBtn(inst.done);
+      const master = recurringTasks.find(m => m.id === Number(mid));
+      if (master) document.getElementById('detail-meta').innerHTML = `${deadlineBadge(viewYear, viewMonth, master.day, inst.done)}
+        <span style="font-size:12px;color:#aaa;">${viewYear}年${viewMonth}月${master.day}日まで</span>
+        ${master.memo ? `<span style="font-size:12px;color:#666;">📝 ${esc(master.memo)}</span>` : ''}`;
       renderCalendar();
-      await sb.from('recurring_instances').update({ done:inst.done }).eq('id',currentInstanceId);
+      await sb.from('recurring_instances').update({ done: inst.done }).eq('id', currentInstanceId);
       return;
     }
   }
 
   async function toggleSubtask(instId, masterId, subtaskId) {
-    const key=Object.keys(allInstances[masterId]||{}).find(k=>allInstances[masterId][k].id===instId); if (!key) return;
-    const inst=allInstances[masterId][key];
-    inst.subtask_done=inst.subtask_done||{};
-    inst.subtask_done[subtaskId]=!inst.subtask_done[subtaskId];
-    await sb.from('recurring_instances').update({ subtask_done:inst.subtask_done }).eq('id',instId);
+    const key = Object.keys(allInstances[masterId]||{}).find(k => allInstances[masterId][k].id === instId);
+    if (!key) return;
+    const inst = allInstances[masterId][key];
+    inst.subtask_done = inst.subtask_done || {};
+    inst.subtask_done[subtaskId] = !inst.subtask_done[subtaskId];
+    await sb.from('recurring_instances').update({ subtask_done: inst.subtask_done }).eq('id', instId);
     openInstanceSheet(masterId, instId);
     renderCalendar();
   }
 
   let _memoTimer;
-  function debounceSaveMemo() { clearTimeout(_memoTimer); _memoTimer=setTimeout(saveInstanceMemo,800); }
+  function debounceSaveMemo() { clearTimeout(_memoTimer); _memoTimer = setTimeout(saveInstanceMemo, 800); }
   async function saveInstanceMemo() {
     if (!currentInstanceId) return;
-    const memo=document.getElementById('detail-memo').value;
-    await sb.from('recurring_instances').update({ instance_memo:memo }).eq('id',currentInstanceId);
+    const memo = document.getElementById('detail-memo').value;
+    await sb.from('recurring_instances').update({ instance_memo: memo }).eq('id', currentInstanceId);
     for (const mid in allInstances) {
-      const key=Object.keys(allInstances[mid]).find(k=>allInstances[mid][k].id===currentInstanceId);
-      if (key) { allInstances[mid][key].instance_memo=memo; break; }
+      const key = Object.keys(allInstances[mid]).find(k => allInstances[mid][k].id === currentInstanceId);
+      if (key) { allInstances[mid][key].instance_memo = memo; break; }
     }
   }
 
-  // ── 添付ファイル ─────────────────────────────────────────────
+  // ── インスタンスファイル ──────────────────────────────────────
   async function loadInstanceFiles(instId) {
-    const c=document.getElementById('detail-files');
-    c.innerHTML='<div style="font-size:12px;color:#aaa;padding:4px 0;">読み込み中…</div>';
-    const { data }=await sb.from('recurring_instance_files').select('*').eq('instance_id',instId).order('created_at');
-    if (!data?.length) { c.innerHTML=''; return; }
-    const html=await Promise.all(data.map(async f=>{
-      const icon=fileIcon(f.file_type);
-      const { data:ud }=await sb.storage.from('task-attachments').createSignedUrl(f.file_path,3600);
-      const su=ud?.signedUrl||'#';
+    const c = document.getElementById('detail-files');
+    c.innerHTML = '<div style="font-size:12px;color:#aaa;padding:4px 0;">読み込み中…</div>';
+    const { data } = await sb.from('recurring_instance_files').select('*').eq('instance_id', instId).order('created_at');
+    if (!data?.length) { c.innerHTML = ''; return; }
+    const html = await Promise.all(data.map(async f => {
+      const icon = fileIcon(f.file_type);
+      const { data: ud } = await sb.storage.from('task-attachments').createSignedUrl(f.file_path, 3600);
+      const su = ud?.signedUrl || '#';
       return `<div class="file-item">
         <span class="file-icon">${icon}</span>
         <div class="file-info"><div class="file-name">${esc(f.file_name)}</div><div class="file-size">${formatBytes(f.file_size)}</div></div>
@@ -871,137 +1573,68 @@
         <button class="btn-file-del" onclick="deleteFile(${f.id},'${f.file_path}')">✕</button>
       </div>`;
     }));
-    c.innerHTML=html.join('');
+    c.innerHTML = html.join('');
   }
 
   async function handleFileUpload(e) {
-    const files=Array.from(e.target.files); if (!files.length||!currentInstanceId) return;
+    const files = Array.from(e.target.files);
+    if (!files.length || !currentInstanceId) return;
     showToast('📎 アップロード中…');
     for (const file of files) {
-      const path=`${currentUser.id}/${currentInstanceId}/${Date.now()}_${file.name}`;
-      const { error:upErr }=await sb.storage.from('task-attachments').upload(path,file);
+      const path = `${currentUser.id}/${currentInstanceId}/${Date.now()}_${file.name}`;
+      const { error: upErr } = await sb.storage.from('task-attachments').upload(path, file);
       if (upErr) { showToast(`❌ ${file.name} のアップロードに失敗`); continue; }
-      await sb.from('recurring_instance_files').insert({ instance_id:currentInstanceId, user_id:currentUser.id, file_path:path, file_name:file.name, file_type:file.type, file_size:file.size });
+      await sb.from('recurring_instance_files').insert({
+        instance_id: currentInstanceId, user_id: currentUser.id,
+        file_path: path, file_name: file.name, file_type: file.type, file_size: file.size
+      });
     }
-    e.target.value=''; await loadInstanceFiles(currentInstanceId); showToast('✅ アップロード完了');
+    e.target.value = ''; await loadInstanceFiles(currentInstanceId); showToast('✅ アップロード完了');
   }
 
   async function deleteFile(fileId, filePath) {
     if (!confirm('このファイルを削除しますか？')) return;
     await sb.storage.from('task-attachments').remove([filePath]);
-    await sb.from('recurring_instance_files').delete().eq('id',fileId);
+    await sb.from('recurring_instance_files').delete().eq('id', fileId);
     if (currentInstanceId) await loadInstanceFiles(currentInstanceId);
     showToast('🗑 削除しました');
   }
 
-  function fileIcon(t) {
-    if (!t) return '📎';
-    if (t.startsWith('image/')) return '🖼️';
-    if (t==='application/pdf') return '📄';
-    if (t.includes('spreadsheet')||t.includes('excel')) return '📊';
-    if (t.includes('word')||t.includes('document')) return '📝';
-    return '📎';
-  }
-  function formatBytes(b) {
-    if (!b) return '';
-    if (b<1024) return b+'B';
-    if (b<1048576) return (b/1024).toFixed(1)+'KB';
-    return (b/1048576).toFixed(1)+'MB';
+  // ── マスタ設定オーバーレイ ────────────────────────────────────
+  let moTab = 'master';
+
+  function openMasterOverlay() {
+    renderMoMasterList(); renderMoShareList();
+    document.getElementById('master-overlay').classList.add('open');
   }
 
-  // ── マスタ管理 ───────────────────────────────────────────────
-  let editingMasterId=null, currentSubtasks=[], currentType='monthly';
+  function closeMasterOverlay() {
+    document.getElementById('master-overlay').classList.remove('open');
+  }
 
-  function openMasterModal(masterId=null) {
-    editingMasterId=masterId; currentSubtasks=[];
-    document.getElementById('rt-name').value='';
-    document.getElementById('rt-memo').value='';
-    document.getElementById('rt-url').value='';
-    document.getElementById('subtask-inputs').innerHTML='';
-    document.getElementById('master-modal-title').textContent=masterId?'定型タスク マスタを編集':'定型タスク マスタを追加';
-    setType('monthly'); fillDaySelect();
-    if (masterId) {
-      const m=recurringTasks.find(x=>x.id===masterId); if (!m) return;
-      document.getElementById('rt-name').value=m.name;
-      document.getElementById('rt-memo').value=m.memo||'';
-      document.getElementById('rt-url').value=m.url||'';
-      setType(m.type);
-      document.getElementById('rt-day').value=m.day;
-      if (m.type==='annual') document.getElementById('rt-month').value=m.month;
-      currentSubtasks=Array.isArray(m.subtasks)?m.subtasks.map(s=>({...s})):[];
-      renderSubtaskInputs();
+  function switchMoTab(name) {
+    moTab = name;
+    document.querySelectorAll('.mo-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === name));
+    document.getElementById('mo-tab-master').style.display = name === 'master' ? 'block' : 'none';
+    document.getElementById('mo-tab-share').style.display  = name === 'share'  ? 'block' : 'none';
+  }
+
+  const MN = ['','1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+  function renderMoMasterList() {
+    const c = document.getElementById('mo-tab-master');
+    const own = recurringTasks.filter(m => m.user_id === currentUser.id);
+    if (!own.length) {
+      c.innerHTML = '<div class="no-tasks-msg">マスタはまだありません。「＋ 追加」から登録してください。</div>';
+      return;
     }
-    document.getElementById('master-modal').classList.add('open');
-    setTimeout(()=>document.getElementById('rt-name').focus(),50);
-  }
-  function closeMasterModal() { document.getElementById('master-modal').classList.remove('open'); }
-  document.getElementById('master-modal').addEventListener('click', e=>{ if (e.target===document.getElementById('master-modal')) closeMasterModal(); });
-
-  function setType(type) {
-    currentType=type;
-    document.getElementById('type-monthly').classList.toggle('active',type==='monthly');
-    document.getElementById('type-annual').classList.toggle('active',type==='annual');
-    document.getElementById('month-group').style.display=type==='annual'?'block':'none';
-  }
-
-  function fillDaySelect() {
-    const sel=document.getElementById('rt-day'); if (!sel) return;
-    sel.innerHTML='';
-    for (let d=1;d<=31;d++) { const o=document.createElement('option'); o.value=d; o.textContent=d+'日'; sel.appendChild(o); }
-    sel.value=25;
-  }
-
-  function addSubtaskField(text='') {
-    currentSubtasks.push({ id:uuid(), text });
-    renderSubtaskInputs();
-    setTimeout(()=>{ const ins=document.querySelectorAll('.subtask-input-row input'); if (ins.length) ins[ins.length-1].focus(); },30);
-  }
-  function removeSubtaskField(id) { currentSubtasks=currentSubtasks.filter(s=>s.id!==id); renderSubtaskInputs(); }
-  function updateSubtask(id,text) { const s=currentSubtasks.find(x=>x.id===id); if (s) s.text=text; }
-  function renderSubtaskInputs() {
-    document.getElementById('subtask-inputs').innerHTML=currentSubtasks.map(s=>`
-      <div class="subtask-input-row">
-        <input type="text" value="${esc(s.text)}" placeholder="サブタスクの内容" oninput="updateSubtask('${s.id}',this.value)" />
-        <button type="button" class="btn-remove-sub" onclick="removeSubtaskField('${s.id}')">✕</button>
-      </div>`).join('');
-  }
-
-  async function saveMaster() {
-    const name=document.getElementById('rt-name').value.trim(); if (!name) { document.getElementById('rt-name').focus(); return; }
-    const day=Number(document.getElementById('rt-day').value);
-    const memo=document.getElementById('rt-memo').value.trim();
-    const url=document.getElementById('rt-url').value.trim();
-    const subs=currentSubtasks.filter(s=>s.text.trim()).map((s,i)=>({ id:s.id, text:s.text.trim(), order:i }));
-    const btn=document.getElementById('master-save-btn'); btn.disabled=true; btn.textContent='保存中…';
-    const payload={ name, day, memo, url, subtasks:subs, type:currentType, month:currentType==='annual'?Number(document.getElementById('rt-month').value):null };
-    let error;
-    if (editingMasterId) { ({ error }=await sb.from('recurring_tasks').update(payload).eq('id',editingMasterId)); }
-    else { payload.user_id=currentUser.id; const res=await sb.from('recurring_tasks').insert(payload).select().single(); error=res.error; }
-    btn.disabled=false; btn.textContent='保存する';
-    if (error) { showToast('❌ 保存に失敗しました'); return; }
-    closeMasterModal(); showToast(editingMasterId?'✅ マスタを更新しました':'✅ マスタを追加しました');
-    await loadRT();
-  }
-
-  async function deleteMaster(id) {
-    if (!confirm('このマスタと全インスタンスを削除しますか？')) return;
-    const { error }=await sb.from('recurring_tasks').delete().eq('id',id);
-    if (error) { showToast('❌ 削除に失敗しました'); return; }
-    showToast('🗑 マスタを削除しました'); await loadRT();
-  }
-
-  function renderMasterTab() {
-    const c=document.getElementById('rec-tab-master');
-    const own=recurringTasks.filter(m=>m.user_id===currentUser.id);
-    if (!own.length) { c.innerHTML='<div class="no-tasks-msg">マスタはまだありません。「＋ マスタを追加」から登録してください。</div>'; return; }
-    const MN=['','1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
-    c.innerHTML=own.map(m=>{
-      const sc=m.type==='monthly'?`毎月${m.day}日まで`:`${MN[m.month]}${m.day}日まで（年1回）`;
-      const sct=(shares[m.id]||[]).length;
-      const sb2=sct?`<span class="master-shared-badge">共有 ${sct}名</span>`:'';
-      const subs=Array.isArray(m.subtasks)?m.subtasks:[];
-      const si=subs.length?` · サブタスク ${subs.length}件`:'';
-      const ui=m.url?' · 🔗URL':'';
+    c.innerHTML = own.map(m => {
+      const sc = m.type === 'monthly' ? `毎月${m.day}日まで` : `${MN[m.month]}${m.day}日まで（年1回）`;
+      const sct = (shares[m.id]||[]).length;
+      const sb2 = sct ? `<span class="master-shared-badge">共有 ${sct}名</span>` : '';
+      const subs = Array.isArray(m.subtasks) ? m.subtasks : [];
+      const si = subs.length ? ` · サブタスク ${subs.length}件` : '';
+      const ui = m.url ? ' · 🔗URL' : '';
       return `<div class="master-item">
         <div class="master-info">
           <div class="master-name">${esc(m.name)} ${sb2}</div>
@@ -1009,99 +1642,219 @@
         </div>
         <div class="master-actions">
           <button class="btn-icon" onclick="openMasterModal(${m.id})">編集</button>
-          <button class="btn-icon" onclick="openSharePanel(${m.id})">共有</button>
+          <button class="btn-icon" onclick="switchMoTab('share');renderMoShareList(${m.id})">共有</button>
           <button class="btn-icon danger" onclick="deleteMaster(${m.id})">削除</button>
         </div>
       </div>`;
     }).join('');
   }
 
-  // ── 共有設定 ─────────────────────────────────────────────────
-  function switchRecTab(name) {
-    document.querySelectorAll('.rec-tab').forEach((b,i)=>b.classList.toggle('active',['master','share'][i]===name));
-    document.querySelectorAll('.rec-tab-content').forEach((c,i)=>c.classList.toggle('active',['rec-tab-master','rec-tab-share'][i]===c.id));
-  }
-
-  function openSharePanel(masterId) { switchRecTab('share'); renderShareTab(masterId); }
-
-  function renderShareTab(focusId=null) {
-    const c=document.getElementById('rec-tab-share');
-    const own=recurringTasks.filter(m=>m.user_id===currentUser.id);
-    if (!own.length) { c.innerHTML='<div class="no-tasks-msg">共有できるマスタがありません。</div>'; return; }
-    const targets=focusId?own.filter(m=>m.id===focusId):own;
-    c.innerHTML=targets.map((m,i)=>{
-      const sl=(shares[m.id]||[]);
-      const sh=sl.length?sl.map(s=>`
-        <div class="share-user-item">
-          <div class="share-avatar">${s.name.charAt(0)}</div>
-          <span class="share-user-name">${esc(s.name)}</span>
-          <button class="btn-icon danger" onclick="removeShare(${s.id},${m.id})">解除</button>
-        </div>`).join('')
-        :'<div style="font-size:12px;color:#ccc;padding:6px 0;">共有相手なし</div>';
-      return `${i>0?'<hr style="border:none;border-top:1px solid #eee;margin:0 0 14px;">':''}
-        <div style="margin-bottom:16px;">
-          <div style="font-size:13px;font-weight:700;color:#444;margin-bottom:8px;">${esc(m.name)}</div>
+  function renderMoShareList(focusId=null) {
+    const c = document.getElementById('mo-tab-share');
+    const own = recurringTasks.filter(m => m.user_id === currentUser.id);
+    if (!own.length) { c.innerHTML = '<div class="no-tasks-msg">共有できるマスタがありません。</div>'; return; }
+    const targets = focusId ? own.filter(m => m.id === focusId) : own;
+    c.innerHTML = targets.map((m, i) => {
+      const sl = (shares[m.id]||[]);
+      const sh = sl.length
+        ? sl.map(s => `<div class="share-user-item">
+            <div class="share-avatar">${s.name.charAt(0)}</div>
+            <span class="share-user-name">${esc(s.name)}</span>
+            <button class="btn-icon danger" onclick="removeShare(${s.id},${m.id})">解除</button>
+          </div>`).join('')
+        : '<div style="font-size:13px;color:#ccc;padding:6px 0;">共有相手なし</div>';
+      return `${i > 0 ? '<hr style="border:none;border-top:1px solid #eee;margin:0 0 14px;">' : ''}
+        <div style="margin-bottom:18px;">
+          <div style="font-size:14px;font-weight:700;color:#444;margin-bottom:8px;">${esc(m.name)}</div>
           ${sh}
           <div class="share-add-row">
-            <input class="form-input" id="share-input-${m.id}" type="text" placeholder="追加する相手の名前" style="font-size:12px;" />
+            <input class="form-input" id="share-input-${m.id}" type="text" placeholder="追加する相手の名前" style="font-size:13px;" />
             <button class="btn-primary" onclick="addShare(${m.id})">追加</button>
           </div>
         </div>`;
     }).join('');
   }
 
+  // ── マスタ管理 ────────────────────────────────────────────────
+  let editingMasterId = null, currentSubtasks = [], currentType = 'monthly';
+
+  function openMasterModal(masterId=null) {
+    editingMasterId = masterId; currentSubtasks = [];
+    document.getElementById('rt-name').value = '';
+    document.getElementById('rt-memo').value = '';
+    document.getElementById('rt-url').value  = '';
+    document.getElementById('subtask-inputs').innerHTML = '';
+    document.getElementById('master-modal-title').textContent = masterId ? '定型タスク マスタを編集' : '定型タスク マスタを追加';
+    setType('monthly'); fillDaySelect();
+    if (masterId) {
+      const m = recurringTasks.find(x => x.id === masterId); if (!m) return;
+      document.getElementById('rt-name').value = m.name;
+      document.getElementById('rt-memo').value = m.memo || '';
+      document.getElementById('rt-url').value  = m.url  || '';
+      setType(m.type);
+      document.getElementById('rt-day').value = m.day;
+      if (m.type === 'annual') document.getElementById('rt-month').value = m.month;
+      currentSubtasks = Array.isArray(m.subtasks) ? m.subtasks.map(s => ({...s})) : [];
+      renderSubtaskInputs();
+    }
+    document.getElementById('master-modal').classList.add('open');
+    setTimeout(() => document.getElementById('rt-name').focus(), 50);
+  }
+
+  function closeMasterModal() { document.getElementById('master-modal').classList.remove('open'); }
+  document.getElementById('master-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('master-modal')) closeMasterModal();
+  });
+
+  function setType(type) {
+    currentType = type;
+    document.getElementById('type-monthly').classList.toggle('active', type === 'monthly');
+    document.getElementById('type-annual').classList.toggle('active',  type === 'annual');
+    document.getElementById('month-group').style.display = type === 'annual' ? 'block' : 'none';
+  }
+
+  function fillDaySelect() {
+    const sel = document.getElementById('rt-day'); if (!sel) return;
+    sel.innerHTML = '';
+    for (let d = 1; d <= 31; d++) {
+      const o = document.createElement('option'); o.value = d; o.textContent = d+'日'; sel.appendChild(o);
+    }
+    sel.value = 25;
+  }
+
+  function addSubtaskField(text='') {
+    currentSubtasks.push({ id: uuid(), text });
+    renderSubtaskInputs();
+    setTimeout(() => { const ins = document.querySelectorAll('.subtask-input-row input'); if (ins.length) ins[ins.length-1].focus(); }, 30);
+  }
+  function removeSubtaskField(id) { currentSubtasks = currentSubtasks.filter(s => s.id !== id); renderSubtaskInputs(); }
+  function updateSubtask(id, text) { const s = currentSubtasks.find(x => x.id === id); if (s) s.text = text; }
+  function renderSubtaskInputs() {
+    document.getElementById('subtask-inputs').innerHTML = currentSubtasks.map(s => `
+      <div class="subtask-input-row">
+        <input type="text" value="${esc(s.text)}" placeholder="サブタスクの内容" oninput="updateSubtask('${s.id}',this.value)" />
+        <button type="button" class="btn-remove-sub" onclick="removeSubtaskField('${s.id}')">✕</button>
+      </div>`).join('');
+  }
+
+  async function saveMaster() {
+    const name = document.getElementById('rt-name').value.trim();
+    if (!name) { document.getElementById('rt-name').focus(); return; }
+    const day  = Number(document.getElementById('rt-day').value);
+    const memo = document.getElementById('rt-memo').value.trim();
+    const url  = document.getElementById('rt-url').value.trim();
+    const subs = currentSubtasks.filter(s => s.text.trim()).map((s,i) => ({ id:s.id, text:s.text.trim(), order:i }));
+    const btn = document.getElementById('master-save-btn'); btn.disabled = true; btn.textContent = '保存中…';
+    const payload = { name, day, memo, url, subtasks: subs, type: currentType,
+      month: currentType === 'annual' ? Number(document.getElementById('rt-month').value) : null };
+    let error;
+    if (editingMasterId) {
+      ({ error } = await sb.from('recurring_tasks').update(payload).eq('id', editingMasterId));
+    } else {
+      payload.user_id = currentUser.id;
+      const res = await sb.from('recurring_tasks').insert(payload).select().single();
+      error = res.error;
+    }
+    btn.disabled = false; btn.textContent = '保存する';
+    if (error) { showToast('❌ 保存に失敗しました'); return; }
+    closeMasterModal();
+    showToast(editingMasterId ? '✅ マスタを更新しました' : '✅ マスタを追加しました');
+    await loadRT();
+    if (document.getElementById('master-overlay').classList.contains('open')) {
+      renderMoMasterList(); renderMoShareList();
+    }
+  }
+
+  async function deleteMaster(id) {
+    if (!confirm('このマスタと全インスタンスを削除しますか？')) return;
+    const { error } = await sb.from('recurring_tasks').delete().eq('id', id);
+    if (error) { showToast('❌ 削除に失敗しました'); return; }
+    showToast('🗑 マスタを削除しました');
+    await loadRT();
+    renderMoMasterList(); renderMoShareList();
+  }
+
+  // ── 共有設定 ──────────────────────────────────────────────────
   async function addShare(masterId) {
-    const inp=document.getElementById(`share-input-${masterId}`);
-    const name=inp.value.trim(); if (!name) return;
-    if (name===currentUser.name) { showToast('⚠️ 自分自身は追加できません'); return; }
-    const { data:user }=await sb.from('users').select('*').eq('name',name).maybeSingle();
+    const inp = document.getElementById(`share-input-${masterId}`);
+    const name = inp.value.trim(); if (!name) return;
+    if (name === currentUser.name) { showToast('⚠️ 自分自身は追加できません'); return; }
+    const { data: user } = await sb.from('users').select('*').eq('name', name).maybeSingle();
     if (!user) { showToast(`❌「${name}」というユーザーが見つかりません`); return; }
-    const { error }=await sb.from('recurring_task_shares').insert({ master_id:masterId, shared_with_user_id:user.id });
-    if (error) { showToast(error.code==='23505'?'⚠️ すでに共有済みです':'❌ 追加に失敗しました'); return; }
-    inp.value=''; showToast(`✅ ${name}さんに共有しました`);
-    await loadRT(); renderShareTab(masterId);
+    const { error } = await sb.from('recurring_task_shares').insert({ master_id: masterId, shared_with_user_id: user.id });
+    if (error) { showToast(error.code === '23505' ? '⚠️ すでに共有済みです' : '❌ 追加に失敗しました'); return; }
+    inp.value = ''; showToast(`✅ ${name}さんに共有しました`);
+    await loadRT(); renderMoShareList(masterId);
   }
 
   async function removeShare(shareId, masterId) {
-    await sb.from('recurring_task_shares').delete().eq('id',shareId);
-    showToast('🗑 共有を解除しました'); await loadRT(); renderShareTab(masterId);
+    await sb.from('recurring_task_shares').delete().eq('id', shareId);
+    showToast('🗑 共有を解除しました');
+    await loadRT(); renderMoShareList(masterId);
   }
 
-  // ── バックアップ ─────────────────────────────────────────────
+  // ── バックアップ ──────────────────────────────────────────────
   function exportData() {
-    const data={ version:2, exportedAt:new Date().toISOString(), user:currentUser.name, tasks };
-    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-    const url=URL.createObjectURL(blob);
-    const now=new Date();
-    const stamp=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
-    const a=document.createElement('a'); a.href=url; a.download=`task-matrix-backup-${stamp}.json`; a.click();
+    const data = { version:2, exportedAt:new Date().toISOString(), user:currentUser.name, tasks };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const now  = new Date();
+    const stamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+    const a = document.createElement('a'); a.href = url; a.download = `task-matrix-backup-${stamp}.json`; a.click();
     URL.revokeObjectURL(url); showToast('✅ バックアップを保存しました');
   }
 
   async function importData(e) {
-    const file=e.target.files[0]; if (!file) return;
-    const reader=new FileReader();
-    reader.onload=async ev=>{
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async ev => {
       try {
-        const data=JSON.parse(ev.target.result); if (!data.tasks) throw new Error();
+        const data = JSON.parse(ev.target.result); if (!data.tasks) throw new Error();
         if (!confirm(`バックアップ（${data.exportedAt?.slice(0,10)||'不明'}）を復元します。よろしいですか？`)) return;
         showLoading();
-        await sb.from('tasks').delete().eq('user_id',currentUser.id);
-        const all=['tray','q1','q2','q3','q4'].flatMap(qid=>(data.tasks[qid]||[]).map(t=>({ user_id:currentUser.id, quadrant:qid, text:t.text, done:t.done||false })));
+        await sb.from('tasks').delete().eq('user_id', currentUser.id);
+        const all = ['tray','q1','q2','q3','q4'].flatMap(qid =>
+          (data.tasks[qid]||[]).map(t => ({ user_id:currentUser.id, quadrant:qid, text:t.text, done:t.done||false }))
+        );
         if (all.length) await sb.from('tasks').insert(all);
         await loadTasks(); hideLoading(); showToast('✅ データを復元しました');
       } catch { hideLoading(); showToast('❌ ファイルの形式が正しくありません'); }
-      e.target.value='';
+      e.target.value = '';
     };
     reader.readAsText(file);
   }
 
   // ── ユーティリティ ────────────────────────────────────────────
-  function esc(str) { return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-  function uuid() { return crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{ const r=Math.random()*16|0; return(c==='x'?r:r&0x3|0x8).toString(16); }); }
+  function fileIcon(t) {
+    if (!t) return '📎';
+    if (t.startsWith('image/')) return '🖼️';
+    if (t === 'application/pdf') return '📄';
+    if (t.includes('spreadsheet') || t.includes('excel')) return '📊';
+    if (t.includes('word') || t.includes('document')) return '📝';
+    return '📎';
+  }
+  function formatBytes(b) {
+    if (!b) return '';
+    if (b < 1024) return b+'B';
+    if (b < 1048576) return (b/1024).toFixed(1)+'KB';
+    return (b/1048576).toFixed(1)+'MB';
+  }
+  function esc(str) {
+    return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function uuid() {
+    return crypto.randomUUID
+      ? crypto.randomUUID()
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+          const r = Math.random()*16|0;
+          return (c==='x' ? r : r&0x3|0x8).toString(16);
+        });
+  }
   function showToast(msg) {
-    const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
-    clearTimeout(showToast._t); showToast._t=setTimeout(()=>t.classList.remove('show'),3000);
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => t.classList.remove('show'), 3000);
   }
 
   // ── 起動 ─────────────────────────────────────────────────────
