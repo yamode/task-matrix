@@ -554,10 +554,10 @@
     <div style="font-size:12px;font-weight:700;color:#aaa;margin-bottom:4px;">象限</div>
     <div class="quadrant-sel-row">
       <button class="qsel-btn qsel-tray" data-qid="tray"  onclick="selectQuadrant('tray')">📥 トレー</button>
-      <button class="qsel-btn qsel-q1"   data-qid="q1"   onclick="selectQuadrant('q1')">🚨 Q1</button>
-      <button class="qsel-btn qsel-q2"   data-qid="q2"   onclick="selectQuadrant('q2')">🎯 Q2</button>
-      <button class="qsel-btn qsel-q3"   data-qid="q3"   onclick="selectQuadrant('q3')">📨 Q3</button>
-      <button class="qsel-btn qsel-q4"   data-qid="q4"   onclick="selectQuadrant('q4')">🗑️ Q4</button>
+      <button class="qsel-btn qsel-q1"   data-qid="q1"   onclick="selectQuadrant('q1')">🚨 今すぐ</button>
+      <button class="qsel-btn qsel-q2"   data-qid="q2"   onclick="selectQuadrant('q2')">🎯 計画</button>
+      <button class="qsel-btn qsel-q3"   data-qid="q3"   onclick="selectQuadrant('q3')">📨 委任</button>
+      <button class="qsel-btn qsel-q4"   data-qid="q4"   onclick="selectQuadrant('q4')">🗑️ 後回し</button>
     </div>
 
     <!-- 設定者情報 -->
@@ -2443,13 +2443,13 @@
       return;
     }
 
-    const QLABELS = { tray:'📥 トレー', q1:'🚨 Q1', q2:'🎯 Q2', q3:'📨 Q3', q4:'🗑️ Q4', done:'✅ 完了' };
+    const QLABELS = { tray:'📥 トレー', q1:'🚨 今すぐ', q2:'🎯 計画', q3:'📨 委任', q4:'🗑️ 後回し', done:'✅ 完了' };
     const row0 = (n) => n === 0
       ? `<span class="report-num-zero">-</span>`
       : `<span class="report-num">${n}</span>`;
 
     let html = `<table class="report-table"><thead><tr>
-      <th>メンバー</th><th>トレー</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th>
+      <th>メンバー</th><th>トレー</th><th>今すぐ</th><th>計画</th><th>委任</th><th>後回し</th>
       <th>完了</th><th>合計</th>
     </tr></thead><tbody>`;
 
@@ -2488,7 +2488,7 @@
     const el = document.getElementById('report-content');
     const grouped = el._grouped;
     const QIDS = ['tray','q1','q2','q3','q4'];
-    const QLABELS = { tray:'📥 トレー', q1:'🚨 Q1', q2:'🎯 Q2', q3:'📨 Q3', q4:'🗑️ Q4', done:'✅ 完了' };
+    const QLABELS = { tray:'📥 トレー', q1:'🚨 今すぐ', q2:'🎯 計画', q3:'📨 委任', q4:'🗑️ 後回し', done:'✅ 完了' };
 
     const allUt = grouped[uid] || [];
     const byQ = {};
