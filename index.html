@@ -6,7 +6,6 @@
   <title>タスク管理 — 4象限マトリクス</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
-  <script src="https://static.worksmobile.net/static/wf/woff/edge/2.2/sdk.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { overflow-x: hidden; }
@@ -733,44 +732,11 @@
   function hideLoading() { document.getElementById('loading-overlay').classList.remove('show'); }
 
   // ── 初期化 ────────────────────────────────────────────────────
-  const WOFF_ID = '2sGuLQU8T2BvJXN88QeCIg';
-
-  async function tryWoffLogin() {
-    try {
-      if (typeof woff === 'undefined') return false;
-      await woff.init({ woffId: WOFF_ID });
-      if (!woff.isInClient()) return false;
-      const profile = await woff.getProfile();
-      const lwUserId = profile.userId;
-      const { data: user } = await sb.from('users').select('*').eq('lw_user_id', lwUserId).maybeSingle();
-      if (user) {
-        currentUser = user;
-        usersCache[user.id] = user.name;
-        return true;
-      }
-      // LW ユーザーIDが未登録
-      hideLoading();
-      document.getElementById('login-screen').style.display = 'flex';
-      const errEl = document.getElementById('login-error');
-      errEl.textContent = 'アカウントが設定されていません。管理者にお問い合わせください。';
-      return null; // null = 処理済み（ログイン画面表示）
-    } catch (e) {
-      console.warn('WOFF init error:', e);
-      return false; // WOFF失敗 → 通常ログインへ
-    }
-  }
-
   async function init() {
     showLoading();
     const now = new Date();
     viewYear = now.getFullYear(); viewMonth = now.getMonth() + 1;
 
-    // ── WOFF自動ログイン（LINE WORKSアプリ内のみ）──
-    const woffResult = await tryWoffLogin();
-    if (woffResult === true) { await showApp(); hideLoading(); return; }
-    if (woffResult === null) return; // エラー表示済み
-
-    // ── 通常セッション確認 ──
     const { data: { session } } = await sb.auth.getSession();
     if (session) {
       const { data } = await sb.from('users').select('*').eq('auth_id', session.user.id).maybeSingle();
