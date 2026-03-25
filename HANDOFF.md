@@ -1,7 +1,19 @@
 # タスク管理アプリ 引き継ぎメモ
 
-> **最終更新**: 2026-03-25（Phase 2 動作確認完了）
-> **次の作業担当への指示**: このファイルを読んでから、**必ず下記「作業開始前の手順」を実行してから** `index.html` を読むこと。
+> **最終更新**: 2026-03-25（Phase 3 カレンダー同期・デザイン刷新）
+> **次の作業担当への指示**: このファイルを読んでから、**必ず下記「作業開始前の手順」を実行してから** `dev/index.html` を読むこと。
+
+---
+
+## 開発版・製品版の運用ルール
+
+| ファイル | URL | 用途 |
+|---|---|---|
+| `dev/index.html` | `https://yamode.github.io/task-matrix/dev/` | **開発中はこちらのみ編集** |
+| `index.html` | `https://yamode.github.io/task-matrix/` | リリース時に dev をコピーして反映 |
+
+- WOFF（LINE WORKS）は現在 dev 版に向けている（test bot のため開発者のみ閲覧可）
+- リリース時： `cp dev/index.html index.html` → commit → push → WOFF URL を製品版に戻す
 
 ---
 
