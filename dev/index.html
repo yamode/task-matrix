@@ -878,6 +878,7 @@
         currentUser = data;
         usersCache[data.id] = data.display_name || data.name;
         if (data.lw_user_id) lwIdCache[data.id] = data.lw_user_id;
+        document.getElementById('login-screen').style.display = 'none';
         await showApp(); hideLoading(); return;
       }
       // auth_idで見つからない場合はemailで試みる（auth_idが未設定の古いアカウント対策）
@@ -894,6 +895,7 @@
           currentUser = { ...data2, auth_id: session.user.id };
           usersCache[data2.id] = data2.display_name || data2.name;
           if (data2.lw_user_id) lwIdCache[data2.id] = data2.lw_user_id;
+          document.getElementById('login-screen').style.display = 'none';
           await showApp(); hideLoading(); return;
         }
       }
