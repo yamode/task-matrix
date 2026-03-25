@@ -86,21 +86,23 @@
     .quadrant-hint  { font-size:11px; color:rgba(255,255,255,.65); margin-top:1px; }
     .quadrant .task-list { padding:8px 14px 4px; }
     .quadrant .add-task-row { padding:4px 14px 12px; }
-    /* Q1〜Q4：濃淡で優先順位を表現（同一スレート系） */
-    .q1 { box-shadow:0 6px 20px rgba(15,23,42,.18); }
-    .q2 { box-shadow:0 4px 14px rgba(30,41,59,.12); }
-    .q3 { box-shadow:0 2px 8px  rgba(71,85,105,.08); }
-    .q4 { box-shadow:0 1px 4px  rgba(148,163,184,.06); }
-    .q1:hover { box-shadow:0 8px 28px rgba(15,23,42,.24); }
-    .q2:hover { box-shadow:0 6px 20px rgba(30,41,59,.18); }
-    .q3:hover { box-shadow:0 4px 14px rgba(71,85,105,.14); }
-    .q4:hover { box-shadow:0 2px 10px rgba(148,163,184,.12); }
-    .q1 .quadrant-header { background:#0f172a; }
-    .q2 .quadrant-header { background:#1e293b; }
-    .q3 .quadrant-header { background:#475569; }
-    .q4 .quadrant-header { background:#94a3b8; }
-    .q4 .quadrant-title  { color:#1e293b; }
-    .q4 .quadrant-hint   { color:rgba(30,41,59,.55); }
+    /* Q1〜Q4：ブランド紫系、鮮やか→淡く優先順位を表現 */
+    .q1 { box-shadow:0 6px 20px rgba(102,126,234,.25); }
+    .q2 { box-shadow:0 4px 14px rgba(102,126,234,.15); }
+    .q3 { box-shadow:0 2px 8px  rgba(102,126,234,.08); }
+    .q4 { box-shadow:0 1px 4px  rgba(102,126,234,.05); }
+    .q1:hover { box-shadow:0 8px 28px rgba(102,126,234,.35); }
+    .q2:hover { box-shadow:0 6px 20px rgba(102,126,234,.22); }
+    .q3:hover { box-shadow:0 4px 14px rgba(102,126,234,.14); }
+    .q4:hover { box-shadow:0 2px 10px rgba(102,126,234,.10); }
+    .q1 .quadrant-header { background:linear-gradient(135deg,#667eea,#764ba2); }
+    .q2 .quadrant-header { background:#7c8ff5; }
+    .q3 .quadrant-header { background:#b0baf9; }
+    .q4 .quadrant-header { background:#e8eafd; }
+    .q3 .quadrant-title  { color:#fff; }
+    .q3 .quadrant-hint   { color:rgba(255,255,255,.7); }
+    .q4 .quadrant-title  { color:#4c51bf; }
+    .q4 .quadrant-hint   { color:rgba(76,81,191,.55); }
     .task-list { flex:1; display:flex; flex-direction:column; gap:5px; min-height:36px; }
     .task-item { display:flex; align-items:flex-start; gap:8px; padding:8px 10px; border-radius:8px; background:#f9f9f9; border:1px solid #eee; transition:background .15s; cursor:pointer; }
     .task-item:hover { background:#f0f0f0; }
@@ -119,16 +121,16 @@
     .add-task-btn  { padding:8px 12px; color:white; border:none; border-radius:8px; font-size:13px; cursor:pointer; font-weight:600; transition:background .15s; }
     .add-task-btn:disabled { opacity:.5; cursor:not-allowed; }
     .empty-hint { font-size:12px; color:#ccc; text-align:center; padding:14px 0; }
-    .q1 .task-check:hover,.q1 .task-item.done .task-check { background:#0f172a; border-color:#0f172a; }
-    .q2 .task-check:hover,.q2 .task-item.done .task-check { background:#1e293b; border-color:#1e293b; }
-    .q3 .task-check:hover,.q3 .task-item.done .task-check { background:#475569; border-color:#475569; }
-    .q4 .task-check:hover,.q4 .task-item.done .task-check { background:#94a3b8; border-color:#94a3b8; }
-    .q1 .add-task-btn { background:#0f172a; } .q1 .add-task-btn:hover { background:#1e293b; }
-    .q2 .add-task-btn { background:#1e293b; } .q2 .add-task-btn:hover { background:#334155; }
-    .q3 .add-task-btn { background:#475569; } .q3 .add-task-btn:hover { background:#334155; }
-    .q4 .add-task-btn { background:#94a3b8; } .q4 .add-task-btn:hover { background:#64748b; }
-    .q1 .add-task-input:focus { border-color:#0f172a; } .q2 .add-task-input:focus { border-color:#1e293b; }
-    .q3 .add-task-input:focus { border-color:#475569; } .q4 .add-task-input:focus { border-color:#94a3b8; }
+    .q1 .task-check:hover,.q1 .task-item.done .task-check { background:#667eea; border-color:#667eea; }
+    .q2 .task-check:hover,.q2 .task-item.done .task-check { background:#7c8ff5; border-color:#7c8ff5; }
+    .q3 .task-check:hover,.q3 .task-item.done .task-check { background:#b0baf9; border-color:#b0baf9; }
+    .q4 .task-check:hover,.q4 .task-item.done .task-check { background:#c7cbfb; border-color:#c7cbfb; }
+    .q1 .add-task-btn { background:#667eea; } .q1 .add-task-btn:hover { background:#5a70d8; }
+    .q2 .add-task-btn { background:#7c8ff5; } .q2 .add-task-btn:hover { background:#667eea; }
+    .q3 .add-task-btn { background:#b0baf9; } .q3 .add-task-btn:hover { background:#8f9df6; }
+    .q4 .add-task-btn { background:#c7cbfb; color:#4c51bf; } .q4 .add-task-btn:hover { background:#b0baf9; }
+    .q1 .add-task-input:focus { border-color:#667eea; } .q2 .add-task-input:focus { border-color:#7c8ff5; }
+    .q3 .add-task-input:focus { border-color:#b0baf9; } .q4 .add-task-input:focus { border-color:#c7cbfb; }
 
     /* ── ドラッグ＆ドロップ ── */
     .sortable-ghost  { opacity:.35; background:#e8eaff !important; border:1.5px dashed #667eea !important; }
