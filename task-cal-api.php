@@ -121,7 +121,7 @@ if ($action === 'create') {
         // _ で始まるフィールド（メタデータ）をそのまま返す
         $meta = [];
         foreach ($ev as $k => $v) {
-            if (str_starts_with($k, '_')) $meta[$k] = $v;
+            if (isset($k[0]) && $k[0] === '_') $meta[$k] = $v;
         }
 
         $results[] = array_merge($meta, [
