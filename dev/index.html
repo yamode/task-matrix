@@ -76,19 +76,31 @@
     .tray-add-btn:hover { background:#717d7e; }
 
     /* ── 4象限グリッド ── */
-    .axis-labels { display:grid; grid-template-columns:72px 1fr 1fr; grid-template-rows:auto 1fr 1fr; gap:8px; max-width:960px; margin:0 auto; }
-    .label-urgent,.label-not-urgent { text-align:center; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; padding:6px 0; border-radius:6px; }
-    .label-urgent     { background:#ffeaea; color:#c0392b; }
-    .label-not-urgent { background:#eaf2ff; color:#2980b9; }
-    .label-important,.label-not-important { display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; letter-spacing:.08em; writing-mode:vertical-rl; text-orientation:mixed; border-radius:6px; padding:8px 6px; }
-    .label-important     { background:#eafaf1; color:#1e8449; }
-    .label-not-important { background:#fdf5e6; color:#b7770d; }
-    .quadrant { background:#fff; border-radius:12px; padding:14px; min-height:200px; box-shadow:0 2px 8px rgba(0,0,0,.06); display:flex; flex-direction:column; transition:box-shadow .2s; }
-    .quadrant:hover { box-shadow:0 4px 16px rgba(0,0,0,.1); }
-    .quadrant-header { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
-    .quadrant-icon  { font-size:20px; }
-    .quadrant-title { font-size:13px; font-weight:700; color:#333; }
-    .quadrant-hint  { font-size:11px; color:#aaa; margin-top:1px; }
+    .axis-labels { display:grid; grid-template-columns:52px 1fr 1fr; grid-template-rows:auto 1fr 1fr; gap:8px; max-width:960px; margin:0 auto; }
+    .label-urgent,.label-not-urgent { text-align:center; font-size:11px; font-weight:700; letter-spacing:.08em; padding:5px 0; border-radius:6px; background:#f1f5f9; color:#64748b; }
+    .label-important,.label-not-important { display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; letter-spacing:.06em; writing-mode:vertical-rl; text-orientation:mixed; border-radius:6px; padding:8px 5px; background:#f1f5f9; color:#64748b; }
+    .quadrant { background:#fff; border-radius:12px; padding:0; min-height:200px; display:flex; flex-direction:column; overflow:hidden; transition:box-shadow .2s; }
+    .quadrant-header { display:flex; align-items:center; gap:10px; padding:11px 14px; }
+    .quadrant-icon  { font-size:18px; }
+    .quadrant-title { font-size:13px; font-weight:700; color:#fff; }
+    .quadrant-hint  { font-size:11px; color:rgba(255,255,255,.65); margin-top:1px; }
+    .quadrant .task-list { padding:8px 14px 4px; }
+    .quadrant .add-task-row { padding:4px 14px 12px; }
+    /* Q1〜Q4：濃淡で優先順位を表現（同一スレート系） */
+    .q1 { box-shadow:0 6px 20px rgba(15,23,42,.18); }
+    .q2 { box-shadow:0 4px 14px rgba(30,41,59,.12); }
+    .q3 { box-shadow:0 2px 8px  rgba(71,85,105,.08); }
+    .q4 { box-shadow:0 1px 4px  rgba(148,163,184,.06); }
+    .q1:hover { box-shadow:0 8px 28px rgba(15,23,42,.24); }
+    .q2:hover { box-shadow:0 6px 20px rgba(30,41,59,.18); }
+    .q3:hover { box-shadow:0 4px 14px rgba(71,85,105,.14); }
+    .q4:hover { box-shadow:0 2px 10px rgba(148,163,184,.12); }
+    .q1 .quadrant-header { background:#0f172a; }
+    .q2 .quadrant-header { background:#1e293b; }
+    .q3 .quadrant-header { background:#475569; }
+    .q4 .quadrant-header { background:#94a3b8; }
+    .q4 .quadrant-title  { color:#1e293b; }
+    .q4 .quadrant-hint   { color:rgba(30,41,59,.55); }
     .task-list { flex:1; display:flex; flex-direction:column; gap:5px; min-height:36px; }
     .task-item { display:flex; align-items:flex-start; gap:8px; padding:8px 10px; border-radius:8px; background:#f9f9f9; border:1px solid #eee; transition:background .15s; cursor:pointer; }
     .task-item:hover { background:#f0f0f0; }
@@ -107,18 +119,16 @@
     .add-task-btn  { padding:8px 12px; color:white; border:none; border-radius:8px; font-size:13px; cursor:pointer; font-weight:600; transition:background .15s; }
     .add-task-btn:disabled { opacity:.5; cursor:not-allowed; }
     .empty-hint { font-size:12px; color:#ccc; text-align:center; padding:14px 0; }
-    .q1 { border-top:3px solid #e74c3c; } .q2 { border-top:3px solid #27ae60; }
-    .q3 { border-top:3px solid #e67e22; } .q4 { border-top:3px solid #95a5a6; }
-    .q1 .task-check:hover,.q1 .task-item.done .task-check { background:#e74c3c; border-color:#e74c3c; }
-    .q2 .task-check:hover,.q2 .task-item.done .task-check { background:#27ae60; border-color:#27ae60; }
-    .q3 .task-check:hover,.q3 .task-item.done .task-check { background:#e67e22; border-color:#e67e22; }
-    .q4 .task-check:hover,.q4 .task-item.done .task-check { background:#95a5a6; border-color:#95a5a6; }
-    .q1 .add-task-btn { background:#e74c3c; } .q1 .add-task-btn:hover { background:#c0392b; }
-    .q2 .add-task-btn { background:#27ae60; } .q2 .add-task-btn:hover { background:#1e8449; }
-    .q3 .add-task-btn { background:#e67e22; } .q3 .add-task-btn:hover { background:#ca6f1e; }
-    .q4 .add-task-btn { background:#95a5a6; } .q4 .add-task-btn:hover { background:#717d7e; }
-    .q1 .add-task-input:focus { border-color:#e74c3c; } .q2 .add-task-input:focus { border-color:#27ae60; }
-    .q3 .add-task-input:focus { border-color:#e67e22; } .q4 .add-task-input:focus { border-color:#95a5a6; }
+    .q1 .task-check:hover,.q1 .task-item.done .task-check { background:#0f172a; border-color:#0f172a; }
+    .q2 .task-check:hover,.q2 .task-item.done .task-check { background:#1e293b; border-color:#1e293b; }
+    .q3 .task-check:hover,.q3 .task-item.done .task-check { background:#475569; border-color:#475569; }
+    .q4 .task-check:hover,.q4 .task-item.done .task-check { background:#94a3b8; border-color:#94a3b8; }
+    .q1 .add-task-btn { background:#0f172a; } .q1 .add-task-btn:hover { background:#1e293b; }
+    .q2 .add-task-btn { background:#1e293b; } .q2 .add-task-btn:hover { background:#334155; }
+    .q3 .add-task-btn { background:#475569; } .q3 .add-task-btn:hover { background:#334155; }
+    .q4 .add-task-btn { background:#94a3b8; } .q4 .add-task-btn:hover { background:#64748b; }
+    .q1 .add-task-input:focus { border-color:#0f172a; } .q2 .add-task-input:focus { border-color:#1e293b; }
+    .q3 .add-task-input:focus { border-color:#475569; } .q4 .add-task-input:focus { border-color:#94a3b8; }
 
     /* ── ドラッグ＆ドロップ ── */
     .sortable-ghost  { opacity:.35; background:#e8eaff !important; border:1.5px dashed #667eea !important; }
@@ -431,9 +441,9 @@
   <!-- 4象限 -->
   <div class="axis-labels">
     <div></div>
-    <div class="label-urgent">🔴 緊急</div>
-    <div class="label-not-urgent">🔵 緊急でない</div>
-    <div class="label-important">🟢 重&nbsp;要</div>
+    <div class="label-urgent">緊&nbsp;急</div>
+    <div class="label-not-urgent">計&nbsp;画</div>
+    <div class="label-important">重&nbsp;要</div>
     <div class="quadrant q1">
       <div class="quadrant-header"><span class="quadrant-icon">🚨</span><div><div class="quadrant-title">緊急かつ重要</div><div class="quadrant-hint">今すぐ対応する</div></div></div>
       <div class="task-list" id="list-q1"></div>
@@ -444,7 +454,7 @@
       <div class="task-list" id="list-q2"></div>
       <div class="add-task-row"><input class="add-task-input" id="input-q2" type="text" placeholder="タスクを追加…"/><button class="add-task-btn" id="btn-q2" onclick="addTask('q2')">＋</button></div>
     </div>
-    <div class="label-not-important">🟡 重&nbsp;要&nbsp;で&nbsp;な&nbsp;い</div>
+    <div class="label-not-important">委&nbsp;任</div>
     <div class="quadrant q3">
       <div class="quadrant-header"><span class="quadrant-icon">📨</span><div><div class="quadrant-title">緊急だが重要ではない</div><div class="quadrant-hint">委任・効率化を検討</div></div></div>
       <div class="task-list" id="list-q3"></div>
