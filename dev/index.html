@@ -775,6 +775,7 @@
   let shares            = {};   // { masterId: [{ id, user_id, name }] }
   let viewYear, viewMonth;
   let _calResyncDone = false; // カレンダー再同期の重複防止フラグ
+  let _isWoffLogin   = false; // WOFFログイン中フラグ
   let currentInstanceId = null;
   let currentTaskId     = null;
   let disputingTaskId   = null;
@@ -816,6 +817,7 @@
           user.display_name = lwDisplayName;
         }
         currentUser = user;
+        _isWoffLogin = true;
         usersCache[user.id] = user.display_name || user.name;
         if (user.lw_user_id) lwIdCache[user.id] = user.lw_user_id;
         return true;
@@ -1001,6 +1003,7 @@
   async function showApp() {
     document.getElementById('user-bar').style.display = 'flex';
     document.getElementById('user-bar-name').textContent = currentUser.display_name || currentUser.name;
+    document.querySelector('.btn-logout').style.display = _isWoffLogin ? 'none' : '';
     document.getElementById('app').style.display = 'block';
     fillDaySelect();
     await Promise.all([loadTasks(), loadRT()]);
