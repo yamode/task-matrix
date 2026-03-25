@@ -479,10 +479,12 @@
     </div>
     <div class="rec-card">
       <div class="cal-nav">
-        <div class="cal-nav-center" style="width:100%">
-          <div class="cal-nav-label" id="cal-nav-label">今後12ヶ月 定型タスク</div>
+        <button class="cal-nav-btn" onclick="changeMonth(-1)">◀</button>
+        <div class="cal-nav-center">
+          <div class="cal-nav-label" id="cal-nav-label"></div>
           <div class="cal-nav-sub"   id="cal-nav-sub"></div>
         </div>
+        <button class="cal-nav-btn" onclick="changeMonth(1)">▶</button>
       </div>
       <div id="cal-task-list"></div>
     </div>
@@ -1799,31 +1801,26 @@
   }
 
   function renderCalendar() {
-    const now = new Date();
-    let totalCount = 0, totalDone = 0;
+    const monthly = [], annual = [];
+    recurringTasks.forEach(master => {
+      const inst = allInstances[master.id]?.[`${viewYear}_${viewMonth}`];
+      if (!inst) return;
+      if (master.type === 'monthly') monthly.push({ master, inst });
+      else if (master.type === 'annual' && Number(master.month) === viewMonth) annual.push({ master, inst });
+    });
+    monthly.sort((a,b) => a.master.day - b.master.day);
+    annual.sort((a,b)  => a.master.day - b.master.day);
+    const all = [...monthly, ...annual];
+    const doneCount = all.filter(x => x.inst.done).length;
+    document.getElementById('cal-nav-label').textContent = `${viewYear}年${viewMonth}月`;
+    document.getElementById('cal-nav-sub').textContent = all.length ? `${doneCount}/${all.length}件完了` : '定型タスクなし';
     let html = '';
-    for (let i = 0; i <= 11; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-      const y = d.getFullYear(), m = d.getMonth() + 1;
-      const monthly = [], annual = [];
-      recurringTasks.forEach(master => {
-        const inst = allInstances[master.id]?.[`${y}_${m}`];
-        if (!inst) return;
-        if (master.type === 'monthly') monthly.push({ master, inst });
-        else if (master.type === 'annual' && Number(master.month) === m) annual.push({ master, inst });
-      });
-      monthly.sort((a,b) => a.master.day - b.master.day);
-      annual.sort((a,b)  => a.master.day - b.master.day);
-      const all = [...monthly, ...annual];
-      if (!all.length) continue;
-      totalCount += all.length;
-      totalDone  += all.filter(x => x.inst.done).length;
-      html += `<div class="cal-month-header">${y}年${m}月</div>`;
-      if (monthly.length) html += `<div class="cal-section-label">月次（${monthly.length}件）</div>` + monthly.map(x => instItemHTML(x.master, x.inst, y, m)).join('');
-      if (annual.length)  html += `<div class="cal-section-label">年次（${annual.length}件）</div>`  + annual.map(x => instItemHTML(x.master, x.inst, y, m)).join('');
+    if (!all.length) { html = '<div class="cal-empty">この月の定型タスクはありません</div>'; }
+    else {
+      if (monthly.length) html += `<div class="cal-section-label">月次タスク（${monthly.length}件）</div>` + monthly.map(x => instItemHTML(x.master, x.inst)).join('');
+      if (annual.length)  html += `<div class="cal-section-label">年次タスク（${annual.length}件）</div>`  + annual.map(x => instItemHTML(x.master, x.inst)).join('');
     }
-    document.getElementById('cal-nav-sub').textContent = totalCount ? `${totalDone}/${totalCount}件完了` : '定型タスクなし';
-    document.getElementById('cal-task-list').innerHTML = html || '<div class="cal-empty">定型タスクがありません</div>';
+    document.getElementById('cal-task-list').innerHTML = html;
   }
 
   function instItemHTML(master, inst, y, m) {
