@@ -7,12 +7,18 @@
 -- Phase 1: Supabase Auth 連携（email + auth_id 追加）
 -- auth_id = auth.users.id（Supabase Auth の UUID）
 create table public.users (
-  id         uuid primary key default gen_random_uuid(),
-  name       text not null unique,
-  email      text unique,
-  auth_id    uuid unique,
-  created_at timestamptz default now()
+  id           uuid primary key default gen_random_uuid(),
+  name         text not null unique,
+  display_name text,                    -- LWニックネーム or 任意の表示名（WOFFログイン時に自動更新）
+  email        text unique,
+  auth_id      uuid unique,
+  lw_user_id   text unique,
+  created_at   timestamptz default now()
 );
+
+-- 既存テーブルにカラムを追加する場合（初回セットアップ済みの環境用）
+-- alter table public.users add column if not exists display_name text;
+-- alter table public.users add column if not exists lw_user_id text unique;
 
 -- ── 1-shot タスク ──────────────────────────────────────────
 create table public.tasks (

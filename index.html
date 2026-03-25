@@ -246,6 +246,12 @@
     .assign-row { display:flex; gap:8px; margin-top:6px; }
     .btn-td-assign { padding:9px 16px; background:#8e44ad; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; transition:background .15s; white-space:nowrap; }
     .btn-td-assign:hover { background:#7d3c98; }
+    .assign-search-wrap { position:relative; flex:1; }
+    .assign-dropdown { position:absolute; top:100%; left:0; right:0; background:#fff; border:1.5px solid #667eea; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,.12); z-index:200; max-height:200px; overflow-y:auto; margin-top:2px; display:none; }
+    .assign-dropdown-item { padding:10px 12px; font-size:14px; cursor:pointer; border-bottom:1px solid #f0f0f0; }
+    .assign-dropdown-item:last-child { border-bottom:none; }
+    .assign-dropdown-item:hover { background:#f0f0ff; }
+    .assign-dropdown-item .assign-item-sub { font-size:11px; color:#aaa; margin-top:1px; }
     .td-delete-btn { width:100%; margin-top:8px; padding:11px; background:none; border:1.5px solid #e74c3c; color:#e74c3c; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; transition:all .15s; }
     .td-delete-btn:hover { background:#ffeaea; }
 
@@ -356,7 +362,7 @@
   <div class="login-card">
     <div class="login-logo">📋</div>
     <div class="login-title">タスク管理マトリクス</div>
-    <div class="login-sub">山人 業務タスク管理 v3</div>
+    <div class="login-sub">山人 業務タスク管理</div>
     <div class="login-tabs">
       <button class="login-tab active" id="tab-login"  onclick="switchLoginTab('login')">ログイン</button>
       <button class="login-tab"        id="tab-signup" onclick="switchLoginTab('signup')">新規登録</button>
@@ -566,7 +572,14 @@
     <div class="detail-section td-assign-section" id="td-assign-section">
       <div class="detail-sec-label">このタスクを配布する</div>
       <div class="assign-row">
-        <input class="form-field" id="td-assign-input" type="text" placeholder="相手の名前を入力" style="font-size:14px;" onkeydown="if(event.key==='Enter')assignTask()" />
+        <div class="assign-search-wrap">
+          <input class="form-field" id="td-assign-input" type="text" placeholder="名前で検索..." style="font-size:14px;width:100%;box-sizing:border-box;"
+            oninput="searchAssignUser(this.value)"
+            onblur="setTimeout(()=>hideAssignDropdown(),200)"
+            autocomplete="off" />
+          <div class="assign-dropdown" id="assign-dropdown"></div>
+          <input type="hidden" id="td-assign-user-id" />
+        </div>
         <button class="btn-td-assign" onclick="assignTask()">配布する</button>
       </div>
     </div>
@@ -720,7 +733,8 @@
   let tasks             = { tray:[], q1:[], q2:[], q3:[], q4:[] };
   let receivedTasks     = [];   // tasks assigned TO me with status=pending
   let assignedOutTasks  = [];   // tasks I assigned to others
-  let usersCache        = {};   // { userId: name }
+  let usersCache        = {};   // { userId: displayName }
+  let assignSelectedUserId = null; // 配布先として選択したユーザーID
   let recurringTasks    = [];
   let allInstances      = {};   // { masterId: { "year_month": instance } }
   let shares            = {};   // { masterId: [{ id, user_id, name }] }
@@ -738,55 +752,45 @@
   const WOFF_ID = '2sGuLQU8T2BvJXN88QeCIg';
 
   async function tryWoffLogin() {
-    const logs = [];
-    const dbg = (msg) => {
-      logs.push(msg);
-      const el = document.getElementById('login-error');
-      if (el) { el.style.color = '#888'; el.style.fontSize = '11px'; el.textContent = logs.join(' | '); }
-      console.log('[WOFF]', msg);
-    };
     try {
-      dbg('UA=' + navigator.userAgent.slice(0, 80));
-
-      // SDK動的ロード（複数URLを試行）
-      const SDK_URLS = [
-        'https://static.worksmobile.net/static/wm/woff/edge/3.6/sdk.js?v=' + Date.now(),
-      ];
-      for (const url of SDK_URLS) {
-        if (typeof woff !== 'undefined') break;
+      // WOFF SDK 動的ロード
+      if (typeof woff === 'undefined') {
         await new Promise((resolve) => {
           const s = document.createElement('script');
-          s.src = url;
-          s.onload = () => { dbg('loaded:' + url.split('/').slice(-2).join('/')); resolve(); };
-          s.onerror = () => { dbg('error:' + url.split('/').slice(-2).join('/')); resolve(); };
+          s.src = 'https://static.worksmobile.net/static/wm/woff/edge/3.6/sdk.js';
+          s.onload = resolve;
+          s.onerror = resolve;
           document.head.appendChild(s);
         });
       }
+      if (typeof woff === 'undefined') return false;
 
-      // woffキー名を探す
-      const woffKey = ['woff','WOFF','WorksMobile'].find(k => typeof window[k] !== 'undefined');
-      dbg('woffKey=' + (woffKey || 'none'));
-      if (!woffKey) return false;
+      await woff.init({ woffId: WOFF_ID });
+      if (!woff.isInClient()) return false;
 
-      const w = window[woffKey];
-      await w.init({ woffId: WOFF_ID });
-      dbg('isInClient=' + w.isInClient());
-      if (!w.isInClient()) return false;
-      const profile = await w.getProfile();
+      const profile = await woff.getProfile();
       const lwUserId = profile.userId;
-      dbg('userId=' + lwUserId);
       const { data: user } = await sb.from('users').select('*').eq('lw_user_id', lwUserId).maybeSingle();
-      dbg('user=' + (user ? user.name : 'null'));
-      if (user) { currentUser = user; usersCache[user.id] = user.name; return true; }
+      if (user) {
+        // LWのdisplayNameが変わっていれば更新
+        const lwDisplayName = profile.displayName || null;
+        if (lwDisplayName && lwDisplayName !== user.display_name) {
+          await sb.from('users').update({ display_name: lwDisplayName }).eq('id', user.id);
+          user.display_name = lwDisplayName;
+        }
+        currentUser = user;
+        usersCache[user.id] = user.display_name || user.name;
+        return true;
+      }
+
+      // DBに未登録のLWユーザー
       hideLoading();
       document.getElementById('login-screen').style.display = 'flex';
       const errEl = document.getElementById('login-error');
       errEl.style.color = '#e74c3c';
-      errEl.textContent = `未登録: "${lwUserId}" — 管理者にお問い合わせください。`;
+      errEl.textContent = `未登録ユーザーです。管理者にお問い合わせください。`;
       return null;
     } catch (e) {
-      const errEl = document.getElementById('login-error');
-      if (errEl) { errEl.style.color = '#e74c3c'; errEl.textContent = logs.join(' | ') + ' ERR:' + e.message; }
       console.warn('[WOFF] error:', e);
       return false;
     }
@@ -811,7 +815,7 @@
       const { data } = await sb.from('users').select('*').eq('auth_id', session.user.id).maybeSingle();
       if (data) {
         currentUser = data;
-        usersCache[data.id] = data.name;
+        usersCache[data.id] = data.display_name || data.name;
         await showApp(); hideLoading(); return;
       }
     }
@@ -850,11 +854,11 @@
       await sb.auth.signOut(); btn.disabled = false; btn.textContent = 'ログイン'; return;
     }
     currentUser = user;
-    usersCache[user.id] = user.name;
+    usersCache[user.id] = user.display_name || user.name;
     document.getElementById('login-screen').style.display = 'none';
     showLoading(); await showApp(); hideLoading();
     btn.disabled = false; btn.textContent = 'ログイン';
-    showToast(`👋 おかえりなさい、${user.name}さん`);
+    showToast(`👋 おかえりなさい、${user.display_name || user.name}さん`);
   }
 
   async function handleSignUp() {
@@ -883,7 +887,7 @@
       await sb.auth.signOut(); btn.disabled = false; btn.textContent = '登録する'; return;
     }
     if (authData.session) {
-      currentUser = user; usersCache[user.id] = user.name;
+      currentUser = user; usersCache[user.id] = user.display_name || user.name;
       document.getElementById('login-screen').style.display = 'none';
       showLoading(); await showApp(); hideLoading();
       showToast('✅ アカウントを作成しました');
@@ -911,7 +915,7 @@
 
   async function showApp() {
     document.getElementById('user-bar').style.display = 'flex';
-    document.getElementById('user-bar-name').textContent = currentUser.name;
+    document.getElementById('user-bar-name').textContent = currentUser.display_name || currentUser.name;
     document.getElementById('app').style.display = 'block';
     fillDaySelect();
     await Promise.all([loadTasks(), loadRT()]);
@@ -1253,6 +1257,9 @@
       assignerRow.style.display = 'none';
       assignSec.style.display = 'block';
       document.getElementById('td-assign-input').value = '';
+      document.getElementById('td-assign-user-id').value = '';
+      document.getElementById('assign-dropdown').style.display = 'none';
+      assignSelectedUserId = null;
     }
 
     renderTaskSubtasks(t);
@@ -1491,23 +1498,55 @@
   }
 
   // ── タスク配布 ────────────────────────────────────────────────
+  async function searchAssignUser(query) {
+    const dropdown = document.getElementById('assign-dropdown');
+    document.getElementById('td-assign-user-id').value = '';
+    assignSelectedUserId = null;
+    if (!query || query.length < 1) { dropdown.style.display = 'none'; return; }
+    const { data: users } = await sb.from('users')
+      .select('id, name, display_name')
+      .or(`name.ilike.%${query}%,display_name.ilike.%${query}%`)
+      .neq('id', currentUser.id)
+      .limit(8);
+    if (!users || users.length === 0) { dropdown.style.display = 'none'; return; }
+    dropdown.innerHTML = users.map(u => {
+      const label = u.display_name || u.name;
+      const sub   = u.display_name ? u.name : '';
+      return `<div class="assign-dropdown-item" onmousedown="selectAssignUser('${u.id}','${label.replace(/'/g,"\\'")}')">
+        ${esc(label)}${sub ? `<div class="assign-item-sub">${esc(sub)}</div>` : ''}
+      </div>`;
+    }).join('');
+    dropdown.style.display = 'block';
+  }
+
+  function selectAssignUser(userId, label) {
+    assignSelectedUserId = userId;
+    document.getElementById('td-assign-input').value = label;
+    document.getElementById('td-assign-user-id').value = userId;
+    document.getElementById('assign-dropdown').style.display = 'none';
+  }
+
+  function hideAssignDropdown() {
+    document.getElementById('assign-dropdown').style.display = 'none';
+  }
+
   async function assignTask() {
-    const targetName = document.getElementById('td-assign-input').value.trim();
-    if (!targetName) return;
-    if (targetName === currentUser.name) { showToast('⚠️ 自分自身には配布できません'); return; }
-    const { data: target } = await sb.from('users').select('*').eq('name', targetName).maybeSingle();
-    if (!target) { showToast(`❌「${targetName}」というユーザーが見つかりません`); return; }
+    const targetId = assignSelectedUserId;
+    const targetLabel = document.getElementById('td-assign-input').value.trim();
+    if (!targetId) { showToast('⚠️ リストから相手を選択してください'); return; }
+    if (targetId === currentUser.id) { showToast('⚠️ 自分自身には配布できません'); return; }
     if (!currentTaskId) return;
     const qid = findTaskQid(currentTaskId);
     const { error } = await sb.from('tasks').update({
-      user_id: target.id, assigner_id: currentUser.id, approval_status: 'pending',
+      user_id: targetId, assigner_id: currentUser.id, approval_status: 'pending',
       updated_at: new Date().toISOString()
     }).eq('id', currentTaskId);
     if (error) { showToast('❌ 配布に失敗しました'); return; }
     if (qid) tasks[qid] = tasks[qid].filter(t => t.id !== currentTaskId);
+    assignSelectedUserId = null;
     closeTaskDetail(); renderMatrix();
     await loadTasks();
-    showToast(`✅ ${targetName}さんにタスクを配布しました`);
+    showToast(`✅ ${targetLabel}さんにタスクを配布しました`);
   }
 
   // ── 定型タスク ────────────────────────────────────────────────
