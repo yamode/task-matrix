@@ -1727,6 +1727,13 @@
 
   // 新規インスタンスのカレンダーイベントを一括作成して DB に保存
   async function syncCalForNewInstances(newInstances) {
+    // 冒頭でDBに_syncingを書いて重複実行を防ぐ（既にawaitで書かれていれば上書きは無害）
+    const syncIds = newInstances.map(i => i.id).filter(Boolean);
+    if (syncIds.length) {
+      await sb.from('recurring_instances')
+        .update({ lw_calendar_event_ids: { _syncing: true } })
+        .in('id', syncIds);
+    }
     const allEvents = [];
     newInstances.forEach(inst => {
       const master = recurringTasks.find(m => m.id === inst.master_id);
@@ -1912,9 +1919,13 @@
     }
     if (!_calResyncDone && unsyncedInsts.length) {
       _calResyncDone = true;
-      // ローカルキャッシュを即座に更新して同セッション内の重複実行を防ぐ
+      // DBに先に_syncingを書いて他セッション（別タブ・別端末）との競合を防ぐ
+      const unsyncedIds = unsyncedInsts.map(i => i.id);
+      await sb.from('recurring_instances')
+        .update({ lw_calendar_event_ids: { _syncing: true } })
+        .in('id', unsyncedIds);
       unsyncedInsts.forEach(inst => { inst.lw_calendar_event_ids = { _syncing: true }; });
-      syncCalForNewInstances(unsyncedInsts); // await不要：バックグラウンド同期
+      syncCalForNewInstances(unsyncedInsts);
     }
   }
 
