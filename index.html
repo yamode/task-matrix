@@ -356,7 +356,7 @@
   <div class="login-card">
     <div class="login-logo">📋</div>
     <div class="login-title">タスク管理マトリクス</div>
-    <div class="login-sub">山人 業務タスク管理</div>
+    <div class="login-sub">山人 業務タスク管理 v3</div>
     <div class="login-tabs">
       <button class="login-tab active" id="tab-login"  onclick="switchLoginTab('login')">ログイン</button>
       <button class="login-tab"        id="tab-signup" onclick="switchLoginTab('signup')">新規登録</button>
@@ -738,35 +738,55 @@
   const WOFF_ID = '2sGuLQU8T2BvJXN88QeCIg';
 
   async function tryWoffLogin() {
+    const logs = [];
+    const dbg = (msg) => {
+      logs.push(msg);
+      const el = document.getElementById('login-error');
+      if (el) { el.style.color = '#888'; el.style.fontSize = '11px'; el.textContent = logs.join(' | '); }
+      console.log('[WOFF]', msg);
+    };
     try {
-      // WOFF SDK 動的ロード
-      if (typeof woff === 'undefined') {
+      dbg('UA=' + navigator.userAgent.slice(0, 80));
+
+      // SDK動的ロード（複数URLを試行）
+      const SDK_URLS = [
+        'https://static.worksmobile.net/static/wm/woff/edge/3.6/sdk.js?v=' + Date.now(),
+      ];
+      for (const url of SDK_URLS) {
+        if (typeof woff !== 'undefined') break;
         await new Promise((resolve) => {
           const s = document.createElement('script');
-          s.src = 'https://static.worksmobile.net/static/wm/woff/edge/3.6/sdk.js';
-          s.onload = resolve;
-          s.onerror = resolve;
+          s.src = url;
+          s.onload = () => { dbg('loaded:' + url.split('/').slice(-2).join('/')); resolve(); };
+          s.onerror = () => { dbg('error:' + url.split('/').slice(-2).join('/')); resolve(); };
           document.head.appendChild(s);
         });
       }
-      if (typeof woff === 'undefined') return false;
 
-      await woff.init({ woffId: WOFF_ID });
-      if (!woff.isInClient()) return false;
+      // woffキー名を探す
+      const woffKey = ['woff','WOFF','WorksMobile'].find(k => typeof window[k] !== 'undefined');
+      dbg('woffKey=' + (woffKey || 'none'));
+      if (!woffKey) return false;
 
-      const profile = await woff.getProfile();
+      const w = window[woffKey];
+      await w.init({ woffId: WOFF_ID });
+      dbg('isInClient=' + w.isInClient());
+      if (!w.isInClient()) return false;
+      const profile = await w.getProfile();
       const lwUserId = profile.userId;
+      dbg('userId=' + lwUserId);
       const { data: user } = await sb.from('users').select('*').eq('lw_user_id', lwUserId).maybeSingle();
+      dbg('user=' + (user ? user.name : 'null'));
       if (user) { currentUser = user; usersCache[user.id] = user.name; return true; }
-
-      // DBに未登録のLWユーザー
       hideLoading();
       document.getElementById('login-screen').style.display = 'flex';
       const errEl = document.getElementById('login-error');
       errEl.style.color = '#e74c3c';
-      errEl.textContent = `未登録ユーザーです。管理者にお問い合わせください。`;
+      errEl.textContent = `未登録: "${lwUserId}" — 管理者にお問い合わせください。`;
       return null;
     } catch (e) {
+      const errEl = document.getElementById('login-error');
+      if (errEl) { errEl.style.color = '#e74c3c'; errEl.textContent = logs.join(' | ') + ' ERR:' + e.message; }
       console.warn('[WOFF] error:', e);
       return false;
     }
