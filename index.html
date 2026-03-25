@@ -735,39 +735,46 @@
   const WOFF_ID = '2sGuLQU8T2BvJXN88QeCIg';
 
   async function tryWoffLogin() {
+    const logs = [];
     const dbg = (msg) => {
+      logs.push(msg);
       const el = document.getElementById('login-error');
-      if (el) { el.style.color = '#888'; el.textContent = '🔍 ' + msg; }
+      if (el) { el.style.color = '#888'; el.style.fontSize = '11px'; el.textContent = logs.join(' | '); }
       console.log('[WOFF]', msg);
     };
     try {
-      // UA確認
-      const ua = navigator.userAgent;
-      dbg('UA: ' + ua.slice(0, 60));
-      await new Promise(r => setTimeout(r, 500));
+      dbg('UA=' + navigator.userAgent.slice(0, 80));
 
-      // SDK動的ロード
-      if (typeof woff === 'undefined') {
-        dbg('SDK動的ロード中...');
-        await new Promise((resolve, reject) => {
+      // SDK動的ロード（複数URLを試行）
+      const SDK_URLS = [
+        'https://static.worksmobile.net/static/wf/woff/edge/2.2/sdk.js',
+        'https://static.worksmobile.net/static/wf/woff/edge/2.4/sdk.js',
+      ];
+      for (const url of SDK_URLS) {
+        if (typeof woff !== 'undefined') break;
+        await new Promise((resolve) => {
           const s = document.createElement('script');
-          s.src = 'https://static.worksmobile.net/static/wf/woff/edge/2.2/sdk.js';
-          s.onload = () => { dbg('SDK onload OK'); resolve(); };
-          s.onerror = (e) => { dbg('SDK onerror: ' + (e.message||'failed')); reject(e); };
+          s.src = url;
+          s.onload = () => { dbg('loaded:' + url.split('/').slice(-2).join('/')); resolve(); };
+          s.onerror = () => { dbg('error:' + url.split('/').slice(-2).join('/')); resolve(); };
           document.head.appendChild(s);
-        }).catch(e => dbg('SDK load catch: ' + e));
+        });
       }
 
-      if (typeof woff === 'undefined') { dbg('SDK後もwoff undefined → 通常ログイン'); return false; }
-      dbg('woff defined. init() 開始...');
-      await woff.init({ woffId: WOFF_ID });
-      dbg('isInClient: ' + woff.isInClient());
-      if (!woff.isInClient()) return false;
-      const profile = await woff.getProfile();
+      // woffキー名を探す
+      const woffKey = ['woff','WOFF','WorksMobile'].find(k => typeof window[k] !== 'undefined');
+      dbg('woffKey=' + (woffKey || 'none'));
+      if (!woffKey) return false;
+
+      const w = window[woffKey];
+      await w.init({ woffId: WOFF_ID });
+      dbg('isInClient=' + w.isInClient());
+      if (!w.isInClient()) return false;
+      const profile = await w.getProfile();
       const lwUserId = profile.userId;
       dbg('userId=' + lwUserId);
       const { data: user } = await sb.from('users').select('*').eq('lw_user_id', lwUserId).maybeSingle();
-      dbg('DB user=' + (user ? user.name : 'null'));
+      dbg('user=' + (user ? user.name : 'null'));
       if (user) { currentUser = user; usersCache[user.id] = user.name; return true; }
       hideLoading();
       document.getElementById('login-screen').style.display = 'flex';
@@ -777,7 +784,7 @@
       return null;
     } catch (e) {
       const errEl = document.getElementById('login-error');
-      if (errEl) { errEl.style.color = '#e74c3c'; errEl.textContent = 'WOFF error: ' + e.message; }
+      if (errEl) { errEl.style.color = '#e74c3c'; errEl.textContent = logs.join(' | ') + ' ERR:' + e.message; }
       console.warn('[WOFF] error:', e);
       return false;
     }
