@@ -734,10 +734,33 @@
   const SUPABASE_ANON_KEY = 'sb_publishable_iumeCKdl6tr3AU3DL0roWA_B_WiCOwn';
   // ================================================================
 
+  // ── デバッグ設定 ──────────────────────────────────────────────
+  const DEBUG = true; // リリース時に false に変える
+  function dbg(...args) {
+    if (!DEBUG) return;
+    console.log('[DBG]', ...args);
+    const el = document.getElementById('debug-panel');
+    if (el) el.insertAdjacentText('beforeend', args.join(' ') + '\n');
+  }
+
   const { createClient } = supabase;
   const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: { persistSession: true, autoRefreshToken: true, storageKey: 'task-matrix-auth' }
   });
+
+  // ── セッション手動保存（Supabase内部ストレージのフォールバック）─
+  function saveSessionManually(session) {
+    if (!session) return;
+    try {
+      localStorage.setItem('tm_at', session.access_token);
+      localStorage.setItem('tm_rt', session.refresh_token);
+      dbg('session saved manually');
+    } catch(e) { dbg('session save error:', e); }
+  }
+  function clearSessionManually() {
+    localStorage.removeItem('tm_at');
+    localStorage.removeItem('tm_rt');
+  }
 
   // ── State ─────────────────────────────────────────────────────
   let currentUser       = null;
@@ -824,17 +847,28 @@
     }
     if (woffResult === null) return; // エラー表示済み
 
-    // ── 通常セッション確認（getSession → refreshSession の順でフォールバック）──
+    // ── 通常セッション確認 ──────────────────────────────────────
     let session = null;
     try {
       const res = await sb.auth.getSession();
       session = res.data?.session ?? null;
-      if (!session) {
-        // localStorageにトークンがある場合はrefreshで復元を試みる
-        const ref = await sb.auth.refreshSession();
-        session = ref.data?.session ?? null;
-      }
-    } catch(_) {}
+      dbg('getSession:', session ? 'OK uid=' + session.user?.id : 'null');
+    } catch(e) { dbg('getSession error:', e?.message); }
+
+    if (!session) {
+      // フォールバック: 手動保存したトークンで復元
+      try {
+        const at = localStorage.getItem('tm_at');
+        const rt = localStorage.getItem('tm_rt');
+        dbg('manual tokens:', at ? 'AT存在' : 'ATなし', rt ? 'RT存在' : 'RTなし');
+        if (at && rt) {
+          const { data, error } = await sb.auth.setSession({ access_token: at, refresh_token: rt });
+          session = data?.session ?? null;
+          dbg('setSession:', session ? 'OK' : 'null', error?.message ?? '');
+          if (session) saveSessionManually(session); // 更新されたトークンを保存
+        }
+      } catch(e) { dbg('setSession error:', e?.message); }
+    }
 
     if (session) {
       const { data } = await sb.from('users').select('*').eq('auth_id', session.user.id).maybeSingle();
@@ -882,6 +916,7 @@
     currentUser = user;
     usersCache[user.id] = user.display_name || user.name;
     if (user.lw_user_id) lwIdCache[user.id] = user.lw_user_id;
+    saveSessionManually(authData.session);
     document.getElementById('login-screen').style.display = 'none';
     showLoading(); await showApp(); hideLoading();
     btn.disabled = false; btn.textContent = 'ログイン';
@@ -916,6 +951,7 @@
     if (authData.session) {
       currentUser = user; usersCache[user.id] = user.display_name || user.name;
       if (user.lw_user_id) lwIdCache[user.id] = user.lw_user_id;
+      saveSessionManually(authData.session);
       document.getElementById('login-screen').style.display = 'none';
       showLoading(); await showApp(); hideLoading();
       showToast('✅ アカウントを作成しました');
@@ -951,6 +987,7 @@
 
   async function handleLogout() {
     if (!confirm('ログアウトしますか？')) return;
+    clearSessionManually();
     await sb.auth.signOut();
     currentUser = null;
     tasks = { tray:[], q1:[], q2:[], q3:[], q4:[] };
@@ -2326,5 +2363,13 @@
   // ── 起動 ─────────────────────────────────────────────────────
   init();
 </script>
+
+<!-- デバッグパネル（リリース時は style="display:none" を追加） -->
+<pre id="debug-panel" style="
+  position:fixed; bottom:0; left:0; right:0;
+  background:rgba(0,0,0,.8); color:#0f0;
+  font-size:10px; padding:6px; max-height:28vh; overflow:auto;
+  z-index:9999; white-space:pre-wrap; pointer-events:none;
+"></pre>
 </body>
 </html>
