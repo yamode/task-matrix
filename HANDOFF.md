@@ -1,6 +1,6 @@
 # タスク管理アプリ 引き継ぎメモ
 
-> **最終更新**: 2026-03-25（Phase 3 カレンダー同期・デザイン刷新）
+> **最終更新**: 2026-03-25（Phase 3 完了・セッション永続化修正・display_name・タスク追加スキル）
 > **次の作業担当への指示**: このファイルを読んでから、**必ず下記「作業開始前の手順」を実行してから** `dev/index.html` を読むこと。
 
 ---
@@ -229,11 +229,16 @@ git push origin main
 ---
 
 
-### Phase 3 — LINE WORKS 深化連携
+### ✅ Phase 3（完了）— LINE WORKS 深化連携
 
-- [ ] カレンダー同期（定型タスク生成時にLWカレンダーへイベント登録）
-  - `recurring_instances.lw_calendar_event_id` カラム既設
-- [ ] Bot通知（配布タスクの承認/不服/完了確認時）
+- [x] カレンダー同期（定型タスク生成時にLWカレンダーへイベント登録）
+  - `recurring_instances.lw_calendar_event_ids` / `tasks.lw_calendar_event_ids` カラム使用
+  - 通常タスクの期限設定時もカレンダー同期済み（`saveTaskDeadline()`）
+  - PHPプロキシ: `https://yamado.co.jp/task-cal/api.php`
+- [x] display_name: WOFFログイン時にLINE WORKSのdisplayNameを自動取得・DB保存。配布先インクリメンタルサーチも対応
+- [x] タスク追加スキル: `~/.claude/commands/add-task.md`。Supabase REST API経由でトレーにタスクを追加
+- [x] セッション永続化（PCブラウザ）: リロード後もログイン状態を維持
+- [ ] Bot通知（配布タスクの承認/不服/完了確認時）← 未着手
 
 **前提**: Phase 2 完了後に着手
 
