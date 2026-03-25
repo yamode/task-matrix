@@ -1,6 +1,6 @@
 # タスク管理アプリ 引き継ぎメモ
 
-> **最終更新**: 2026-03-25
+> **最終更新**: 2026-03-24
 > **次の作業担当への指示**: このファイルを読んでから、**必ず下記「作業開始前の手順」を実行してから** `index.html` を読むこと。
 
 ---
@@ -10,7 +10,7 @@
 **単一HTMLファイルのタスク管理Webアプリ（Supabase + GitHub Pages）**
 
 - URL: https://yamode.github.io/task-matrix/
-- ソース: `D:\山人 Dropbox\00_YAMADO ALL\55_Claude\task\index.html`（Macは `/Users/hikaru/山人 Dropbox/...`）
+- ソース: `D:\山人 Dropbox\00_YAMADO ALL\55_Claude\task\task-matrix-v2.html`
 - GitHubリポジトリ: https://github.com/yamode/task-matrix（branch: main, file: index.html）
 - Supabase Project: https://ynzpjdarpfaurzomrddu.supabase.co
 
@@ -30,8 +30,8 @@ KEY: sb_publishable_iumeCKdl6tr3AU3DL0roWA_B_WiCOwn
 ## 現在のDBスキーマ（Supabase上に実在）
 
 ```sql
--- ユーザー（Phase 1+2: Supabase Auth + LINE WORKS WOFF 連携済み）
-users: id uuid PK, name text UNIQUE, email text UNIQUE, auth_id uuid UNIQUE, lw_user_id text UNIQUE, created_at
+-- ユーザー（Phase 1: Supabase Auth 連携済み）
+users: id uuid PK, name text UNIQUE, email text UNIQUE, auth_id uuid UNIQUE, created_at
 
 -- 1-shotタスク
 tasks: id bigserial PK,
@@ -167,24 +167,6 @@ git push origin main
 ---
 
 ## ロードマップ
-
-### ✅ Phase 2（完了）— LINE WORKS WOFF自動ログイン
-
-- WOFF SDK（v2.2）組み込み済み
-- WOFF ID: `2sGuLQU8T2BvJXN88QeCIg`（※末尾は大文字I、小文字lではない）
-- LINE WORKSアプリ内からタップ → ログイン画面なしに自動認証
-- `users.lw_user_id` にLINE WORKS IDを登録することで紐づけ
-- 全スタッフ（45名）のlw_user_idをCSVから一括登録済み
-- テストBot（ID: 6811651）の固定メニューに「📋 タスク管理」登録済み
-- ブラウザアクセス時はメール+パスワードにフォールバック
-
-**LINE WORKS Developer Console設定：**
-- アプリ名: タスクマトリクス（Client ID: IJaFwFL_nzmI5Thmne4d）
-- WOFFアプリ: タスクマトリクス（ID: 2sGuLQU8T2BvJXN88QeCIg）
-- Endpoint URL: `https://yamode.github.io/task-matrix/`
-- 固定メニュー登録スクリプト: `55_Claude/woff-approval/`の認証情報を流用
-
----
 
 ### ✅ Phase 1（完了）— ID/パスワード認証
 
