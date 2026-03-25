@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>タスク管理 — 4象限マトリクス</title>
+  <title>タスクマトリクス</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
   <style>
@@ -373,7 +373,7 @@
 <div id="login-screen">
   <div class="login-card">
     <div class="login-logo">📋</div>
-    <div class="login-title">タスク管理マトリクス</div>
+    <div class="login-title">タスクマトリクス</div>
     <div class="login-sub">山人 業務タスク管理</div>
     <div class="login-tabs">
       <button class="login-tab active" id="tab-login"  onclick="switchLoginTab('login')">ログイン</button>
@@ -409,8 +409,8 @@
 
 <!-- メインアプリ -->
 <div id="app">
-  <h1>📋 タスク管理マトリクス</h1>
-  <p class="subtitle">アイゼンハワーの法則 — 緊急度 × 重要度で優先順位を整理</p>
+  <h1>📋 タスクマトリクス</h1>
+  <p class="subtitle">powered by YAMADO</p>
 
   <!-- 受信タスク（承認待ち） -->
   <div class="received-section" id="received-section" style="display:none;">
@@ -498,7 +498,7 @@
   </div>
 
   <!-- バックアップ -->
-  <div class="backup-bar">
+  <div class="backup-bar" style="display:none;"><!-- エクスポート機能：一時非表示 -->
     <div class="backup-bar-label">💾 データのエクスポート<span>JSON形式で手元に保存</span></div>
     <div class="backup-actions">
       <button class="btn-export" onclick="exportData()">⬇ JSONに書き出す</button>
@@ -749,6 +749,7 @@
   let allInstances      = {};   // { masterId: { "year_month": instance } }
   let shares            = {};   // { masterId: [{ id, user_id, name }] }
   let viewYear, viewMonth;
+  let _calResyncDone = false; // カレンダー再同期の重複防止フラグ
   let currentInstanceId = null;
   let currentTaskId     = null;
   let disputingTaskId   = null;
@@ -1674,12 +1675,17 @@
     if (!targetId) { showToast('⚠️ リストから相手を選択してください'); return; }
     if (targetId === currentUser.id) { showToast('⚠️ 自分自身には配布できません'); return; }
     if (!currentTaskId) return;
+    const assignBtn = document.querySelector('.btn-td-assign');
+    if (assignBtn) { assignBtn.disabled = true; assignBtn.textContent = '配布中…'; }
     const qid = findTaskQid(currentTaskId);
     const { error } = await sb.from('tasks').update({
       user_id: targetId, assigner_id: currentUser.id, approval_status: 'pending',
       updated_at: new Date().toISOString()
     }).eq('id', currentTaskId);
-    if (error) { showToast('❌ 配布に失敗しました'); return; }
+    if (error) {
+      if (assignBtn) { assignBtn.disabled = false; assignBtn.textContent = '配布する'; }
+      showToast('❌ 配布に失敗しました'); return;
+    }
 
     // 期限付きタスクはカレンダーを再同期（新オーナー＋配布者）
     const t = findTask(currentTaskId);
@@ -1779,7 +1785,12 @@
         }
       }
     }
-    if (unsyncedInsts.length) syncCalForNewInstances(unsyncedInsts); // await不要：バックグラウンド同期
+    if (!_calResyncDone && unsyncedInsts.length) {
+      _calResyncDone = true;
+      // ローカルキャッシュを即座に更新して同セッション内の重複実行を防ぐ
+      unsyncedInsts.forEach(inst => { inst.lw_calendar_event_ids = { _syncing: true }; });
+      syncCalForNewInstances(unsyncedInsts); // await不要：バックグラウンド同期
+    }
   }
 
   async function changeMonth(delta) {
