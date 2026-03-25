@@ -1,0 +1,165 @@
+<?php
+// ============================================================
+// task-cal/api.php  — LINE WORKS カレンダー同期プロキシ
+// デプロイ先: /home/yamado/yamado.co.jp/task-cal/api.php
+//   → https://yamado.co.jp/task-cal/api.php
+// ============================================================
+
+// CORS（GitHub Pages からのリクエストを許可）
+header('Access-Control-Allow-Origin: https://yamode.github.io');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+header('Content-Type: application/json; charset=utf-8');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { exit; }
+
+// ── 認証情報 ──────────────────────────────────────────────────
+$client_id        = 'Q4cFtfNZkbVhJ6xXbk8N';
+$client_secret    = 'U8kSBJpEi1';
+$service_account  = 'iw1bi.serviceaccount@yamado';
+$private_key_path = '/home/yamado/yamado.co.jp/private_20260320211118.key';
+
+// ── JWT 生成 ──────────────────────────────────────────────────
+function base64url_encode(string $data): string {
+    return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
+}
+
+$now     = time();
+$header  = base64url_encode(json_encode(['alg' => 'RS256', 'typ' => 'JWT']));
+$payload = base64url_encode(json_encode([
+    'iss' => $client_id,
+    'sub' => $service_account,
+    'iat' => $now,
+    'exp' => $now + 3600,
+]));
+$signing_input = $header . '.' . $payload;
+$private_key   = file_get_contents($private_key_path);
+
+if (!$private_key) {
+    echo json_encode(['ok' => false, 'error' => 'private_key_not_found']);
+    exit;
+}
+
+openssl_sign($signing_input, $signature, $private_key, OPENSSL_ALGO_SHA256);
+$jwt = $signing_input . '.' . base64url_encode($signature);
+
+// ── アクセストークン取得（calendar スコープ）────────────────
+$ch = curl_init('https://auth.worksmobile.com/oauth2/v2.0/token');
+curl_setopt_array($ch, [
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_POST           => true,
+    CURLOPT_POSTFIELDS     => http_build_query([
+        'grant_type'    => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+        'assertion'     => $jwt,
+        'client_id'     => $client_id,
+        'client_secret' => $client_secret,
+        'scope'         => 'calendar',
+    ]),
+]);
+$token_res  = json_decode(curl_exec($ch), true);
+$token_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if (empty($token_res['access_token'])) {
+    echo json_encode(['ok' => false, 'error' => 'token_failed', 'http' => $token_code, 'detail' => $token_res]);
+    exit;
+}
+$access_token = $token_res['access_token'];
+
+// ── リクエスト解析 ────────────────────────────────────────────
+$body   = json_decode(file_get_contents('php://input'), true);
+$action = $body['action'] ?? '';
+$events = $body['events'] ?? [];
+
+$results = [];
+
+// ── イベント作成 ──────────────────────────────────────────────
+if ($action === 'create') {
+    foreach ($events as $ev) {
+        $lw_user_id = $ev['lw_user_id'] ?? '';
+        $summary    = $ev['summary']    ?? 'タスク';
+        $date       = $ev['date']       ?? '';   // YYYY-MM-DD
+
+        if (!$lw_user_id || !$date) {
+            $results[] = array_merge($ev, ['event_id' => null, 'status' => 400]);
+            continue;
+        }
+
+        // end.date は終了日の翌日（iCalendar 仕様: 終日イベントの end は排他的）
+        $end_date = date('Y-m-d', strtotime($date . ' +1 day'));
+
+        $event_body = json_encode([
+            'eventComponents' => [[
+                'summary'      => $summary,
+                'start'        => ['date' => $date],
+                'end'          => ['date' => $end_date],
+                'transparency' => 'OPAQUE',
+                'visibility'   => 'PUBLIC',
+            ]],
+            'sendNotification' => false,
+        ], JSON_UNESCAPED_UNICODE);
+
+        $ch = curl_init("https://www.worksapis.com/v1.0/users/{$lw_user_id}/calendar/events");
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_HTTPHEADER     => [
+                "Authorization: Bearer {$access_token}",
+                'Content-Type: application/json',
+            ],
+            CURLOPT_POSTFIELDS => $event_body,
+        ]);
+        $res  = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        $res_json = json_decode($res, true);
+        $event_id = $res_json['eventComponents'][0]['eventId']
+                 ?? $res_json['eventId']
+                 ?? null;
+
+        // _ で始まるフィールド（メタデータ）をそのまま返す
+        $meta = [];
+        foreach ($ev as $k => $v) {
+            if (str_starts_with($k, '_')) $meta[$k] = $v;
+        }
+
+        $results[] = array_merge($meta, [
+            'lw_user_id' => $lw_user_id,
+            'event_id'   => $event_id,
+            'status'     => $code,
+        ]);
+    }
+
+// ── イベント削除 ──────────────────────────────────────────────
+} elseif ($action === 'delete') {
+    foreach ($events as $ev) {
+        $lw_user_id = $ev['lw_user_id'] ?? '';
+        $event_id   = $ev['event_id']   ?? '';
+
+        if (!$lw_user_id || !$event_id) {
+            $results[] = ['lw_user_id' => $lw_user_id, 'event_id' => $event_id, 'status' => 400];
+            continue;
+        }
+
+        $ch = curl_init("https://www.worksapis.com/v1.0/users/{$lw_user_id}/calendar/events/{$event_id}");
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CUSTOMREQUEST  => 'DELETE',
+            CURLOPT_HTTPHEADER     => [
+                "Authorization: Bearer {$access_token}",
+            ],
+        ]);
+        $res  = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        $results[] = ['lw_user_id' => $lw_user_id, 'event_id' => $event_id, 'status' => $code];
+    }
+
+} else {
+    echo json_encode(['ok' => false, 'error' => 'unknown_action']);
+    exit;
+}
+
+echo json_encode(['ok' => true, 'results' => $results]);

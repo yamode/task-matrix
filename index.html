@@ -735,6 +735,7 @@
   let assignedOutTasks  = [];   // tasks I assigned to others
   let usersCache        = {};   // { userId: displayName }
   let assignSelectedUserId = null; // 配布先として選択したユーザーID
+  let lwIdCache = {};              // { supabase_uuid: lw_user_id }
   let recurringTasks    = [];
   let allInstances      = {};   // { masterId: { "year_month": instance } }
   let shares            = {};   // { masterId: [{ id, user_id, name }] }
@@ -749,7 +750,8 @@
   function hideLoading() { document.getElementById('loading-overlay').classList.remove('show'); }
 
   // ── 初期化 ────────────────────────────────────────────────────
-  const WOFF_ID = '2sGuLQU8T2BvJXN88QeCIg';
+  const WOFF_ID   = '2sGuLQU8T2BvJXN88QeCIg';
+  const CAL_API   = 'https://yamado.co.jp/task-cal/api.php';
 
   async function tryWoffLogin() {
     try {
@@ -780,6 +782,7 @@
         }
         currentUser = user;
         usersCache[user.id] = user.display_name || user.name;
+        if (user.lw_user_id) lwIdCache[user.id] = user.lw_user_id;
         return true;
       }
 
@@ -816,6 +819,7 @@
       if (data) {
         currentUser = data;
         usersCache[data.id] = data.display_name || data.name;
+        if (data.lw_user_id) lwIdCache[data.id] = data.lw_user_id;
         await showApp(); hideLoading(); return;
       }
     }
@@ -855,6 +859,7 @@
     }
     currentUser = user;
     usersCache[user.id] = user.display_name || user.name;
+    if (user.lw_user_id) lwIdCache[user.id] = user.lw_user_id;
     document.getElementById('login-screen').style.display = 'none';
     showLoading(); await showApp(); hideLoading();
     btn.disabled = false; btn.textContent = 'ログイン';
@@ -888,6 +893,7 @@
     }
     if (authData.session) {
       currentUser = user; usersCache[user.id] = user.display_name || user.name;
+      if (user.lw_user_id) lwIdCache[user.id] = user.lw_user_id;
       document.getElementById('login-screen').style.display = 'none';
       showLoading(); await showApp(); hideLoading();
       showToast('✅ アカウントを作成しました');
@@ -975,8 +981,11 @@
     });
     const uncached = [...ids].filter(id => id && !usersCache[id]);
     if (!uncached.length) return;
-    const { data } = await sb.from('users').select('id, name').in('id', uncached);
-    (data||[]).forEach(u => { usersCache[u.id] = u.name; });
+    const { data } = await sb.from('users').select('id, name, display_name, lw_user_id').in('id', uncached);
+    (data||[]).forEach(u => {
+      usersCache[u.id] = u.display_name || u.name;
+      if (u.lw_user_id) lwIdCache[u.id] = u.lw_user_id;
+    });
   }
 
   function findTask(taskId) {
@@ -1348,8 +1357,12 @@
   async function deleteCurrentTask() {
     if (!currentTaskId) return;
     if (!confirm('このタスクを削除しますか？')) return;
+    const t = findTask(currentTaskId);
+    if (t?.lw_calendar_event_ids && Object.keys(t.lw_calendar_event_ids).length) {
+      await calDelete(t.lw_calendar_event_ids);
+    }
     const qid = findTaskQid(currentTaskId);
-    if (qid) tasks[qid] = tasks[qid].filter(t => t.id !== currentTaskId);
+    if (qid) tasks[qid] = tasks[qid].filter(x => x.id !== currentTaskId);
     closeTaskDetail(); renderMatrix();
     await sb.from('tasks').delete().eq('id', currentTaskId);
     showToast('🗑 削除しました');
@@ -1376,7 +1389,23 @@
     const deadline = document.getElementById('td-deadline').value || null;
     const t = findTask(currentTaskId); if (!t) return;
     t.deadline = deadline;
-    await sb.from('tasks').update({ deadline, updated_at: new Date().toISOString() }).eq('id', currentTaskId);
+
+    // カレンダー同期：旧イベント削除 → 新イベント作成
+    const oldCalIds = t.lw_calendar_event_ids || {};
+    let newCalIds = {};
+    if (Object.keys(oldCalIds).length) await calDelete(oldCalIds);
+    if (deadline) {
+      const lwIds = await calLwIdsForTask(t);
+      if (lwIds.length) {
+        const results = await calCreate(lwIds.map(lwId => ({ lw_user_id: lwId, summary: t.text, date: deadline })));
+        results.forEach(r => { if (r.event_id) newCalIds[r.lw_user_id] = r.event_id; });
+      }
+    }
+    t.lw_calendar_event_ids = newCalIds;
+
+    await sb.from('tasks').update({
+      deadline, lw_calendar_event_ids: newCalIds, updated_at: new Date().toISOString()
+    }).eq('id', currentTaskId);
     renderMatrix();
   }
 
@@ -1497,6 +1526,98 @@
     showToast('🗑 削除しました');
   }
 
+  // ── LINE WORKS カレンダー同期 ─────────────────────────────────
+  async function calPost(payload) {
+    try {
+      const res = await fetch(CAL_API, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      return json.ok ? (json.results || []) : [];
+    } catch(e) { console.warn('[CAL]', e); return []; }
+  }
+
+  // events: [{lw_user_id, summary, date, _meta...}] → results配列
+  async function calCreate(events) {
+    if (!events.length) return [];
+    return calPost({ action: 'create', events });
+  }
+
+  // eventMap: {lw_user_id: event_id}
+  async function calDelete(eventMap) {
+    const events = Object.entries(eventMap).map(([lw_user_id, event_id]) => ({ lw_user_id, event_id }));
+    if (!events.length) return;
+    await calPost({ action: 'delete', events });
+  }
+
+  // 定型タスクのカレンダー対象LWユーザーID一覧（オーナー＋共有メンバー）
+  function calTargetsForRecurring(masterId) {
+    const lwIds = [];
+    if (currentUser.lw_user_id) lwIds.push(currentUser.lw_user_id);
+    (shares[masterId] || []).forEach(s => { if (s.lw_user_id) lwIds.push(s.lw_user_id); });
+    return lwIds;
+  }
+
+  // 月末を超えないよう day を丸める（例: 2月31日→28日）
+  function clampDate(year, month, day) {
+    const max = new Date(year, month, 0).getDate();
+    return `${year}-${String(month).padStart(2,'0')}-${String(Math.min(day, max)).padStart(2,'0')}`;
+  }
+
+  // lw_user_id をキャッシュ or DB 取得
+  async function fetchLwId(supabaseId) {
+    if (lwIdCache[supabaseId]) return lwIdCache[supabaseId];
+    const { data } = await sb.from('users').select('lw_user_id').eq('id', supabaseId).maybeSingle();
+    if (data?.lw_user_id) { lwIdCache[supabaseId] = data.lw_user_id; return data.lw_user_id; }
+    return null;
+  }
+
+  // タスクのカレンダー対象LWユーザーID一覧（オーナー＋配布者）
+  async function calLwIdsForTask(task) {
+    const lwIds = new Set();
+    const ownerLwId  = task.user_id    === currentUser.id ? currentUser.lw_user_id : await fetchLwId(task.user_id);
+    const assignLwId = task.assigner_id === currentUser.id ? currentUser.lw_user_id : (task.assigner_id ? await fetchLwId(task.assigner_id) : null);
+    if (ownerLwId)  lwIds.add(ownerLwId);
+    if (assignLwId) lwIds.add(assignLwId);
+    return [...lwIds];
+  }
+
+  // 新規インスタンスのカレンダーイベントを一括作成して DB に保存
+  async function syncCalForNewInstances(newInstances) {
+    const allEvents = [];
+    newInstances.forEach(inst => {
+      const master = recurringTasks.find(m => m.id === inst.master_id);
+      if (!master) return;
+      const date   = clampDate(inst.year, inst.month, master.day);
+      calTargetsForRecurring(master.id).forEach(lwId => {
+        allEvents.push({ lw_user_id: lwId, summary: master.name, date, _inst_id: String(inst.id) });
+      });
+    });
+    if (!allEvents.length) return;
+
+    const results = await calCreate(allEvents);
+
+    // インスタンスID別に集約
+    const instCalIds = {};
+    results.forEach(r => {
+      if (!r.event_id || !r._inst_id) return;
+      if (!instCalIds[r._inst_id]) instCalIds[r._inst_id] = {};
+      instCalIds[r._inst_id][r.lw_user_id] = r.event_id;
+    });
+
+    // DB更新＋ローカルキャッシュ更新
+    for (const [instIdStr, calIds] of Object.entries(instCalIds)) {
+      const instId = parseInt(instIdStr);
+      await sb.from('recurring_instances').update({ lw_calendar_event_ids: calIds }).eq('id', instId);
+      for (const monthMap of Object.values(allInstances)) {
+        for (const [ym, inst] of Object.entries(monthMap)) {
+          if (inst.id === instId) monthMap[ym] = { ...inst, lw_calendar_event_ids: calIds };
+        }
+      }
+    }
+  }
+
   // ── タスク配布 ────────────────────────────────────────────────
   async function searchAssignUser(query) {
     const dropdown = document.getElementById('assign-dropdown');
@@ -1504,10 +1625,11 @@
     assignSelectedUserId = null;
     if (!query || query.length < 1) { dropdown.style.display = 'none'; return; }
     const { data: users } = await sb.from('users')
-      .select('id, name, display_name')
+      .select('id, name, display_name, lw_user_id')
       .or(`name.ilike.%${query}%,display_name.ilike.%${query}%`)
       .neq('id', currentUser.id)
       .limit(8);
+    (users||[]).forEach(u => { if (u.lw_user_id) lwIdCache[u.id] = u.lw_user_id; });
     if (!users || users.length === 0) { dropdown.style.display = 'none'; return; }
     dropdown.innerHTML = users.map(u => {
       const label = u.display_name || u.name;
@@ -1542,7 +1664,26 @@
       updated_at: new Date().toISOString()
     }).eq('id', currentTaskId);
     if (error) { showToast('❌ 配布に失敗しました'); return; }
-    if (qid) tasks[qid] = tasks[qid].filter(t => t.id !== currentTaskId);
+
+    // 期限付きタスクはカレンダーを再同期（新オーナー＋配布者）
+    const t = findTask(currentTaskId);
+    if (t?.deadline) {
+      if (t.lw_calendar_event_ids && Object.keys(t.lw_calendar_event_ids).length) {
+        await calDelete(t.lw_calendar_event_ids);
+      }
+      const lwIds = new Set();
+      const targetLwId = await fetchLwId(targetId);
+      if (targetLwId) lwIds.add(targetLwId);
+      if (currentUser.lw_user_id) lwIds.add(currentUser.lw_user_id);
+      if (lwIds.size) {
+        const results = await calCreate([...lwIds].map(lwId => ({ lw_user_id: lwId, summary: t.text, date: t.deadline })));
+        const newCalIds = {};
+        results.forEach(r => { if (r.event_id) newCalIds[r.lw_user_id] = r.event_id; });
+        await sb.from('tasks').update({ lw_calendar_event_ids: newCalIds }).eq('id', currentTaskId);
+      }
+    }
+
+    if (qid) tasks[qid] = tasks[qid].filter(x => x.id !== currentTaskId);
     assignSelectedUserId = null;
     closeTaskDetail(); renderMatrix();
     await loadTasks();
@@ -1575,11 +1716,16 @@
     if (own?.length) {
       const ownIds = own.map(m => m.id);
       const { data: sd } = await sb.from('recurring_task_shares')
-        .select('*, users!recurring_task_shares_shared_with_user_id_fkey(name)')
+        .select('*, users!recurring_task_shares_shared_with_user_id_fkey(name, display_name, lw_user_id)')
         .in('master_id', ownIds);
       (sd||[]).forEach(s => {
         if (!shares[s.master_id]) shares[s.master_id] = [];
-        shares[s.master_id].push({ id: s.id, user_id: s.shared_with_user_id, name: s.users?.name || '不明' });
+        shares[s.master_id].push({
+          id: s.id,
+          user_id: s.shared_with_user_id,
+          name: s.users?.display_name || s.users?.name || '不明',
+          lw_user_id: s.users?.lw_user_id || null,
+        });
       });
     }
 
@@ -1601,10 +1747,12 @@
     }
     if (!toInsert.length) return;
     const { data } = await sb.from('recurring_instances').insert(toInsert).select();
-    (data||[]).forEach(i => {
+    const newInsts = data || [];
+    newInsts.forEach(i => {
       if (!allInstances[i.master_id]) allInstances[i.master_id] = {};
       allInstances[i.master_id][`${i.year}_${i.month}`] = i;
     });
+    await syncCalForNewInstances(newInsts);
   }
 
   async function changeMonth(delta) {
@@ -1624,10 +1772,12 @@
     }
     if (!toInsert.length) return;
     const { data } = await sb.from('recurring_instances').insert(toInsert).select();
-    (data||[]).forEach(i => {
+    const newInsts = data || [];
+    newInsts.forEach(i => {
       if (!allInstances[i.master_id]) allInstances[i.master_id] = {};
       allInstances[i.master_id][`${i.year}_${i.month}`] = i;
     });
+    await syncCalForNewInstances(newInsts);
   }
 
   function renderCalendar() {
@@ -2024,6 +2174,14 @@
 
   async function deleteMaster(id) {
     if (!confirm('このマスタと全インスタンスを削除しますか？')) return;
+    // カレンダーイベントを先に一括削除
+    const calEvents = [];
+    Object.values(allInstances[id] || {}).forEach(inst => {
+      Object.entries(inst.lw_calendar_event_ids || {}).forEach(([lwId, eventId]) => {
+        calEvents.push({ lw_user_id: lwId, event_id: eventId });
+      });
+    });
+    if (calEvents.length) await calPost({ action: 'delete', events: calEvents });
     const { error } = await sb.from('recurring_tasks').delete().eq('id', id);
     if (error) { showToast('❌ 削除に失敗しました'); return; }
     showToast('🗑 マスタを削除しました');
