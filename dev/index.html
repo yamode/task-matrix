@@ -1770,7 +1770,7 @@
         }
       }
     }
-    if (unsyncedInsts.length) await syncCalForNewInstances(unsyncedInsts);
+    if (unsyncedInsts.length) syncCalForNewInstances(unsyncedInsts); // await不要：バックグラウンド同期
   }
 
   async function changeMonth(delta) {
