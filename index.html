@@ -796,7 +796,10 @@
 
     // ── WOFF自動ログイン（LINE WORKSアプリ内のみ）──
     const woffResult = await tryWoffLogin();
-    if (woffResult === true) { await showApp(); hideLoading(); return; }
+    if (woffResult === true) {
+      document.getElementById('login-screen').style.display = 'none';
+      await showApp(); hideLoading(); return;
+    }
     if (woffResult === null) return; // エラー表示済み
 
     // ── 通常セッション確認 ──
