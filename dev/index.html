@@ -83,6 +83,8 @@
     .quadrant-icon  { font-size:18px; }
     .quadrant-title { font-size:13px; font-weight:700; color:#fff; }
     .quadrant-hint  { font-size:11px; color:rgba(255,255,255,.65); margin-top:1px; }
+    .quadrant-qnum  { margin-left:auto; font-size:28px; font-weight:900; color:rgba(255,255,255,.18); letter-spacing:-.02em; line-height:1; user-select:none; }
+    .q4 .quadrant-qnum { color:rgba(26,39,68,.12); }
     .quadrant .task-list { padding:8px 14px 4px; }
     .quadrant .add-task-row { padding:4px 14px 12px; }
     /* Q1〜Q4：ネイビー×ゴールドのブランドカラーで優先順位を表現
@@ -473,22 +475,22 @@
     <div class="label-urgent">緊&nbsp;急</div>
     <div class="label-not-urgent">計&nbsp;画</div>
     <div class="quadrant q1">
-      <div class="quadrant-header"><span class="quadrant-icon">🚨</span><div><div class="quadrant-title">緊急かつ重要</div><div class="quadrant-hint">今すぐ対応する</div></div></div>
+      <div class="quadrant-header"><span class="quadrant-icon">🚨</span><div><div class="quadrant-title">緊急かつ重要</div><div class="quadrant-hint">今すぐ対応する</div></div><div class="quadrant-qnum">Q1</div></div>
       <div class="task-list" id="list-q1"></div>
       <div class="add-task-row"><input class="add-task-input" id="input-q1" type="text" placeholder="タスクを追加…"/><button class="add-task-btn" id="btn-q1" onclick="addTask('q1')">＋</button></div>
     </div>
     <div class="quadrant q2">
-      <div class="quadrant-header"><span class="quadrant-icon">🎯</span><div><div class="quadrant-title">緊急ではないが重要</div><div class="quadrant-hint">計画して取り組む</div></div></div>
+      <div class="quadrant-header"><span class="quadrant-icon">🎯</span><div><div class="quadrant-title">緊急ではないが重要</div><div class="quadrant-hint">計画して取り組む</div></div><div class="quadrant-qnum">Q2</div></div>
       <div class="task-list" id="list-q2"></div>
       <div class="add-task-row"><input class="add-task-input" id="input-q2" type="text" placeholder="タスクを追加…"/><button class="add-task-btn" id="btn-q2" onclick="addTask('q2')">＋</button></div>
     </div>
     <div class="quadrant q3">
-      <div class="quadrant-header"><span class="quadrant-icon">📨</span><div><div class="quadrant-title">緊急だが重要ではない</div><div class="quadrant-hint">委任・効率化を検討</div></div></div>
+      <div class="quadrant-header"><span class="quadrant-icon">📨</span><div><div class="quadrant-title">緊急だが重要ではない</div><div class="quadrant-hint">委任・効率化を検討</div></div><div class="quadrant-qnum">Q3</div></div>
       <div class="task-list" id="list-q3"></div>
       <div class="add-task-row"><input class="add-task-input" id="input-q3" type="text" placeholder="タスクを追加…"/><button class="add-task-btn" id="btn-q3" onclick="addTask('q3')">＋</button></div>
     </div>
     <div class="quadrant q4">
-      <div class="quadrant-header"><span class="quadrant-icon">🗑️</span><div><div class="quadrant-title">緊急でも重要でもない</div><div class="quadrant-hint">削除・後回し</div></div></div>
+      <div class="quadrant-header"><span class="quadrant-icon">🗑️</span><div><div class="quadrant-title">緊急でも重要でもない</div><div class="quadrant-hint">削除・後回し</div></div><div class="quadrant-qnum">Q4</div></div>
       <div class="task-list" id="list-q4"></div>
       <div class="add-task-row"><input class="add-task-input" id="input-q4" type="text" placeholder="タスクを追加…"/><button class="add-task-btn" id="btn-q4" onclick="addTask('q4')">＋</button></div>
     </div>
