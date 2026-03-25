@@ -1,6 +1,6 @@
 # タスク管理アプリ 引き継ぎメモ
 
-> **最終更新**: 2026-03-25（Phase 3 完了・セッション永続化修正・display_name・タスク追加スキル）
+> **最終更新**: 2026-03-25（Q1-Q4 表示改善・カレンダー重複登録バグ修正・レポーティング・本番同期済み）
 > **次の作業担当への指示**: このファイルを読んでから、**必ず下記「作業開始前の手順」を実行してから** `dev/index.html` を読むこと。
 
 ---
@@ -43,7 +43,10 @@ KEY: sb_publishable_iumeCKdl6tr3AU3DL0roWA_B_WiCOwn
 
 ```sql
 -- ユーザー（Phase 1+2: Supabase Auth + LINE WORKS WOFF 連携済み）
-users: id uuid PK, name text UNIQUE, email text UNIQUE, auth_id uuid UNIQUE, lw_user_id text UNIQUE, created_at
+users: id uuid PK, name text UNIQUE, email text UNIQUE, auth_id uuid UNIQUE,
+       lw_user_id text UNIQUE,
+       display_name text,                   -- LW WOFFから取得した表示名（例: 佐々木 耀）
+       created_at
 
 -- 1-shotタスク
 tasks: id bigserial PK,
@@ -59,6 +62,8 @@ tasks: id bigserial PK,
        subtasks jsonb DEFAULT '[]',          -- [{id, text, done, order}]
        memo text DEFAULT '',
        url text DEFAULT '',
+       lw_calendar_event_ids jsonb DEFAULT '{}', -- {lw_user_id: event_id}（期限設定時に同期）
+       is_private boolean DEFAULT false,     -- true=レポートで内容非公開（件数はカウント）
        created_at, updated_at
 
 -- 定型タスクマスタ
@@ -80,7 +85,7 @@ recurring_instances: id bigserial PK,
        done bool DEFAULT false,
        subtask_done jsonb DEFAULT '{}',     -- {subtask_id: true}
        instance_memo text,
-       lw_calendar_event_id text,
+       lw_calendar_event_ids jsonb DEFAULT '{}', -- {lw_user_id: event_id, ...}（共有分含む）
        created_at
        UNIQUE(master_id, year, month)
 
@@ -107,19 +112,22 @@ task_files: id bigserial PK,
 
 ---
 
-## 実装済み機能（task-matrix-v2.html）
+## 実装済み機能
 
 ### ログイン
-- 名前入力のみ（同名=同一アカウント）。UUIDをlocalStorageに保存して次回自動ログイン。
+- メール+パスワード（Supabase Auth）。セッション永続化あり（リロード後もログイン維持）。
+- LINE WORKSアプリ内ではWOFF自動ログイン（ログアウトボタン非表示）。
 
 ### タスクトレー + 4象限
-- tray/q1/q2/q3/q4 の5エリア
+- tray/q1/q2/q3/q4 の5エリア。パネル右上に「Q1〜Q4」番号を表示（凡例として）
 - SortableJS によるドラッグ&ドロップ（タッチ対応）
 - モバイル: 1カラム表示
 
 ### タスク詳細シート（ボトムシート）
 - タスク行をタップで開く
-- 編集可能: タスク名・象限・期限・サブタスク・メモ・URL・ファイル添付
+- 編集可能: タスク名・象限（Q1〜Q4表記）・期限・サブタスク・メモ・URL・ファイル添付
+- 「🔒 非公開にする」チェック: レポートで内容を隠す（件数はカウント）
+- 期限設定時に自動でLINE WORKSカレンダーへ同期（専用カレンダー「タスクカレンダー」に登録）
 - 完了トグル・削除ボタン
 
 ### タスク配布（アサイン）ワークフロー
@@ -140,6 +148,8 @@ task_files: id bigserial PK,
 ### 定型タスク（月次・年次）
 - カレンダーナビ（◀▶で月移動）
 - インスタンス自動生成（現在月〜12ヶ月先）
+- **新規インスタンス生成時のみ** LWカレンダーへ自動同期（共有メンバー含む）
+  - ⚠️ 既存インスタンスの再同期は廃止（クリーンアップ後の重複登録防止のため）
 - インスタンス詳細シート: サブタスク・メモ・URL・ファイル添付
 
 ### マスタ管理（分離オーバーレイ）
@@ -147,11 +157,18 @@ task_files: id bigserial PK,
 - タブ: マスタ一覧 / 共有設定
 - 共有: 相手の名前で追加、カレンダーが共有される
 
+### レポーティング（📊 レポートボタン）
+- 右上「📊 レポート」ボタンで全画面オーバーレイ表示
+- アクティブユーザー（タスク1件以上）のみ表示
+- 列: メンバー / トレー / Q1 / Q2 / Q3 / Q4 / 完了 / 合計
+- 行クリックでタスク詳細を展開
+- 非公開タスク: 件数はカウント・内容は「🔒 非公開」と表示（本人は見える）
+
 ---
 
 ## 作業開始前の手順（必須）
 
-**編集対象は `index.html`（GitHubに追跡されているファイル）。`task-matrix-v2.html` は古い作業コピーで、現在は参照しないこと。**
+**編集対象は `dev/index.html`。完成したら `cp dev/index.html index.html` して両方コミット・プッシュ。**
 
 ```bash
 # Mac のリポジトリパス
@@ -171,7 +188,9 @@ git pull origin main
 
 ```bash
 cd "/Users/hikaru/山人 Dropbox/00_YAMADO ALL/55_Claude/task"
-git add index.html
+# 本番反映する場合
+cp dev/index.html index.html
+git add dev/index.html index.html
 git commit -m "コミットメッセージ"
 git push origin main
 ```
@@ -235,13 +254,52 @@ git push origin main
   - `recurring_instances.lw_calendar_event_ids` / `tasks.lw_calendar_event_ids` カラム使用
   - 通常タスクの期限設定時もカレンダー同期済み（`saveTaskDeadline()`）
   - PHPプロキシ: `https://yamado.co.jp/task-cal/api.php`
+  - 専用カレンダー「タスクカレンダー」に登録（`getTaskCalendarId()`で初回自動作成）
+  - ⚠️ **重複登録バグ修正済み（2026-03-25）**: `ensureInstances()` の既存インスタンス自動再同期を廃止。新規生成時のみ同期するように変更。
 - [x] display_name: WOFFログイン時にLINE WORKSのdisplayNameを自動取得・DB保存。配布先インクリメンタルサーチも対応
+- [x] WOFFログイン時はログアウトボタン非表示
 - [x] タスク追加スキル: `~/.claude/commands/add-task.md`。Supabase REST API経由でトレーにタスクを追加
 - [x] セッション永続化（PCブラウザ）: リロード後もログイン状態を維持
 - [x] レポーティング: 全員のタスク件数をメンバー一覧で表示。行クリックで明細展開。非公開タスクは件数のみカウント・明細は「🔒 非公開」表示
 - [ ] Bot通知（配布タスクの承認/不服/完了確認時）← 未着手
 
 **前提**: Phase 2 完了後に着手
+
+---
+
+## カレンダー一括削除スクリプト（緊急時用）
+
+重複登録が発生した場合は `task-cal-cleanup.php` を使用して一括削除する。
+
+```
+場所: /Users/hikaru/山人 Dropbox/00_YAMADO ALL/55_Claude/task/task-cal-cleanup.php
+デプロイ先: https://yamado.co.jp/task-cal/cleanup.php
+（使用後は必ず 404 スタブに上書きすること）
+```
+
+**デプロイ・実行・無害化手順：**
+```bash
+# デプロイ
+curl --ftp-ssl -u "yamado:yamado132586" \
+  -T "/Users/hikaru/山人 Dropbox/00_YAMADO ALL/55_Claude/task/task-cal-cleanup.php" \
+  "ftp://sv14189.xserver.jp/yamado.co.jp/public_html/task-cal/cleanup.php"
+
+# ブラウザで https://yamado.co.jp/task-cal/cleanup.php を開いて実行
+
+# 無害化（実行後すぐに）
+echo '<?php http_response_code(404); exit;' > /tmp/stub.php
+curl --ftp-ssl -u "yamado:yamado132586" \
+  -T "/tmp/stub.php" \
+  "ftp://sv14189.xserver.jp/yamado.co.jp/public_html/task-cal/cleanup.php"
+```
+
+**スクリプトの動作：**
+- Service Account: `9rjbn.serviceaccount@yamado`（タスクマトリクスアプリ配下）
+- 対象ユーザー: `hikaru.s@yamado`
+- 対象カレンダー: `c_500280752_1d5e0c71-e7f0-4bd3-a06e-e0556fc611ac`
+- `recurring_tasks` テーブルのタスク名と一致するイベントのみ削除
+- 削除後に `recurring_instances.lw_calendar_event_ids` を空にリセット
+- 秘密鍵: `/home/yamado/yamado.co.jp/private_20260325130643.key`（Xserver）
 
 ---
 
