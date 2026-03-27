@@ -1333,15 +1333,18 @@
     t.done = !t.done;
     renderMatrix();
     const now = new Date().toISOString();
-    const update = { done: t.done, updated_at: now,
-      processed_at: t.done ? now : null };
+    const update = { done: t.done, updated_at: now };
     // 配布されたタスクを完了→アサイナーに通知
     if (t.assigner_id && t.assigner_id !== currentUser.id) {
       update.approval_status = t.done ? 'done_pending' : 'accepted';
       t.approval_status = update.approval_status;
     }
     const { error } = await sb.from('tasks').update(update).eq('id', id);
-    if (error) { t.done = !t.done; renderMatrix(); showToast('❌ 更新に失敗しました'); }
+    if (error) { t.done = !t.done; renderMatrix(); showToast('❌ 更新に失敗しました'); return; }
+    // processed_at は別途更新（カラムが存在しない場合でも done の保存は守る）
+    sb.from('tasks').update({ processed_at: t.done ? now : null }).eq('id', id).then(({ error: e }) => {
+      if (e) dbg('processed_at update skipped (column may not exist):', e.message);
+    });
   }
 
   async function deleteTask(qid, id) {
