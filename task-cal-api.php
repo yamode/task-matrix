@@ -295,6 +295,58 @@ if ($action === 'create') {
         $results[] = ['lw_user_id' => $lw_user_id, 'event_id' => $event_id, 'status' => $code];
     }
 
+// ── Bot メッセージ送信 ─────────────────────────────────────────
+} elseif ($action === 'send_message') {
+    $bot_id     = $body['bot_id']     ?? '6811651';
+    $lw_user_id = $body['lw_user_id'] ?? '';
+    $content    = $body['content']    ?? '';
+
+    if (!$lw_user_id || !$content) {
+        echo json_encode(['ok' => false, 'error' => 'missing params']); exit;
+    }
+
+    // Bot API 用に bot スコープでトークンを取得
+    $ch_bot = curl_init('https://auth.worksmobile.com/oauth2/v2.0/token');
+    curl_setopt_array($ch_bot, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => http_build_query([
+            'grant_type'    => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+            'assertion'     => $jwt,
+            'client_id'     => $client_id,
+            'client_secret' => $client_secret,
+            'scope'         => 'bot',
+        ]),
+    ]);
+    $bot_token_res = json_decode(curl_exec($ch_bot), true);
+    curl_close($ch_bot);
+
+    if (empty($bot_token_res['access_token'])) {
+        echo json_encode(['ok' => false, 'error' => 'bot_token_failed', 'detail' => $bot_token_res]); exit;
+    }
+    $bot_token = $bot_token_res['access_token'];
+
+    // 1:1 メッセージ送信
+    $msg_url = "https://www.worksapis.com/v1.0/bots/{$bot_id}/users/{$lw_user_id}/messages";
+    $ch_msg = curl_init($msg_url);
+    curl_setopt_array($ch_msg, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_HTTPHEADER     => [
+            "Authorization: Bearer {$bot_token}",
+            'Content-Type: application/json',
+        ],
+        CURLOPT_POSTFIELDS => json_encode([
+            'content' => ['type' => 'text', 'text' => $content],
+        ], JSON_UNESCAPED_UNICODE),
+    ]);
+    $msg_res  = curl_exec($ch_msg);
+    $msg_code = curl_getinfo($ch_msg, CURLINFO_HTTP_CODE);
+    curl_close($ch_msg);
+
+    echo json_encode(['ok' => $msg_code < 300, 'status' => $msg_code, 'result' => json_decode($msg_res, true)]);
+    exit;
+
 } else {
     echo json_encode(['ok' => false, 'error' => 'unknown_action']);
     exit;

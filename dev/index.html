@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>タスクマトリクス</title>
+  <title>TASKUL</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
   <style>
@@ -36,16 +36,25 @@
     .login-error { font-size:13px; color:#e74c3c; margin-top:10px; min-height:18px; }
 
     /* ── ユーザーバー ── */
-    .user-bar { background:#fff; border-bottom:1px solid #eee; padding:9px 20px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+    .user-bar { background:#fff; border-bottom:1px solid #eee; padding:9px 20px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; gap:12px; }
+    .app-title { font-size:17px; font-weight:800; color:#1a2744; letter-spacing:2px; flex-shrink:0; }
     .user-bar-name { font-size:14px; font-weight:700; color:#444; }
     .user-bar-name span { color:#667eea; }
     .btn-logout { padding:6px 13px; background:none; border:1px solid #ddd; border-radius:6px; font-size:12px; cursor:pointer; color:#888; font-family:inherit; transition:all .15s; }
     .btn-logout:hover { border-color:#e74c3c; color:#e74c3c; }
 
+    /* ── グローバル入力バー ── */
+    #global-add-bar { background:#fff; border-bottom:1px solid #eee; padding:8px 20px; display:none; gap:8px; align-items:center; position:sticky; top:41px; z-index:99; flex-wrap:wrap; }
+    #global-add-bar.visible { display:flex; }
+    #global-add-input { flex:1; min-width:120px; padding:9px 12px; border:1.5px solid #ddd; border-radius:8px; font-size:15px; font-family:inherit; outline:none; transition:border-color .2s; }
+    #global-add-input:focus { border-color:#667eea; }
+    .global-add-select { padding:9px 8px; border:1.5px solid #ddd; border-radius:8px; font-size:13px; font-family:inherit; background:#fff; color:#444; outline:none; cursor:pointer; }
+    .global-add-select:focus { border-color:#667eea; }
+    #global-add-btn { padding:9px 18px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; border-radius:8px; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; flex-shrink:0; }
+    #global-add-btn:disabled { opacity:.5; cursor:not-allowed; }
+
     /* ── メインアプリ ── */
     #app { padding:20px 20px 60px; display:none; }
-    h1   { text-align:center; font-size:21px; font-weight:700; color:#1a1a2e; margin-bottom:4px; letter-spacing:.04em; }
-    .subtitle { text-align:center; font-size:13px; color:#888; margin-bottom:20px; }
 
     /* ── 受信タスクセクション ── */
     .received-section { max-width:960px; margin:0 auto 16px; background:#fffbf0; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.06); padding:14px 16px; border-top:3px solid #f0ad4e; }
@@ -275,7 +284,7 @@
     .master-overlay.open { display:flex; }
     .master-overlay-header { position:sticky; top:0; background:#fff; border-bottom:1px solid #eee; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; z-index:10; flex-wrap:wrap; gap:8px; }
     .master-overlay-title { font-size:18px; font-weight:700; color:#1a1a2e; }
-    .master-overlay-header-actions { display:flex; gap:8px; }
+    .master-overlay-header-actions { display:flex; gap:16px; }
     .master-overlay-body { padding:0 20px 40px; flex:1; }
     .mo-tabs { display:flex; border-bottom:1px solid #eee; margin-bottom:16px; }
     .mo-tab  { flex:1; padding:12px; font-size:13px; font-weight:600; color:#999; cursor:pointer; border-bottom:2px solid transparent; background:none; border-top:none; border-left:none; border-right:none; font-family:inherit; transition:color .15s; }
@@ -416,8 +425,8 @@
 <!-- ログイン -->
 <div id="login-screen">
   <div class="login-card">
-    <div class="login-logo">📋</div>
-    <div class="login-title">タスクマトリクス</div>
+    <div class="login-logo">✅</div>
+    <div class="login-title">TASKUL</div>
     <div class="login-sub">山人 業務タスク管理</div>
     <div class="login-tabs">
       <button class="login-tab active" id="tab-login"  onclick="switchLoginTab('login')">ログイン</button>
@@ -447,18 +456,37 @@
 
 <!-- ユーザーバー -->
 <div class="user-bar" id="user-bar" style="display:none;">
-  <div class="user-bar-name">ログイン中: <span id="user-bar-name"></span></div>
+  <div class="app-title">TASKUL</div>
+  <div class="user-bar-name" style="flex:1;">ログイン中: <span id="user-bar-name"></span></div>
   <div class="user-bar-actions">
     <button class="btn-report" id="btn-done-box-toggle" onclick="toggleDoneBoxMode()">📦 完了済みをまとめる</button>
     <button class="btn-report" onclick="openReport()">📊 レポート</button>
+    <button class="btn-report" onclick="openSettings()">⚙️ 設定</button>
     <button class="btn-logout" onclick="handleLogout()">ログアウト</button>
   </div>
 </div>
 
+<!-- グローバルタスク入力バー -->
+<div id="global-add-bar">
+  <select id="add-dest" class="global-add-select">
+    <option value="tray">📥 トレー</option>
+    <option value="q1">Q1 緊急×重要</option>
+    <option value="q2">Q2 重要</option>
+    <option value="q3">Q3 緊急</option>
+    <option value="q4">Q4 その他</option>
+  </select>
+  <select id="add-area" class="global-add-select">
+    <option value="">🏷 領域なし</option>
+  </select>
+  <input id="global-add-input" type="text" placeholder="タスクをサクッと追加… (Enter)" />
+  <button id="global-add-btn" onclick="addTaskFromGlobalBar()">＋</button>
+</div>
+
+<!-- 広告エリア -->
+<div id="ad-banner" style="background:#fafafa;border-bottom:1px solid #eee;padding:6px 20px;text-align:center;font-size:11px;color:#bbb;">広告エリア（準備中）</div>
+
 <!-- メインアプリ -->
 <div id="app">
-  <h1>📋 タスクマトリクス</h1>
-  <p class="subtitle">powered by YAMADO</p>
 
   <div class="three-col-layout">
   <div class="col-left">
@@ -483,10 +511,6 @@
       <span class="tray-count" id="tray-count">0</span>
     </div>
     <div class="task-list" id="list-tray"></div>
-    <div class="tray-add-row">
-      <input class="tray-add-input" id="input-tray" type="text" placeholder="タスクをサクッと追加… (Enter)" />
-      <button class="tray-add-btn" id="btn-tray" onclick="addTask('tray')">＋</button>
-    </div>
   </div>
 
   </div><!-- /col-left -->
@@ -494,27 +518,21 @@
 
   <!-- 4象限 -->
   <div class="axis-labels">
-    <div class="label-urgent">緊&nbsp;急</div>
-    <div class="label-not-urgent">計&nbsp;画</div>
     <div class="quadrant q1">
       <div class="quadrant-header"><span class="quadrant-icon">🚨</span><div><div class="quadrant-title">緊急かつ重要</div><div class="quadrant-hint">今すぐ対応する</div></div><div class="quadrant-qnum">Q1</div></div>
       <div class="task-list" id="list-q1"></div>
-      <div class="add-task-row"><input class="add-task-input" id="input-q1" type="text" placeholder="タスクを追加…"/><button class="add-task-btn" id="btn-q1" onclick="addTask('q1')">＋</button></div>
     </div>
     <div class="quadrant q2">
       <div class="quadrant-header"><span class="quadrant-icon">🎯</span><div><div class="quadrant-title">緊急ではないが重要</div><div class="quadrant-hint">計画して取り組む</div></div><div class="quadrant-qnum">Q2</div></div>
       <div class="task-list" id="list-q2"></div>
-      <div class="add-task-row"><input class="add-task-input" id="input-q2" type="text" placeholder="タスクを追加…"/><button class="add-task-btn" id="btn-q2" onclick="addTask('q2')">＋</button></div>
     </div>
     <div class="quadrant q3">
       <div class="quadrant-header"><span class="quadrant-icon">📨</span><div><div class="quadrant-title">緊急だが重要ではない</div><div class="quadrant-hint">委任・効率化を検討</div></div><div class="quadrant-qnum">Q3</div></div>
       <div class="task-list" id="list-q3"></div>
-      <div class="add-task-row"><input class="add-task-input" id="input-q3" type="text" placeholder="タスクを追加…"/><button class="add-task-btn" id="btn-q3" onclick="addTask('q3')">＋</button></div>
     </div>
     <div class="quadrant q4">
       <div class="quadrant-header"><span class="quadrant-icon">🗑️</span><div><div class="quadrant-title">緊急でも重要でもない</div><div class="quadrant-hint">削除・後回し</div></div><div class="quadrant-qnum">Q4</div></div>
       <div class="task-list" id="list-q4"></div>
-      <div class="add-task-row"><input class="add-task-input" id="input-q4" type="text" placeholder="タスクを追加…"/><button class="add-task-btn" id="btn-q4" onclick="addTask('q4')">＋</button></div>
     </div>
   </div>
 
@@ -760,6 +778,41 @@
   </div>
   <div class="master-overlay-body">
     <div id="report-content"><div style="text-align:center;padding:40px;color:#888;">読み込み中...</div></div>
+  </div>
+</div>
+
+<!-- 設定オーバーレイ -->
+<div class="master-overlay" id="settings-overlay">
+  <div class="master-overlay-header">
+    <div class="master-overlay-title">⚙️ 設定</div>
+    <button class="modal-close" onclick="closeSettings()">✕</button>
+  </div>
+  <div class="master-overlay-body" style="padding:24px 20px;max-width:520px;margin:0 auto;">
+
+    <div style="margin-bottom:28px;">
+      <div style="font-size:15px;font-weight:700;color:#333;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #eee;">🗑 処理済みタスクの自動削除</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+        <label style="font-size:14px;color:#555;flex:1;">完了後の保持期間</label>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <input type="number" id="setting-retention-days" min="1" max="365" value="30"
+            style="width:70px;padding:8px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;text-align:center;"
+            oninput="saveRetentionDays(this.value)" />
+          <span style="font-size:14px;color:#666;">日</span>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#aaa;">完了済みタスクは設定した日数が経過すると自動的に削除されます（デフォルト: 30日）</div>
+    </div>
+
+    <div style="margin-bottom:28px;">
+      <div style="font-size:15px;font-weight:700;color:#333;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #eee;">🔗 LINE WORKS 連携</div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <label style="font-size:14px;color:#555;flex:1;">LINE WORKS 連携を有効にする</label>
+        <input type="checkbox" id="setting-lw-enabled" style="width:18px;height:18px;cursor:pointer;"
+          onchange="saveLwEnabled(this.checked)" />
+      </div>
+      <div style="font-size:12px;color:#aaa;margin-top:6px;">オフにするとカレンダー同期・LWボタン・Bot通知が無効になります</div>
+    </div>
+
   </div>
 </div>
 
@@ -1145,6 +1198,7 @@
     document.getElementById('user-bar').style.display = 'flex';
     document.getElementById('user-bar-name').textContent = currentUser.display_name || currentUser.name;
     document.querySelector('.btn-logout').style.display = _isWoffLogin ? 'none' : '';
+    document.getElementById('global-add-bar').classList.add('visible');
     document.getElementById('app').style.display = 'block';
     fillDaySelect();
     await Promise.all([loadTasks(), loadRT(), loadAreas()]);
@@ -1161,6 +1215,7 @@
     currentTaskId = null; currentInstanceId = null; assignedOutOpen = false;
     document.getElementById('app').style.display = 'none';
     document.getElementById('user-bar').style.display = 'none';
+    document.getElementById('global-add-bar').classList.remove('visible');
     document.getElementById('login-email').value = '';
     document.getElementById('login-password').value = '';
     document.getElementById('login-screen').style.display = 'flex';
@@ -1196,6 +1251,7 @@
     renderMatrix();
     renderReceivedSection();
     renderAssignedOutSection();
+    autoCleanupOldDone(); // 非同期・失敗しても続行
   }
 
   async function cacheUsersFromTasks(taskList) {
@@ -1236,17 +1292,39 @@
   }
 
   // ── タスク追加 ────────────────────────────────────────────────
-  async function addTask(qid) {
-    const inp = document.getElementById('input-'+qid);
-    const text = inp.value.trim(); if (!text) return;
-    const btn = document.getElementById('btn-'+qid); btn.disabled = true;
+  async function addTask(qid, text, areaId) {
+    if (!text) return;
     const { data, error } = await sb.from('tasks').insert({
-      user_id: currentUser.id, quadrant: qid, text, done: false
+      user_id: currentUser.id, quadrant: qid, text, done: false,
+      area_id: areaId || null
     }).select().single();
-    btn.disabled = false;
     if (error) { showToast('❌ 保存に失敗しました'); return; }
-    tasks[qid].push(data); inp.value = '';
+    tasks[qid].push(data);
     renderMatrix();
+  }
+
+  async function addTaskFromGlobalBar() {
+    const inp = document.getElementById('global-add-input');
+    const text = inp.value.trim(); if (!text) return;
+    const qid  = document.getElementById('add-dest').value || 'tray';
+    const areaVal = document.getElementById('add-area').value;
+    const areaId  = areaVal ? parseInt(areaVal) : null;
+    const btn = document.getElementById('global-add-btn'); btn.disabled = true;
+    await addTask(qid, text, areaId);
+    btn.disabled = false;
+    inp.value = '';
+    inp.focus();
+    // 前回の領域を記憶
+    if (areaId) localStorage.setItem('tm_last_area', areaVal);
+    else localStorage.removeItem('tm_last_area');
+  }
+
+  function renderAreaSelector() {
+    const sel = document.getElementById('add-area');
+    if (!sel) return;
+    const lastArea = localStorage.getItem('tm_last_area') || '';
+    sel.innerHTML = '<option value="">🏷 領域なし</option>' +
+      areasCache.map(a => `<option value="${a.id}" ${String(a.id)===lastArea?'selected':''}>${esc(a.name)}</option>`).join('');
   }
 
   // ── タスク操作 ────────────────────────────────────────────────
@@ -1254,7 +1332,9 @@
     const t = tasks[qid].find(t => t.id === id); if (!t) return;
     t.done = !t.done;
     renderMatrix();
-    const update = { done: t.done, updated_at: new Date().toISOString() };
+    const now = new Date().toISOString();
+    const update = { done: t.done, updated_at: now,
+      processed_at: t.done ? now : null };
     // 配布されたタスクを完了→アサイナーに通知
     if (t.assigner_id && t.assigner_id !== currentUser.id) {
       update.approval_status = t.done ? 'done_pending' : 'accepted';
@@ -1358,9 +1438,8 @@
     initSortable();
   }
 
-  QUADRANTS.forEach(qid => {
-    const inp = document.getElementById('input-'+qid);
-    if (inp) inp.addEventListener('keydown', e => { if (e.key==='Enter') addTask(qid); });
+  document.getElementById('global-add-input')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') addTaskFromGlobalBar();
   });
 
   // ── ドラッグ＆ドロップ ────────────────────────────────────────
@@ -1422,7 +1501,10 @@
       approval_status: 'accepted', quadrant: 'tray', updated_at: new Date().toISOString()
     }).eq('id', taskId);
     if (error) { showToast('❌ 承認に失敗しました'); await loadTasks(); }
-    else showToast('✅ タスクを承認しました');
+    else {
+      showToast('✅ タスクを承認しました');
+      sendBotNotification(t.assigner_id, `✅ タスク「${t.text}」が承認されました`);
+    }
   }
 
   function openDisputeModal(taskId) {
@@ -1453,6 +1535,7 @@
     if (error) { showToast('❌ 送信に失敗しました'); return; }
     closeDisputeModal();
     showToast('📩 差し戻しを送信しました');
+    sendBotNotification(t.assigner_id, `⚠️ タスク「${t.text}」が差し戻されました`);
     receivedTasks = receivedTasks.filter(x => x.id !== disputingTaskId);
     renderReceivedSection();
     await loadTasks();
@@ -1480,6 +1563,10 @@
       if (status === 'pending' || status === 'disputed') {
         actions.push(`<button class="btn-icon danger" onclick="cancelAssignment(${t.id})">取消</button>`);
       }
+      const toLwId = lwIdCache[t.user_id];
+      if (toLwId) {
+        actions.push(`<a href="https://talk.worksmobile.com/talk/${toLwId}" target="_blank" class="btn-icon" style="text-decoration:none;">💬 LW</a>`);
+      }
       return `<div class="ao-item">
         <div class="ao-info">
           <div class="ao-text">${esc(t.text)}</div>
@@ -1503,11 +1590,13 @@
   }
 
   async function confirmDone(taskId) {
+    const t = assignedOutTasks.find(x => x.id === taskId);
     const { error } = await sb.from('tasks').update({
       approval_status: 'confirmed', updated_at: new Date().toISOString()
     }).eq('id', taskId);
     if (error) { showToast('❌ 確認に失敗しました'); return; }
     showToast('✅ 完了を確認しました');
+    if (t) sendBotNotification(t.user_id, `✅ タスク「${t.text}」の完了が確認されました`);
     await loadTasks();
   }
 
@@ -2114,6 +2203,7 @@
       areasCache = data || [];
     } catch(e) { areasCache = []; } // テーブルが未作成の場合はスキップ
     renderAreaSelect();
+    renderAreaSelector();
   }
 
   function renderAreaSelect() {
@@ -2158,7 +2248,7 @@
     if (!name) return;
     const color = document.getElementById('new-area-color').value;
     const { error } = await sb.from('areas').insert({ name, color });
-    if (error) { showToast('❌ 追加に失敗しました'); return; }
+    if (error) { dbg('addArea error', JSON.stringify(error)); showToast('❌ 追加に失敗しました: ' + (error.message||error.code||'')); return; }
     document.getElementById('new-area-name').value = '';
     await loadAreas();
     renderAreaList();
@@ -2325,6 +2415,12 @@
     updateInstanceDoneBtn(inst.done);
     await loadInstanceFiles(instId);
     document.getElementById('instance-sheet').classList.add('open');
+    // サブタスクがあれば自動スクロール
+    if (subs.length) {
+      setTimeout(() => {
+        document.getElementById('detail-subtasks-section')?.scrollIntoView({ behavior:'smooth', block:'start' });
+      }, 200);
+    }
   }
 
   function updateInstanceDoneBtn(isDone) {
@@ -2713,6 +2809,60 @@
     document.getElementById('report-overlay').classList.remove('open');
   }
 
+  // ── 設定画面 ──────────────────────────────────────────────────
+  function openSettings() {
+    const days = parseInt(localStorage.getItem('tm_retention_days') || '30');
+    document.getElementById('setting-retention-days').value = days;
+    const lwEnabled = currentUser?.lw_enabled !== false;
+    document.getElementById('setting-lw-enabled').checked = lwEnabled;
+    document.getElementById('settings-overlay').classList.add('open');
+  }
+  function closeSettings() {
+    document.getElementById('settings-overlay').classList.remove('open');
+  }
+  function saveRetentionDays(val) {
+    const n = parseInt(val);
+    if (n >= 1 && n <= 365) localStorage.setItem('tm_retention_days', String(n));
+  }
+  async function saveLwEnabled(enabled) {
+    if (!currentUser) return;
+    currentUser.lw_enabled = enabled;
+    await sb.from('users').update({ lw_enabled: enabled }).eq('id', currentUser.id);
+    showToast(enabled ? '✅ LW連携を有効にしました' : '🔕 LW連携を無効にしました');
+  }
+
+  // ── LW Bot通知 ───────────────────────────────────────────────
+  async function sendBotNotification(toSupabaseUserId, message) {
+    if (currentUser?.lw_enabled === false) return; // LW連携オフはスキップ
+    const toLwId = lwIdCache[toSupabaseUserId];
+    if (!toLwId) return; // LW未連携ユーザーはスキップ
+    try {
+      await calPost({ action: 'send_message', lw_user_id: toLwId, content: message });
+      dbg('Bot通知送信:', toLwId, message);
+    } catch(e) { dbg('Bot通知失敗', e); }
+  }
+
+  // ── 処理済みタスク自動削除 ────────────────────────────────────
+  async function autoCleanupOldDone() {
+    try {
+      const days = parseInt(localStorage.getItem('tm_retention_days') || '30');
+      const cutoff = new Date(Date.now() - days * 86400000).toISOString();
+      const { data: old } = await sb.from('tasks')
+        .select('id, lw_calendar_event_ids')
+        .eq('user_id', currentUser.id)
+        .eq('done', true)
+        .not('processed_at', 'is', null)
+        .lt('processed_at', cutoff);
+      if (!old?.length) return;
+      for (const t of old) {
+        if (t.lw_calendar_event_ids && Object.keys(t.lw_calendar_event_ids).length)
+          await calDelete(t.lw_calendar_event_ids);
+      }
+      await sb.from('tasks').delete().in('id', old.map(t => t.id));
+      dbg('autoCleanup: deleted', old.length, 'old done tasks');
+    } catch(e) { dbg('autoCleanup error', e); }
+  }
+
   async function loadReport() {
     const el = document.getElementById('report-content');
     el.innerHTML = '<div style="text-align:center;padding:40px;color:#888;">読み込み中...</div>';
@@ -2746,7 +2896,7 @@
       return;
     }
 
-    const QLABELS = { tray:'📥 トレー', q1:'🚨 今すぐ', q2:'🎯 計画', q3:'📨 委任', q4:'🗑️ 後回し', done:'✅ 完了' };
+    const QLABELS = { tray:'📥 トレー', q1:'Q1 緊急かつ重要', q2:'Q2 重要・非緊急', q3:'Q3 緊急・非重要', q4:'Q4 その他', done:'✅ 完了' };
     const row0 = (n) => n === 0
       ? `<span class="report-num-zero">-</span>`
       : `<span class="report-num">${n}</span>`;
@@ -2789,7 +2939,7 @@
     const el = document.getElementById('report-content');
     const grouped = el._grouped;
     const QIDS = ['tray','q1','q2','q3','q4'];
-    const QLABELS = { tray:'📥 トレー', q1:'🚨 今すぐ', q2:'🎯 計画', q3:'📨 委任', q4:'🗑️ 後回し', done:'✅ 完了' };
+    const QLABELS = { tray:'📥 トレー', q1:'Q1 緊急かつ重要', q2:'Q2 重要・非緊急', q3:'Q3 緊急・非重要', q4:'Q4 その他', done:'✅ 完了' };
 
     const allUt = grouped[uid] || [];
     const byQ = {};

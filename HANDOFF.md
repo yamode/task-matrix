@@ -1,6 +1,6 @@
 # タスク管理アプリ 引き継ぎメモ
 
-> **最終更新**: 2026-03-27（改善リスト大量実装・新機能追加・本番同期済み）
+> **最終更新**: 2026-03-28（TASKUL改名・入力欄集約・設定画面・Bot通知・組織管理DB等 大量実装）
 > **次の作業担当への指示**: このファイルを読んでから、**必ず下記「作業開始前の手順」を実行してから** `dev/index.html` を読むこと。
 
 ---
@@ -46,6 +46,9 @@ KEY: sb_publishable_iumeCKdl6tr3AU3DL0roWA_B_WiCOwn
 users: id uuid PK, name text UNIQUE, email text UNIQUE, auth_id uuid UNIQUE,
        lw_user_id text UNIQUE,
        display_name text,                   -- LW WOFFから取得した表示名（例: 佐々木 耀）
+       lw_task_calendar_id text,            -- LWタスクカレンダーID
+       lw_enabled boolean DEFAULT true,     -- LW連携オン/オフ（2026-03-28 追加）
+       org_id bigint FK → organizations,    -- 所属組織（2026-03-28 Phase A）
        created_at
 
 -- 1-shotタスク
@@ -64,6 +67,8 @@ tasks: id bigserial PK,
        url text DEFAULT '',
        lw_calendar_event_ids jsonb DEFAULT '{}', -- {lw_user_id: event_id}（期限設定時に同期）
        is_private boolean DEFAULT false,     -- true=レポートで内容非公開（件数はカウント）
+       area_id bigint FK → areas,            -- 領域タグ（2026-03-27）
+       processed_at timestamptz,             -- 完了時刻（自動削除判定用）（2026-03-28 追加）
        created_at, updated_at
 
 -- 定型タスクマスタ
@@ -108,6 +113,31 @@ task_files: id bigserial PK,
        file_path, file_name, file_type, file_size, created_at
 
 -- Storageバケット: 'task-attachments'（private、anon allow_all）
+
+-- 組織管理（Phase A: 2026-03-28 DB追加のみ・UIは未実装）
+organizations: id bigserial PK, name text, owner_id uuid FK → users, created_at
+org_members:   id bigserial PK, org_id bigint FK → organizations, user_id uuid FK → users,
+               role text DEFAULT 'member', UNIQUE(org_id, user_id)
+
+-- 領域タグ（2026-03-27 追加）
+areas: id bigserial PK, name text NOT NULL, color text DEFAULT '#667eea', created_at
+```
+
+⚠️ **未実行マイグレーション（Supabase SQLエディタで実行要）**:
+```sql
+GRANT ALL ON TABLE areas TO anon, authenticated;
+GRANT USAGE, SELECT ON SEQUENCE areas_id_seq TO anon, authenticated;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS processed_at timestamptz;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS lw_enabled boolean DEFAULT true;
+CREATE TABLE IF NOT EXISTS organizations (id bigserial PRIMARY KEY, name text NOT NULL, owner_id uuid REFERENCES users(id), created_at timestamptz DEFAULT now());
+CREATE TABLE IF NOT EXISTS org_members (id bigserial PRIMARY KEY, org_id bigint REFERENCES organizations(id) ON DELETE CASCADE, user_id uuid REFERENCES users(id), role text DEFAULT 'member', UNIQUE(org_id, user_id));
+ALTER TABLE users ADD COLUMN IF NOT EXISTS org_id bigint REFERENCES organizations(id);
+GRANT ALL ON TABLE organizations TO anon, authenticated;
+GRANT USAGE, SELECT ON SEQUENCE organizations_id_seq TO anon, authenticated;
+GRANT ALL ON TABLE org_members TO anon, authenticated;
+GRANT USAGE, SELECT ON SEQUENCE org_members_id_seq TO anon, authenticated;
+CREATE POLICY "allow_all" ON organizations FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "allow_all" ON org_members FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 ```
 
 ---
@@ -332,6 +362,7 @@ curl --ftp-ssl -u "yamado:yamado132586" \
 > スクリーンショットのタスクトレーから抽出（2026-03-26時点）。優先度は未定。
 
 ### バグ・不具合
+- [x] 領域を追加するとエラーが出て失敗する（2026-03-28 areas テーブルへの GRANT + エラーログ追加。Supabase側でSQL実行要）
 - [ ] 添付ファイルの確認ができない（登録したら消える？）
 - [ ] 添付ファイルを開くと右上の閉じるでアプリごと閉じてしまう
 - [x] マスタ管理: 追加したあとにリストが更新されない（2026-03-27 修正済み）
@@ -342,6 +373,11 @@ curl --ftp-ssl -u "yamado:yamado132586" \
 - [x] PC版: タスク完了の丸枠ボタンのクリック判定が厳しい（2026-03-27 24pxに拡大済み）
 
 ### UX改善
+- [x] PCレイアウト: 各カラムの上端ラインがずれている → 「緊急」「計画」ラベルを削除し上端を揃えた（2026-03-28）
+- [x] アプリタイトルをヘッダーバーに移動（2026-03-28 TASKUL をヘッダー左端に配置）
+- [x] 定型タスクのサブタスクがあるものをタップしたら、サブタスク一覧にスクロール（2026-03-28）
+- [x] レポート画面の明細一覧の見出しを Q1〜Q4 に統一（2026-03-28）
+- [x] 定型タスクマスタ画面の「+追加」ボタンと「✖️」の間隔を広げた（2026-03-28）
 - [x] 添付ファイルのプレビューがしたい（2026-03-27 画像モーダル・PDFインライン実装済み）
 - [x] 不服で差し戻されたタスクは、タスク作成者のタスクトレーに返ってくるほうが自然（2026-03-27 実装済み）
 - [x] レポートの右上ボタンはアイコンではなく「レポートを閉じる」テキストにする（2026-03-27 修正済み）
@@ -356,6 +392,15 @@ curl --ftp-ssl -u "yamado:yamado132586" \
 - [x] 完了済みタスクの丸枠に「☑️」を表示する（2026-03-27 ✓チェックマーク実装済み）
 
 ### 新機能
+- [x] アプリ名を「TASKUL」に変更（title・ログイン画面・ヘッダー。WOFF設定はLW Developer Consoleで別途変更要）（2026-03-28）
+- [x] タスク入力欄をヘッダーエリア直下に集約（`#global-add-bar`）（2026-03-28）
+  - 行き先（トレー/Q1〜Q4）と領域をその場で選択。各エリアの個別入力欄は撤去
+  - デフォルト行き先: タスクトレー／領域: localStorage で前回値を引き継ぐ
+- [x] 配布タスクに LW 1:1 トークルームへの遷移ボタンを追加（💬 LW）（2026-03-28）
+- [x] 処理済みタスクを「processed_at + 一定期間後に自動削除」方式に変更（2026-03-28）
+  - 設定画面（⚙️ 設定）で保持期間（日数）を変更可能。デフォルト30日
+  - ⚠️ Supabase マイグレーション必要: `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS processed_at timestamptz;`
+- [x] 広告表示エリアを追加（ヘッダー直下プレースホルダー `#ad-banner`）（2026-03-28）
 - [x] LWカレンダー同期先を専用の「タスクカレンダー」にする（なければ自動作成）※Supabase `users.lw_task_calendar_id` にカレンダーIDをDB永続化済み（要マイグレーション: `ALTER TABLE users ADD COLUMN IF NOT EXISTS lw_task_calendar_id TEXT;`）
 - [x] 完了済みタスクをまとめて「処理済み」ボックスに移動するボタンを画面上部に追加（2026-03-27 トグルで処理済みボックス表示）
 - [x] PC版3カラムレイアウト（左: タスクトレー＋受信タスク配布タスク／中: 4象限タスク＋処理済み／右: 定型タスク）（2026-03-27 1200px以上で有効）
@@ -370,11 +415,19 @@ curl --ftp-ssl -u "yamado:yamado132586" \
 - [ ] 新規ビュー「領域別タスク」: 領域ごとのタスクリストをカンバン形式で横並び表示（スマホは縦スクロール）
 - [ ] レポート画面に領域別ビューを追加: 個人ごとに各領域のタスク件数を把握できるビュー（棒グラフ or テーブル）
 - [ ] レポート: 人ごとにタスク分布を2次元グラフで可視化
-- [ ] 設定画面の追加
+- [x] 設定画面（`#settings-overlay`）を追加（⚙️ 設定ボタンから開く）（2026-03-28）
 - [ ] タスクのエクスポートを「設定」画面の中から実行できるようにする
+- [x] **LINE WORKS連携のオン/オフ切り替え**（設定画面・ユーザー単位）（2026-03-28）
+  - `users.lw_enabled boolean DEFAULT true` カラム追加済み（Supabase マイグレーション要）
+  - オフ時: Bot通知・1:1ボタンを抑止。設定画面チェックボックスでトグル
+- [x] Bot通知（配布タスク承認/差し戻し/完了確認時）（2026-03-28）
+  - `api.php` に `send_message` アクション追加。Xserverにデプロイ済み
+  - ⚠️ LW Developer Console で Service Account に `bot` スコープの権限付与が必要
+- [x] 組織管理機能 Phase A: DB のみ（`organizations` / `org_members` テーブル作成 + `users.org_id`）（2026-03-28）
+  - ⚠️ Supabase マイグレーション必要（HANDOFF.md STEP 1 SQL参照）
+  - UI実装は別セッション（Phase B）
 - [ ] 多言語対応
 - [ ] Payment機能（製品配布用）
-- [ ] 組織管理機能（製品配布想定）
 - [ ] 製品化ロードマップの策定
 
 ---
