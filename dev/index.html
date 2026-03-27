@@ -1792,7 +1792,7 @@
       if (!master) return;
       const date   = clampDate(inst.year, inst.month, master.day);
       calTargetsForRecurring(master.id).forEach(lwId => {
-        allEvents.push({ lw_user_id: lwId, summary: master.name, date, _inst_id: String(inst.id) });
+        allEvents.push({ lw_user_id: lwId, summary: master.name, date, calendar_name: '月次タスク', _inst_id: String(inst.id) });
       });
     });
     if (!allEvents.length) return;
