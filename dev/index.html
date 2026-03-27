@@ -108,9 +108,9 @@
     .task-item:hover { background:#f0f0f0; }
     .task-item.done { opacity:.45; }
     .task-item.done .task-text { text-decoration:line-through; }
-    .task-check { width:18px; height:18px; min-width:18px; border:2px solid #ccc; border-radius:50%; cursor:pointer; margin-top:2px; display:flex; align-items:center; justify-content:center; transition:background .15s,border-color .15s; flex-shrink:0; }
-    .task-check-inner { width:7px; height:7px; border-radius:50%; background:white; display:none; }
-    .task-item.done .task-check-inner { display:block; }
+    .task-check { width:24px; height:24px; min-width:24px; border:2px solid #ccc; border-radius:50%; cursor:pointer; margin-top:0; display:flex; align-items:center; justify-content:center; transition:background .15s,border-color .15s; flex-shrink:0; }
+    .task-check-inner { width:100%; height:100%; border-radius:50%; display:none; align-items:center; justify-content:center; font-size:11px; color:white; font-weight:700; }
+    .task-item.done .task-check-inner { display:flex; }
     .task-text-wrap { flex:1; min-width:0; }
     .task-text   { font-size:14px; color:#333; line-height:1.4; word-break:break-all; }
     .task-badges { display:flex; gap:4px; flex-wrap:wrap; margin-top:3px; }
@@ -215,6 +215,7 @@
     .subtask-chk.checked { background:#27ae60; border-color:#27ae60; }
     .subtask-chk-text { font-size:14px; color:#333; flex:1; line-height:1.4; }
     .subtask-chk-text.done { text-decoration:line-through; opacity:.5; }
+    .subtask-edit-input { font-size:14px; color:#333; flex:1; border:none; outline:none; background:transparent; font-family:inherit; line-height:1.4; padding:0; border-bottom:1.5px solid #667eea; }
     .detail-memo-input { width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; font-family:inherit; color:#333; outline:none; resize:vertical; min-height:72px; }
     .detail-memo-input:focus { border-color:#667eea; }
     .detail-url-link { display:flex; align-items:center; gap:6px; padding:10px 12px; background:#f0f1ff; border-radius:8px; color:#667eea; font-size:14px; font-weight:600; text-decoration:none; word-break:break-all; }
@@ -291,6 +292,10 @@
     .btn-icon { background:none; border:1px solid #eee; border-radius:6px; padding:5px 9px; font-size:12px; cursor:pointer; color:#666; font-family:inherit; transition:all .15s; }
     .btn-icon:hover { background:#f0f0f0; border-color:#ccc; }
     .btn-icon.danger:hover { background:#ffeaea; border-color:#e74c3c; color:#e74c3c; }
+
+    /* マスタタイプフィルタ */
+    .mo-type-btn { padding:5px 11px; border:1.5px solid #eee; border-radius:20px; background:#fafafa; font-size:12px; font-weight:700; cursor:pointer; color:#999; font-family:inherit; transition:all .15s; }
+    .mo-type-btn.active { border-color:#667eea; background:#f0f1ff; color:#667eea; }
 
     /* 共有設定 */
     .share-user-item { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid #f5f5f5; }
@@ -386,11 +391,21 @@
       .label-urgent,.label-not-urgent,.label-important,.label-not-important { display:none; }
       .quadrant { min-height:auto; }
       .task-item { cursor:default; }
+      #td-deadline { background:white !important; -webkit-appearance:none; appearance:none; width:100%; max-width:100%; box-sizing:border-box; }
     }
     @media (min-width: 768px) {
       .bottom-sheet { align-items:center; }
       .bottom-sheet-content { border-radius:14px; max-width:540px; width:90%; max-height:84vh; }
       .bottom-sheet-handle { display:none; }
+    }
+    @media (min-width: 1200px) {
+      #app { max-width:none; padding:20px 24px 60px; }
+      .three-col-layout { display:grid; grid-template-columns:280px 1fr 320px; gap:0 20px; align-items:start; }
+      .col-left,.col-center,.col-right { min-width:0; }
+      .col-left > * { max-width:none; margin-left:0; margin-right:0; }
+      .col-center .axis-labels { grid-template-columns:1fr 1fr; }
+      .col-right .recurring-section { max-width:none; margin:0; }
+      #done-box-section, .assigned-out-section { max-width:none; margin-left:0; margin-right:0; }
     }
   </style>
 </head>
@@ -434,6 +449,7 @@
 <div class="user-bar" id="user-bar" style="display:none;">
   <div class="user-bar-name">ログイン中: <span id="user-bar-name"></span></div>
   <div class="user-bar-actions">
+    <button class="btn-report" id="btn-done-box-toggle" onclick="toggleDoneBoxMode()">📦 完了済みをまとめる</button>
     <button class="btn-report" onclick="openReport()">📊 レポート</button>
     <button class="btn-logout" onclick="handleLogout()">ログアウト</button>
   </div>
@@ -444,13 +460,16 @@
   <h1>📋 タスクマトリクス</h1>
   <p class="subtitle">powered by YAMADO</p>
 
+  <div class="three-col-layout">
+  <div class="col-left">
+
   <!-- 受信タスク（承認待ち） -->
   <div class="received-section" id="received-section" style="display:none;">
     <div class="received-header">
       <span style="font-size:20px;">📩</span>
       <span class="received-header-title">受信タスク</span>
       <span class="received-count" id="received-count">0</span>
-      <span class="received-sub">承認または不服申請してください</span>
+      <span class="received-sub">承認または差し戻しをしてください</span>
     </div>
     <div id="received-list"></div>
   </div>
@@ -469,6 +488,9 @@
       <button class="tray-add-btn" id="btn-tray" onclick="addTask('tray')">＋</button>
     </div>
   </div>
+
+  </div><!-- /col-left -->
+  <div class="col-center">
 
   <!-- 4象限 -->
   <div class="axis-labels">
@@ -496,6 +518,17 @@
     </div>
   </div>
 
+  <!-- 処理済みボックス -->
+  <div id="done-box-section" style="display:none;max-width:960px;margin:16px auto 0;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);overflow:hidden;border-top:3px solid #27ae60;">
+    <div style="display:flex;align-items:center;gap:8px;padding:14px 20px;cursor:pointer;user-select:none;border-bottom:1px solid #f0f0f0;" onclick="toggleDoneBox()">
+      <span style="font-size:20px;">📦</span>
+      <span style="font-size:15px;font-weight:700;color:#444;flex:1;">処理済みタスク</span>
+      <span id="done-box-count" style="font-size:12px;background:#eafaf1;color:#27ae60;padding:2px 8px;border-radius:99px;font-weight:700;">0</span>
+      <span id="done-box-chevron" style="color:#aaa;font-size:13px;margin-left:4px;">▼</span>
+    </div>
+    <div id="done-box-list" style="padding:4px 20px 20px;display:none;"></div>
+  </div>
+
   <!-- 配布したタスク -->
   <div class="assigned-out-section" id="assigned-out-section" style="display:none;">
     <div class="assigned-out-header" onclick="toggleAssignedOut()">
@@ -507,13 +540,15 @@
     <div id="assigned-out-list" style="display:none;"></div>
   </div>
 
+  </div><!-- /col-center -->
+  <div class="col-right">
+
   <!-- 定型タスク -->
   <div class="recurring-section">
     <div class="section-header">
       <div class="section-title">📅 定型タスク</div>
       <div class="section-actions">
         <button class="btn-secondary" onclick="openMasterOverlay()">⚙️ マスタ管理</button>
-        <button class="btn-secondary" onclick="openMasterModal()">＋ 追加</button>
       </div>
     </div>
     <div class="rec-card">
@@ -528,6 +563,9 @@
       <div id="cal-task-list"></div>
     </div>
   </div>
+
+  </div><!-- /col-right -->
+  </div><!-- /three-col-layout -->
 
   <!-- バックアップ -->
   <div class="backup-bar" style="display:none;"><!-- エクスポート機能：一時非表示 -->
@@ -572,6 +610,17 @@
     <div class="detail-section">
       <div class="detail-sec-label">期限</div>
       <input class="form-field" id="td-deadline" type="date" onchange="saveTaskDeadline()" />
+    </div>
+
+    <!-- 領域 -->
+    <div class="detail-section">
+      <div class="detail-sec-label">領域（タグ）</div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;" id="td-area-row">
+        <select class="form-field" id="td-area-select" onchange="saveTaskArea()" style="flex:1;min-width:0;">
+          <option value="">なし</option>
+        </select>
+        <button class="btn-icon" onclick="openAreaManager()" title="領域を管理">⚙</button>
+      </div>
     </div>
 
     <!-- サブタスク -->
@@ -634,7 +683,7 @@
     </div>
 
     <button class="btn-done-toggle incomplete" id="td-done-btn" onclick="toggleCurrentTask()">完了にする</button>
-    <button class="td-delete-btn" onclick="deleteCurrentTask()">🗑 タスクを削除</button>
+    <button class="td-delete-btn" id="td-delete-btn" onclick="deleteCurrentTask()">🗑 タスクを削除</button>
   </div>
 </div>
 
@@ -693,6 +742,11 @@
       <button class="mo-tab active" data-tab="master" onclick="switchMoTab('master')">マスタ一覧</button>
       <button class="mo-tab"        data-tab="share"  onclick="switchMoTab('share')">共有設定</button>
     </div>
+    <div id="mo-type-filter" style="display:flex;gap:6px;padding:10px 20px 0;">
+      <button class="mo-type-btn active" data-type="all"     onclick="setMasterTypeFilter('all')">すべて</button>
+      <button class="mo-type-btn"        data-type="monthly" onclick="setMasterTypeFilter('monthly')">🔁 月次</button>
+      <button class="mo-type-btn"        data-type="annual"  onclick="setMasterTypeFilter('annual')">📆 年次</button>
+    </div>
     <div id="mo-tab-master"></div>
     <div id="mo-tab-share" style="display:none;"></div>
   </div>
@@ -702,7 +756,7 @@
 <div class="report-overlay" id="report-overlay">
   <div class="master-overlay-header">
     <div class="master-overlay-title">📊 タスクレポート</div>
-    <button class="modal-close" onclick="closeReport()">✕</button>
+    <button class="btn-secondary" onclick="closeReport()" style="font-size:13px;">レポートを閉じる</button>
   </div>
   <div class="master-overlay-body">
     <div id="report-content"><div style="text-align:center;padding:40px;color:#888;">読み込み中...</div></div>
@@ -759,15 +813,43 @@
   </div>
 </div>
 
+<!-- 領域管理モーダル -->
+<div class="modal-overlay" id="area-manager-modal">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-title">
+      <span>🏷 領域（タグ）管理</span>
+      <button class="modal-close" onclick="closeAreaManager()">✕</button>
+    </div>
+    <div id="area-list" style="margin-bottom:14px;display:flex;flex-direction:column;gap:6px;"></div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input class="form-input" id="new-area-name" type="text" placeholder="新しい領域名" style="flex:1;" />
+      <input type="color" id="new-area-color" value="#667eea" style="width:36px;height:36px;border:none;border-radius:6px;cursor:pointer;padding:2px;" />
+      <button class="btn-primary" onclick="addArea()">追加</button>
+    </div>
+  </div>
+</div>
+
+<!-- ファイルプレビューモーダル -->
+<div id="file-preview-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;width:100%;max-width:900px;padding:0 16px;box-sizing:border-box;">
+    <span id="preview-file-name" style="color:#fff;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:70%;"></span>
+    <div style="display:flex;gap:8px;">
+      <a id="preview-open-link" href="#" target="_blank" class="btn-file-dl" style="text-decoration:none;">開く</a>
+      <button onclick="closeFilePreview()" style="background:none;border:none;color:#fff;font-size:26px;cursor:pointer;line-height:1;">✕</button>
+    </div>
+  </div>
+  <div id="preview-content" style="max-width:900px;max-height:80vh;overflow:auto;display:flex;align-items:center;justify-content:center;"></div>
+</div>
+
 <!-- 不服申請モーダル -->
 <div class="modal-overlay" id="dispute-modal">
   <div class="modal" style="max-width:420px;">
     <div class="modal-title">
-      <span>📩 不服申請</span>
+      <span>📩 差し戻し</span>
       <button class="modal-close" onclick="closeDisputeModal()">✕</button>
     </div>
     <div class="form-group">
-      <label class="form-label">不服の理由を入力してください</label>
+      <label class="form-label">差し戻しの理由を入力してください</label>
       <textarea class="form-input detail-memo-input" id="dispute-reason-input" placeholder="理由を詳しく記入してください" rows="4" style="resize:vertical;"></textarea>
     </div>
     <div class="form-footer">
@@ -825,6 +907,7 @@
   let recurringTasks    = [];
   let allInstances      = {};   // { masterId: { "year_month": instance } }
   let shares            = {};   // { masterId: [{ id, user_id, name }] }
+  let areasCache        = [];   // [{ id, name, color }]
   let viewYear, viewMonth;
   let _calResyncDone = false; // カレンダー再同期の重複防止フラグ
   let _isWoffLogin   = false; // WOFFログイン中フラグ
@@ -1064,7 +1147,7 @@
     document.querySelector('.btn-logout').style.display = _isWoffLogin ? 'none' : '';
     document.getElementById('app').style.display = 'block';
     fillDaySelect();
-    await Promise.all([loadTasks(), loadRT()]);
+    await Promise.all([loadTasks(), loadRT(), loadAreas()]);
   }
 
   async function handleLogout() {
@@ -1107,7 +1190,8 @@
     });
 
     assignedOutTasks = outTasks || [];
-    await cacheUsersFromTasks([...receivedTasks, ...assignedOutTasks]);
+    const allMatrixTasks = QUADRANTS.flatMap(q => tasks[q]);
+    await cacheUsersFromTasks([...allMatrixTasks, ...receivedTasks, ...assignedOutTasks]);
 
     renderMatrix();
     renderReceivedSection();
@@ -1181,6 +1265,7 @@
   }
 
   async function deleteTask(qid, id) {
+    if (!confirm('このタスクを削除しますか？')) return;
     const orig = [...tasks[qid]];
     tasks[qid] = tasks[qid].filter(t => t.id !== id);
     renderMatrix();
@@ -1206,34 +1291,70 @@
     const subs = Array.isArray(t.subtasks) ? t.subtasks : [];
     const doneSubs = subs.filter(s => s.done).length;
     const hasExtra = t.deadline || subs.length || t.memo || t.url || t.assigner_id;
-    const extraIcon = hasExtra ? '<span style="font-size:11px;color:#ccc;flex-shrink:0;margin-top:2px;">📋</span>' : '';
+    const extraIcon = '';
     const fromBadge = t.assigner_id && t.assigner_id !== currentUser.id
       ? `<span style="font-size:11px;color:#e67e22;background:#fef3e2;padding:1px 6px;border-radius:99px;font-weight:700;white-space:nowrap;">from ${esc(usersCache[t.assigner_id]||'?')}</span>` : '';
     const dlBadge = taskDeadlineBadge(t.deadline);
     const subProg = subs.length ? `<span style="font-size:11px;color:#aaa;">✓${doneSubs}/${subs.length}</span>` : '';
-    const badges = [fromBadge, dlBadge, subProg].filter(Boolean).join('');
+    const area = t.area_id ? areasCache.find(a => a.id === t.area_id) : null;
+    const areaBadge = area ? `<span style="font-size:11px;font-weight:700;padding:1px 6px;border-radius:99px;white-space:nowrap;background:${area.color}22;color:${area.color};">🏷 ${esc(area.name)}</span>` : '';
+    const badges = [fromBadge, dlBadge, subProg, areaBadge].filter(Boolean).join('');
 
     return `<div class="task-item ${t.done?'done':''}" data-id="${t.id}" data-qid="${qid}" onclick="openTaskDetail(${t.id})">
       <div class="task-check" onclick="event.stopPropagation();toggleTask('${qid}',${t.id})">
-        <div class="task-check-inner"></div>
+        <div class="task-check-inner">${t.done?'✓':''}</div>
       </div>
       <div class="task-text-wrap">
         <span class="task-text">${esc(t.text)}</span>
         ${badges ? `<div class="task-badges">${badges}</div>` : ''}
       </div>
       ${extraIcon}
-      <button class="task-delete" onclick="event.stopPropagation();deleteTask('${qid}',${t.id})">✕</button>
+      ${(!t.assigner_id || t.assigner_id === currentUser.id) ? `<button class="task-delete" onclick="event.stopPropagation();deleteTask('${qid}',${t.id})">✕</button>` : ''}
     </div>`;
+  }
+
+  let showDoneBox = false;
+  let doneBoxOpen = false;
+
+  function toggleDoneBoxMode() {
+    showDoneBox = !showDoneBox;
+    const btn = document.getElementById('btn-done-box-toggle');
+    if (btn) { btn.style.background = showDoneBox ? '#eafaf1' : ''; btn.style.color = showDoneBox ? '#27ae60' : ''; btn.style.borderColor = showDoneBox ? '#27ae60' : ''; }
+    renderMatrix();
+  }
+
+  function toggleDoneBox() {
+    doneBoxOpen = !doneBoxOpen;
+    document.getElementById('done-box-list').style.display = doneBoxOpen ? 'block' : 'none';
+    document.getElementById('done-box-chevron').textContent = doneBoxOpen ? '▲' : '▼';
+  }
+
+  function renderDoneBox() {
+    const sec = document.getElementById('done-box-section');
+    if (!showDoneBox) { sec.style.display = 'none'; return; }
+    const doneTasks = QUADRANTS.flatMap(q => tasks[q].filter(t => t.done));
+    document.getElementById('done-box-count').textContent = doneTasks.length;
+    sec.style.display = doneTasks.length ? 'block' : 'none';
+    const list = document.getElementById('done-box-list');
+    list.innerHTML = doneTasks.map(t => `
+      <div class="task-item done" style="margin-bottom:4px;" onclick="openTaskDetail(${t.id})">
+        <div class="task-check" onclick="event.stopPropagation();toggleTask('${QUADRANTS.find(q=>tasks[q].find(x=>x.id===t.id))||'tray'}',${t.id})" style="background:#27ae60;border-color:#27ae60;">
+          <div class="task-check-inner" style="display:flex;">✓</div>
+        </div>
+        <div class="task-text-wrap"><span class="task-text">${esc(t.text)}</span></div>
+      </div>`).join('') || '<div class="empty-hint">完了済みタスクなし</div>';
   }
 
   function renderMatrix() {
     QUADRANTS.forEach(qid => {
       const list = document.getElementById('list-'+qid); if (!list) return;
-      list.innerHTML = !tasks[qid].length
+      const visible = showDoneBox ? tasks[qid].filter(t => !t.done) : tasks[qid];
+      list.innerHTML = !visible.length
         ? '<div class="empty-hint">タスクなし</div>'
-        : tasks[qid].map(t => renderTaskItem(t, qid)).join('');
+        : visible.map(t => renderTaskItem(t, qid)).join('');
     });
     document.getElementById('tray-count').textContent = tasks.tray.length;
+    renderDoneBox();
     initSortable();
   }
 
@@ -1285,7 +1406,7 @@
         <div class="received-text">${esc(t.text)}</div>
         <div class="received-actions">
           <button class="btn-approve" onclick="approveTask(${t.id})">✅ 承認してトレーへ</button>
-          <button class="btn-dispute-open" onclick="openDisputeModal(${t.id})">⚠️ 不服申請</button>
+          <button class="btn-dispute-open" onclick="openDisputeModal(${t.id})">⚠️ 差し戻し</button>
         </div>
       </div>`;
     }).join('');
@@ -1318,20 +1439,27 @@
 
   async function submitDispute() {
     const reason = document.getElementById('dispute-reason-input').value.trim();
-    if (!reason) { showToast('⚠️ 不服の理由を入力してください'); return; }
+    if (!reason) { showToast('⚠️ 差し戻しの理由を入力してください'); return; }
+    const t = receivedTasks.find(x => x.id === disputingTaskId);
+    if (!t) { showToast('❌ タスクが見つかりません'); return; }
     const { error } = await sb.from('tasks').update({
-      approval_status: 'disputed', dispute_reason: reason, updated_at: new Date().toISOString()
+      user_id: t.assigner_id,
+      assigner_id: null,
+      quadrant: 'tray',
+      approval_status: null,
+      dispute_reason: reason,
+      updated_at: new Date().toISOString()
     }).eq('id', disputingTaskId);
     if (error) { showToast('❌ 送信に失敗しました'); return; }
     closeDisputeModal();
-    showToast('📩 不服申請を送信しました');
-    receivedTasks = receivedTasks.filter(t => t.id !== disputingTaskId);
+    showToast('📩 差し戻しを送信しました');
+    receivedTasks = receivedTasks.filter(x => x.id !== disputingTaskId);
     renderReceivedSection();
     await loadTasks();
   }
 
   // ── 配布したタスクセクション ──────────────────────────────────
-  const STATUS_LABEL = { pending:'承認待ち', accepted:'対応中', disputed:'不服申請中', done_pending:'完了確認待ち', confirmed:'確認済み' };
+  const STATUS_LABEL = { pending:'承認待ち', accepted:'対応中', disputed:'差し戻し', done_pending:'完了確認待ち', confirmed:'確認済み' };
   const STATUS_CLASS = { pending:'status-pending', accepted:'status-accepted', disputed:'status-disputed', done_pending:'status-done-pending', confirmed:'status-confirmed' };
 
   function renderAssignedOutSection() {
@@ -1424,6 +1552,10 @@
     document.getElementById('td-url').value     = t.url  || '';
     document.getElementById('td-private').checked = !!t.is_private;
     updateTaskDoneBtn(t.done);
+    const canDelete = !t.assigner_id || t.assigner_id === currentUser.id;
+    document.getElementById('td-delete-btn').style.display = canDelete ? '' : 'none';
+    renderAreaSelect();
+    document.getElementById('td-area-select').value = t.area_id || '';
     await loadTaskFiles(taskId);
     document.getElementById('task-detail-sheet').classList.add('open');
   }
@@ -1592,7 +1724,7 @@
     list.innerHTML = subs.map(s => `
       <div class="subtask-detail-item">
         <div class="subtask-chk ${s.done?'checked':''}" onclick="toggleTaskSubtask(${t.id},'${s.id}')">${s.done?'✓':''}</div>
-        <span class="subtask-chk-text ${s.done?'done':''}">${esc(s.text)}</span>
+        <span class="subtask-chk-text ${s.done?'done':''}" onclick="startEditSubtask(this,'${s.id}',${t.id})" title="クリックして編集">${esc(s.text)}</span>
         <button class="btn-file-del" onclick="deleteTaskSubtask('${s.id}')" title="削除">✕</button>
       </div>`).join('');
   }
@@ -1629,6 +1761,38 @@
     renderMatrix();
   }
 
+  function startEditSubtask(span, subtaskId, taskId) {
+    const currentText = span.textContent;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'subtask-edit-input';
+    input.value = currentText;
+    span.replaceWith(input);
+    input.focus();
+    input.select();
+    const save = async () => {
+      const newText = input.value.trim();
+      if (!newText || newText === currentText) {
+        const restored = document.createElement('span');
+        restored.className = span.className;
+        restored.setAttribute('onclick', span.getAttribute('onclick'));
+        restored.setAttribute('title', 'クリックして編集');
+        restored.textContent = currentText;
+        input.replaceWith(restored);
+        return;
+      }
+      const t = findTask(taskId); if (!t) return;
+      const subs = Array.isArray(t.subtasks) ? [...t.subtasks] : [];
+      const sub = subs.find(s => s.id === subtaskId); if (!sub) return;
+      sub.text = newText; t.subtasks = subs;
+      renderTaskSubtasks(t);
+      await sb.from('tasks').update({ subtasks: subs, updated_at: new Date().toISOString() }).eq('id', taskId);
+      renderMatrix();
+    };
+    input.addEventListener('blur', save);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } if (e.key === 'Escape') { input.value = currentText; input.blur(); } });
+  }
+
   // ── タスク詳細: ファイル ──────────────────────────────────────
   async function loadTaskFiles(taskId) {
     const c = document.getElementById('td-files');
@@ -1639,10 +1803,11 @@
       const icon = fileIcon(f.file_type);
       const { data: ud } = await sb.storage.from('task-attachments').createSignedUrl(f.file_path, 3600);
       const su = ud?.signedUrl || '#';
+      const canPreview = f.file_type && (f.file_type.startsWith('image/') || f.file_type === 'application/pdf');
       return `<div class="file-item">
         <span class="file-icon">${icon}</span>
         <div class="file-info"><div class="file-name">${esc(f.file_name)}</div><div class="file-size">${formatBytes(f.file_size)}</div></div>
-        <a class="btn-file-dl" href="${su}" target="_blank">開く</a>
+        ${canPreview ? `<button class="btn-file-dl" onclick="previewFile('${su}','${f.file_type}','${esc(f.file_name)}')">👁 プレビュー</button>` : `<a class="btn-file-dl" href="${su}" target="_blank">開く</a>`}
         <button class="btn-file-del" onclick="deleteTaskFile(${f.id},'${f.file_path}')">✕</button>
       </div>`;
     }));
@@ -1942,6 +2107,74 @@
     renderCalendar();
   }
 
+  // ── 領域（タグ）管理 ─────────────────────────────────────────
+  async function loadAreas() {
+    try {
+      const { data } = await sb.from('areas').select('*').order('name');
+      areasCache = data || [];
+    } catch(e) { areasCache = []; } // テーブルが未作成の場合はスキップ
+    renderAreaSelect();
+  }
+
+  function renderAreaSelect() {
+    const sel = document.getElementById('td-area-select'); if (!sel) return;
+    const current = sel.value;
+    sel.innerHTML = '<option value="">なし</option>' +
+      areasCache.map(a => `<option value="${a.id}" style="color:${a.color}">${esc(a.name)}</option>`).join('');
+    if (current) sel.value = current;
+  }
+
+  async function saveTaskArea() {
+    if (!currentTaskId) return;
+    const t = findTask(currentTaskId); if (!t) return;
+    const areaId = document.getElementById('td-area-select').value || null;
+    t.area_id = areaId ? Number(areaId) : null;
+    await sb.from('tasks').update({ area_id: t.area_id, updated_at: new Date().toISOString() }).eq('id', currentTaskId);
+    renderMatrix();
+  }
+
+  function openAreaManager() {
+    renderAreaList();
+    document.getElementById('area-manager-modal').classList.add('open');
+  }
+  function closeAreaManager() { document.getElementById('area-manager-modal').classList.remove('open'); }
+  document.getElementById('area-manager-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('area-manager-modal')) closeAreaManager();
+  });
+
+  function renderAreaList() {
+    const c = document.getElementById('area-list');
+    if (!areasCache.length) { c.innerHTML = '<div style="font-size:13px;color:#aaa;">領域はまだありません</div>'; return; }
+    c.innerHTML = areasCache.map(a => `
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f5f5f5;">
+        <span style="width:14px;height:14px;border-radius:50%;background:${a.color};flex-shrink:0;display:inline-block;"></span>
+        <span style="flex:1;font-size:14px;color:#333;">${esc(a.name)}</span>
+        <button class="btn-icon danger" onclick="deleteArea(${a.id})">削除</button>
+      </div>`).join('');
+  }
+
+  async function addArea() {
+    const name = document.getElementById('new-area-name').value.trim();
+    if (!name) return;
+    const color = document.getElementById('new-area-color').value;
+    const { error } = await sb.from('areas').insert({ name, color });
+    if (error) { showToast('❌ 追加に失敗しました'); return; }
+    document.getElementById('new-area-name').value = '';
+    await loadAreas();
+    renderAreaList();
+    showToast('✅ 領域を追加しました');
+  }
+
+  async function deleteArea(id) {
+    if (!confirm('この領域を削除しますか？')) return;
+    await sb.from('tasks').update({ area_id: null }).eq('area_id', id);
+    await sb.from('areas').delete().eq('id', id);
+    await loadAreas();
+    renderAreaList();
+    renderMatrix();
+    showToast('🗑 削除しました');
+  }
+
   async function ensureInstances() {
     const now = new Date();
     const toInsert = [];
@@ -2186,10 +2419,11 @@
       const icon = fileIcon(f.file_type);
       const { data: ud } = await sb.storage.from('task-attachments').createSignedUrl(f.file_path, 3600);
       const su = ud?.signedUrl || '#';
+      const canPreview = f.file_type && (f.file_type.startsWith('image/') || f.file_type === 'application/pdf');
       return `<div class="file-item">
         <span class="file-icon">${icon}</span>
         <div class="file-info"><div class="file-name">${esc(f.file_name)}</div><div class="file-size">${formatBytes(f.file_size)}</div></div>
-        <a class="btn-file-dl" href="${su}" target="_blank">開く</a>
+        ${canPreview ? `<button class="btn-file-dl" onclick="previewFile('${su}','${f.file_type}','${esc(f.file_name)}')">👁 プレビュー</button>` : `<a class="btn-file-dl" href="${su}" target="_blank">開く</a>`}
         <button class="btn-file-del" onclick="deleteFile(${f.id},'${f.file_path}')">✕</button>
       </div>`;
     }));
@@ -2237,15 +2471,26 @@
     document.querySelectorAll('.mo-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === name));
     document.getElementById('mo-tab-master').style.display = name === 'master' ? 'block' : 'none';
     document.getElementById('mo-tab-share').style.display  = name === 'share'  ? 'block' : 'none';
+    document.getElementById('mo-type-filter').style.display = name === 'master' ? 'flex' : 'none';
   }
 
   const MN = ['','1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 
   function renderMoMasterList() {
     const c = document.getElementById('mo-tab-master');
-    const own = recurringTasks.filter(m => m.user_id === currentUser.id);
-    if (!own.length) {
+    const all = recurringTasks.filter(m => m.user_id === currentUser.id)
+      .sort((a, b) => {
+        if (a.type !== b.type) return a.type === 'monthly' ? -1 : 1;
+        if (a.type === 'annual' && a.month !== b.month) return a.month - b.month;
+        return a.day - b.day;
+      });
+    const own = masterTypeFilter === 'all' ? all : all.filter(m => m.type === masterTypeFilter);
+    if (!all.length) {
       c.innerHTML = '<div class="no-tasks-msg">マスタはまだありません。「＋ 追加」から登録してください。</div>';
+      return;
+    }
+    if (!own.length) {
+      c.innerHTML = '<div class="no-tasks-msg">該当するマスタがありません。</div>';
       return;
     }
     c.innerHTML = own.map(m => {
@@ -2297,6 +2542,14 @@
 
   // ── マスタ管理 ────────────────────────────────────────────────
   let editingMasterId = null, currentSubtasks = [], currentType = 'monthly';
+  let masterTypeFilter = 'all';
+
+  function setMasterTypeFilter(type) {
+    masterTypeFilter = type;
+    document.querySelectorAll('.mo-type-btn').forEach(btn =>
+      btn.classList.toggle('active', btn.dataset.type === type));
+    renderMoMasterList();
+  }
 
   function openMasterModal(masterId=null) {
     editingMasterId = masterId; currentSubtasks = [];
@@ -2380,9 +2633,8 @@
     closeMasterModal();
     showToast(editingMasterId ? '✅ マスタを更新しました' : '✅ マスタを追加しました');
     await loadRT();
-    if (document.getElementById('master-overlay').classList.contains('open')) {
-      renderMoMasterList(); renderMoShareList();
-    }
+    renderMoMasterList();
+    renderMoShareList();
   }
 
   async function deleteMaster(id) {
@@ -2501,25 +2753,23 @@
 
     let html = `<table class="report-table"><thead><tr>
       <th>メンバー</th><th>トレー</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th>
-      <th>完了</th><th>合計</th>
+      <th>合計</th>
     </tr></thead><tbody>`;
 
     activeUsers.forEach(u => {
       const ut = grouped[u.id] || [];
       const active = ut.filter(t => QIDS.includes(t.quadrant) && !t.done);
-      const doneCount = ut.filter(t => t.done).length;
       const counts = {};
       QIDS.forEach(q => { counts[q] = active.filter(t => t.quadrant === q).length; });
-      const total = active.length + doneCount;
+      const total = active.length;
 
       html += `<tr class="clickable" data-uid="${esc(u.id)}" onclick="toggleReportDetail('${esc(u.id)}')">
         <td>${esc(userMap[u.id] || u.id)}</td>
         ${QIDS.map(q => `<td>${row0(counts[q])}</td>`).join('')}
-        <td>${doneCount === 0 ? '<span class="report-num-zero">-</span>' : `<span class="report-num report-num-done">${doneCount}</span>`}</td>
         <td>${row0(total)}</td>
       </tr>
       <tr class="report-detail-row" id="report-detail-${esc(u.id)}" style="display:none;">
-        <td colspan="8"><div class="report-detail-inner" id="report-detail-inner-${esc(u.id)}"></div></td>
+        <td colspan="7"><div class="report-detail-inner" id="report-detail-inner-${esc(u.id)}"></div></td>
       </tr>`;
     });
 
@@ -2574,6 +2824,28 @@
   }
 
   // ── ユーティリティ ────────────────────────────────────────────
+  function previewFile(url, type, name) {
+    const modal = document.getElementById('file-preview-modal');
+    document.getElementById('preview-file-name').textContent = name;
+    document.getElementById('preview-open-link').href = url;
+    const content = document.getElementById('preview-content');
+    if (type && type.startsWith('image/')) {
+      content.innerHTML = `<img src="${url}" style="max-width:100%;max-height:78vh;border-radius:8px;box-shadow:0 4px 24px rgba(0,0,0,.4);" />`;
+    } else if (type === 'application/pdf') {
+      content.innerHTML = `<iframe src="${url}" style="width:min(860px,90vw);height:75vh;border:none;border-radius:8px;"></iframe>`;
+    } else {
+      content.innerHTML = `<div style="color:#fff;text-align:center;padding:40px;"><div style="font-size:48px;margin-bottom:16px;">📎</div><div style="font-size:15px;">このファイル形式はプレビューできません。</div></div>`;
+    }
+    modal.style.display = 'flex';
+  }
+  function closeFilePreview() {
+    document.getElementById('file-preview-modal').style.display = 'none';
+    document.getElementById('preview-content').innerHTML = '';
+  }
+  document.getElementById('file-preview-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('file-preview-modal')) closeFilePreview();
+  });
+
   function fileIcon(t) {
     if (!t) return '📎';
     if (t.startsWith('image/')) return '🖼️';
