@@ -820,7 +820,8 @@
   let assignedOutTasks  = [];   // tasks I assigned to others
   let usersCache        = {};   // { userId: displayName }
   let assignSelectedUserId = null; // 配布先として選択したユーザーID
-  let lwIdCache = {};              // { supabase_uuid: lw_user_id }
+  let lwIdCache  = {};             // { supabase_uuid: lw_user_id }
+  let calIdCache = {};             // { supabase_uuid: lw_task_calendar_id }
   let recurringTasks    = [];
   let allInstances      = {};   // { masterId: { "year_month": instance } }
   let shares            = {};   // { masterId: [{ id, user_id, name }] }
@@ -871,6 +872,8 @@
         _isWoffLogin = true;
         usersCache[user.id] = user.display_name || user.name;
         if (user.lw_user_id) lwIdCache[user.id] = user.lw_user_id;
+        if (user.lw_task_calendar_id) calIdCache[user.id] = user.lw_task_calendar_id;
+        if (user.lw_user_id && !user.lw_task_calendar_id) ensureCalendarId(user.lw_user_id, user.id);
         return true;
       }
 
@@ -931,6 +934,8 @@
         currentUser = data;
         usersCache[data.id] = data.display_name || data.name;
         if (data.lw_user_id) lwIdCache[data.id] = data.lw_user_id;
+        if (data.lw_task_calendar_id) calIdCache[data.id] = data.lw_task_calendar_id;
+        if (data.lw_user_id && !data.lw_task_calendar_id) ensureCalendarId(data.lw_user_id, data.id);
         document.getElementById('login-screen').style.display = 'none';
         await showApp(); hideLoading(); return;
       }
@@ -948,6 +953,8 @@
           currentUser = { ...data2, auth_id: session.user.id };
           usersCache[data2.id] = data2.display_name || data2.name;
           if (data2.lw_user_id) lwIdCache[data2.id] = data2.lw_user_id;
+          if (data2.lw_task_calendar_id) calIdCache[data2.id] = data2.lw_task_calendar_id;
+          if (data2.lw_user_id && !data2.lw_task_calendar_id) ensureCalendarId(data2.lw_user_id, data2.id);
           document.getElementById('login-screen').style.display = 'none';
           await showApp(); hideLoading(); return;
         }
@@ -1537,10 +1544,10 @@
     let newCalIds = {};
     if (Object.keys(oldCalIds).length) await calDelete(oldCalIds);
     if (deadline) {
-      const lwIds = await calLwIdsForTask(t);
-      if (lwIds.length) {
-        const results = await calCreate(lwIds.map(lwId => ({ lw_user_id: lwId, summary: t.text, date: deadline })));
-        results.forEach(r => { if (r.event_id) newCalIds[r.lw_user_id] = r.event_id; });
+      const targets = await calLwTargetsForTask(t);
+      if (targets.length) {
+        const results = await calCreate(targets.map(tgt => ({ ...tgt, summary: t.text, date: deadline })));
+        results.forEach(r => { if (r.event_id) newCalIds[r.lw_user_id] = { event_id: r.event_id, cal_id: r.cal_id || null }; });
       }
     }
     t.lw_calendar_event_ids = newCalIds;
@@ -1686,9 +1693,25 @@
     return calPost({ action: 'create', events });
   }
 
-  // eventMap: {lw_user_id: event_id}
+  // 後方互換: 旧形式 {lw_user_id: "event_id_string"} を
+  //           新形式 {lw_user_id: {event_id, cal_id}} に正規化する
+  function normalizeCalIds(calIds) {
+    const result = {};
+    for (const [lwId, val] of Object.entries(calIds || {})) {
+      if (lwId === '_syncing') continue;
+      result[lwId] = (typeof val === 'string')
+        ? { event_id: val, cal_id: null }
+        : val;
+    }
+    return result;
+  }
+
+  // eventMap: {lw_user_id: {event_id, cal_id}} または旧形式 {lw_user_id: event_id_string}
   async function calDelete(eventMap) {
-    const events = Object.entries(eventMap).map(([lw_user_id, event_id]) => ({ lw_user_id, event_id }));
+    const normalized = normalizeCalIds(eventMap);
+    const events = Object.entries(normalized).map(([lw_user_id, ev]) => ({
+      lw_user_id, event_id: ev.event_id, cal_id: ev.cal_id || null,
+    }));
     if (!events.length) return;
     await calPost({ action: 'delete', events });
   }
@@ -1707,22 +1730,51 @@
     return `${year}-${String(month).padStart(2,'0')}-${String(Math.min(day, max)).padStart(2,'0')}`;
   }
 
-  // lw_user_id をキャッシュ or DB 取得
+  // lw_user_id をキャッシュ or DB 取得（lw_task_calendar_id も同時にキャッシュ）
   async function fetchLwId(supabaseId) {
     if (lwIdCache[supabaseId]) return lwIdCache[supabaseId];
-    const { data } = await sb.from('users').select('lw_user_id').eq('id', supabaseId).maybeSingle();
-    if (data?.lw_user_id) { lwIdCache[supabaseId] = data.lw_user_id; return data.lw_user_id; }
+    const { data } = await sb.from('users').select('lw_user_id, lw_task_calendar_id').eq('id', supabaseId).maybeSingle();
+    if (data?.lw_user_id) {
+      lwIdCache[supabaseId] = data.lw_user_id;
+      if (data.lw_task_calendar_id) calIdCache[supabaseId] = data.lw_task_calendar_id;
+      return data.lw_user_id;
+    }
     return null;
   }
 
-  // タスクのカレンダー対象LWユーザーID一覧（オーナー＋配布者）
-  async function calLwIdsForTask(task) {
-    const lwIds = new Set();
-    const ownerLwId  = task.user_id    === currentUser.id ? currentUser.lw_user_id : await fetchLwId(task.user_id);
-    const assignLwId = task.assigner_id === currentUser.id ? currentUser.lw_user_id : (task.assigner_id ? await fetchLwId(task.assigner_id) : null);
-    if (ownerLwId)  lwIds.add(ownerLwId);
-    if (assignLwId) lwIds.add(assignLwId);
-    return [...lwIds];
+  // ユーザーのタスクカレンダーIDを取得（DBキャッシュ優先、なければPHP経由で取得・保存）
+  async function ensureCalendarId(lwUserId, supabaseUserId) {
+    if (supabaseUserId === currentUser.id && currentUser.lw_task_calendar_id)
+      return currentUser.lw_task_calendar_id;
+    if (calIdCache[supabaseUserId]) return calIdCache[supabaseUserId];
+    const res = await calPost({ action: 'ensure_calendar', lw_user_id: lwUserId });
+    const calId = res?.[0]?.cal_id ?? null;
+    if (!calId) return null;
+    calIdCache[supabaseUserId] = calId;
+    await sb.from('users').update({ lw_task_calendar_id: calId }).eq('id', supabaseUserId);
+    if (supabaseUserId === currentUser.id) currentUser.lw_task_calendar_id = calId;
+    return calId;
+  }
+
+  // タスクのカレンダー対象 {lw_user_id, cal_id} 一覧（オーナー＋配布者）
+  async function calLwTargetsForTask(task) {
+    const seen = new Set();
+    const targets = [];
+    const addTarget = (lwId, supabaseId) => {
+      if (!lwId || seen.has(lwId)) return;
+      seen.add(lwId);
+      const calId = (supabaseId === currentUser.id)
+        ? (currentUser.lw_task_calendar_id || null)
+        : (calIdCache[supabaseId] || null);
+      targets.push({ lw_user_id: lwId, cal_id: calId });
+    };
+    const ownerLwId = task.user_id === currentUser.id ? currentUser.lw_user_id : await fetchLwId(task.user_id);
+    addTarget(ownerLwId, task.user_id);
+    if (task.assigner_id) {
+      const assignLwId = task.assigner_id === currentUser.id ? currentUser.lw_user_id : await fetchLwId(task.assigner_id);
+      addTarget(assignLwId, task.assigner_id);
+    }
+    return targets;
   }
 
   // 新規インスタンスのカレンダーイベントを一括作成して DB に保存
@@ -1752,7 +1804,7 @@
     results.forEach(r => {
       if (!r.event_id || !r._inst_id) return;
       if (!instCalIds[r._inst_id]) instCalIds[r._inst_id] = {};
-      instCalIds[r._inst_id][r.lw_user_id] = r.event_id;
+      instCalIds[r._inst_id][r.lw_user_id] = { event_id: r.event_id, cal_id: r.cal_id || null };
     });
 
     // DB更新＋ローカルキャッシュ更新
@@ -1825,14 +1877,17 @@
       if (t.lw_calendar_event_ids && Object.keys(t.lw_calendar_event_ids).length) {
         await calDelete(t.lw_calendar_event_ids);
       }
-      const lwIds = new Set();
+      const seen = new Set();
+      const targets = [];
       const targetLwId = await fetchLwId(targetId);
-      if (targetLwId) lwIds.add(targetLwId);
-      if (currentUser.lw_user_id) lwIds.add(currentUser.lw_user_id);
-      if (lwIds.size) {
-        const results = await calCreate([...lwIds].map(lwId => ({ lw_user_id: lwId, summary: t.text, date: t.deadline })));
+      if (targetLwId) { seen.add(targetLwId); targets.push({ lw_user_id: targetLwId, cal_id: calIdCache[targetId] || null }); }
+      if (currentUser.lw_user_id && !seen.has(currentUser.lw_user_id)) {
+        targets.push({ lw_user_id: currentUser.lw_user_id, cal_id: currentUser.lw_task_calendar_id || null });
+      }
+      if (targets.length) {
+        const results = await calCreate(targets.map(tgt => ({ ...tgt, summary: t.text, date: t.deadline })));
         const newCalIds = {};
-        results.forEach(r => { if (r.event_id) newCalIds[r.lw_user_id] = r.event_id; });
+        results.forEach(r => { if (r.event_id) newCalIds[r.lw_user_id] = { event_id: r.event_id, cal_id: r.cal_id || null }; });
         await sb.from('tasks').update({ lw_calendar_event_ids: newCalIds }).eq('id', currentTaskId);
       }
     }
@@ -2335,8 +2390,8 @@
     // カレンダーイベントを先に一括削除
     const calEvents = [];
     Object.values(allInstances[id] || {}).forEach(inst => {
-      Object.entries(inst.lw_calendar_event_ids || {}).forEach(([lwId, eventId]) => {
-        calEvents.push({ lw_user_id: lwId, event_id: eventId });
+      Object.entries(normalizeCalIds(inst.lw_calendar_event_ids || {})).forEach(([lwId, ev]) => {
+        calEvents.push({ lw_user_id: lwId, event_id: ev.event_id, cal_id: ev.cal_id || null });
       });
     });
     if (calEvents.length) await calPost({ action: 'delete', events: calEvents });

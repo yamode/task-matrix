@@ -121,6 +121,15 @@ $events = $body['events'] ?? [];
 
 $results = [];
 
+// ── タスクカレンダーID取得（なければ作成）────────────────────
+if ($action === 'ensure_calendar') {
+    $lw_user_id = $body['lw_user_id'] ?? '';
+    if (!$lw_user_id) { echo json_encode(['ok' => false, 'error' => 'lw_user_id required']); exit; }
+    $cal_id = getTaskCalendarId($lw_user_id, $access_token);
+    echo json_encode(['ok' => true, 'results' => [['cal_id' => $cal_id]]]);
+    exit;
+}
+
 // ── イベント作成 ──────────────────────────────────────────────
 if ($action === 'create') {
     foreach ($events as $ev) {
@@ -147,8 +156,9 @@ if ($action === 'create') {
             'sendNotification' => false,
         ], JSON_UNESCAPED_UNICODE);
 
-        // 「タスクカレンダー」に登録（なければ自動作成）
-        $cal_id = getTaskCalendarId($lw_user_id, $access_token);
+        // 「タスクカレンダー」に登録（cal_idが渡されていればそれを使用、なければ自動取得）
+        $cal_id = $ev['cal_id'] ?? null;
+        if (!$cal_id) $cal_id = getTaskCalendarId($lw_user_id, $access_token);
         $url = $cal_id
             ? "https://www.worksapis.com/v1.0/users/{$lw_user_id}/calendars/{$cal_id}/events"
             : "https://www.worksapis.com/v1.0/users/{$lw_user_id}/calendar/events"; // フォールバック
