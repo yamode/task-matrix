@@ -460,6 +460,7 @@
   <div class="user-bar-name" style="flex:1;">ログイン中: <span id="user-bar-name"></span></div>
   <div class="user-bar-actions">
     <button class="btn-report" id="btn-done-box-toggle" onclick="toggleDoneBoxMode()">📦 完了済みをまとめる</button>
+    <button class="btn-report" onclick="openArchive()">🗂 アーカイブ</button>
     <button class="btn-report" onclick="openReport()">📊 レポート</button>
     <button class="btn-report" onclick="openSettings()">⚙️ 設定</button>
     <button class="btn-logout" onclick="handleLogout()">ログアウト</button>
@@ -538,11 +539,12 @@
 
   <!-- 処理済みボックス -->
   <div id="done-box-section" style="display:none;max-width:960px;margin:16px auto 0;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);overflow:hidden;border-top:3px solid #27ae60;">
-    <div style="display:flex;align-items:center;gap:8px;padding:14px 20px;cursor:pointer;user-select:none;border-bottom:1px solid #f0f0f0;" onclick="toggleDoneBox()">
-      <span style="font-size:20px;">📦</span>
-      <span style="font-size:15px;font-weight:700;color:#444;flex:1;">処理済みタスク</span>
+    <div style="display:flex;align-items:center;gap:8px;padding:14px 20px;border-bottom:1px solid #f0f0f0;">
+      <span style="font-size:20px;cursor:pointer;" onclick="toggleDoneBox()">📦</span>
+      <span style="font-size:15px;font-weight:700;color:#444;flex:1;cursor:pointer;" onclick="toggleDoneBox()">完了済みタスク</span>
       <span id="done-box-count" style="font-size:12px;background:#eafaf1;color:#27ae60;padding:2px 8px;border-radius:99px;font-weight:700;">0</span>
-      <span id="done-box-chevron" style="color:#aaa;font-size:13px;margin-left:4px;">▼</span>
+      <button onclick="archiveDoneTasks()" style="padding:5px 12px;background:#27ae60;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">🗂 整理する</button>
+      <span id="done-box-chevron" style="color:#aaa;font-size:13px;margin-left:4px;cursor:pointer;" onclick="toggleDoneBox()">▼</span>
     </div>
     <div id="done-box-list" style="padding:4px 20px 20px;display:none;"></div>
   </div>
@@ -782,6 +784,16 @@
 </div>
 
 <!-- 設定オーバーレイ -->
+<div class="master-overlay" id="archive-overlay">
+  <div class="master-overlay-header">
+    <div class="master-overlay-title">🗂 タスクアーカイブ</div>
+    <button class="modal-close" onclick="closeArchive()">✕</button>
+  </div>
+  <div class="master-overlay-body" style="padding:20px;">
+    <div id="archive-list"><div style="text-align:center;padding:40px;color:#888;">読み込み中...</div></div>
+  </div>
+</div>
+
 <div class="master-overlay" id="settings-overlay">
   <div class="master-overlay-header">
     <div class="master-overlay-title">⚙️ 設定</div>
@@ -1227,8 +1239,8 @@
 
   async function loadTasks() {
     const [{ data: myTasks }, { data: outTasks }] = await Promise.all([
-      sb.from('tasks').select('*').eq('user_id', currentUser.id).order('created_at'),
-      sb.from('tasks').select('*').eq('assigner_id', currentUser.id).neq('user_id', currentUser.id).order('created_at')
+      sb.from('tasks').select('*').eq('user_id', currentUser.id).is('archived_at', null).order('created_at'),
+      sb.from('tasks').select('*').eq('assigner_id', currentUser.id).neq('user_id', currentUser.id).is('archived_at', null).order('created_at')
     ]);
 
     tasks = { tray:[], q1:[], q2:[], q3:[], q4:[] };
@@ -1340,11 +1352,7 @@
       t.approval_status = update.approval_status;
     }
     const { error } = await sb.from('tasks').update(update).eq('id', id);
-    if (error) { t.done = !t.done; renderMatrix(); showToast('❌ 更新に失敗しました'); return; }
-    // processed_at は別途更新（カラムが存在しない場合でも done の保存は守る）
-    sb.from('tasks').update({ processed_at: t.done ? now : null }).eq('id', id).then(({ error: e }) => {
-      if (e) dbg('processed_at update skipped (column may not exist):', e.message);
-    });
+    if (error) { t.done = !t.done; renderMatrix(); showToast('❌ 更新に失敗しました'); }
   }
 
   async function deleteTask(qid, id) {
@@ -2846,6 +2854,57 @@
   }
 
   // ── 処理済みタスク自動削除 ────────────────────────────────────
+  async function archiveDoneTasks() {
+    const doneTasks = QUADRANTS.flatMap(q => tasks[q].filter(t => t.done));
+    if (!doneTasks.length) { showToast('完了済みタスクはありません'); return; }
+    const now = new Date().toISOString();
+    const ids = doneTasks.map(t => t.id);
+    const { error } = await sb.from('tasks').update({ archived_at: now }).in('id', ids);
+    if (error) { showToast('❌ 整理に失敗しました'); dbg('archiveDoneTasks error', error); return; }
+    // ローカルキャッシュから削除
+    QUADRANTS.forEach(q => { tasks[q] = tasks[q].filter(t => !t.done); });
+    renderMatrix();
+    showToast(`🗂 ${ids.length}件をアーカイブしました`);
+  }
+
+  function openArchive() {
+    document.getElementById('archive-overlay').classList.add('open');
+    loadArchive();
+  }
+
+  function closeArchive() {
+    document.getElementById('archive-overlay').classList.remove('open');
+  }
+
+  async function loadArchive() {
+    const el = document.getElementById('archive-list');
+    el.innerHTML = '<div style="text-align:center;padding:40px;color:#888;">読み込み中...</div>';
+    const { data, error } = await sb.from('tasks')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .not('archived_at', 'is', null)
+      .order('archived_at', { ascending: false });
+    if (error || !data) { el.innerHTML = '<div style="text-align:center;padding:40px;color:#e74c3c;">読み込み失敗</div>'; return; }
+    if (!data.length) { el.innerHTML = '<div style="text-align:center;padding:40px;color:#aaa;">アーカイブされたタスクはありません</div>'; return; }
+    // 日付でグループ化
+    const groups = {};
+    data.forEach(t => {
+      const d = t.archived_at.slice(0, 10);
+      if (!groups[d]) groups[d] = [];
+      groups[d].push(t);
+    });
+    el.innerHTML = Object.entries(groups).map(([date, list]) => `
+      <div style="margin-bottom:20px;">
+        <div style="font-size:12px;font-weight:700;color:#888;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #eee;">${date}</div>
+        ${list.map(t => `
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f8f8f8;">
+            <span style="color:#27ae60;font-size:14px;">✓</span>
+            <span style="flex:1;font-size:14px;color:#555;">${esc(t.text)}</span>
+            <span style="font-size:11px;color:#bbb;background:#f5f5f5;padding:2px 6px;border-radius:4px;">${(QLABELS||{})[t.quadrant]||t.quadrant}</span>
+          </div>`).join('')}
+      </div>`).join('');
+  }
+
   async function autoCleanupOldDone() {
     try {
       const days = parseInt(localStorage.getItem('tm_retention_days') || '30');
@@ -2853,9 +2912,8 @@
       const { data: old } = await sb.from('tasks')
         .select('id, lw_calendar_event_ids')
         .eq('user_id', currentUser.id)
-        .eq('done', true)
-        .not('processed_at', 'is', null)
-        .lt('processed_at', cutoff);
+        .not('archived_at', 'is', null)
+        .lt('archived_at', cutoff);
       if (!old?.length) return;
       for (const t of old) {
         if (t.lw_calendar_event_ids && Object.keys(t.lw_calendar_event_ids).length)
