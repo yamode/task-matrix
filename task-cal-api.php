@@ -20,7 +20,8 @@ $service_account  = 'iw1bi.serviceaccount@yamado';
 $private_key_path = '/home/yamado/yamado.co.jp/private_20260320211118.key';
 
 // イベントを登録する専用カレンダー名
-define('TASK_CAL_NAME', 'タスクカレンダー');
+define('TASK_CAL_NAME',    'タスクカレンダー');
+define('MONTHLY_CAL_NAME', '月次タスク');
 
 // ── JWT 生成 ──────────────────────────────────────────────────
 function base64url_encode(string $data): string {
@@ -73,38 +74,33 @@ $access_token = $token_res['access_token'];
 // 同一リクエスト内でユーザーごとにキャッシュ
 $cal_id_cache = [];
 
-function getTaskCalendarId(string $lw_user_id, string $access_token): ?string {
+// カレンダー名をキャッシュキーに含める
+function getOrCreateCalendar(string $cal_name, string $lw_user_id, string $access_token): ?string {
     global $cal_id_cache;
-    if (isset($cal_id_cache[$lw_user_id])) return $cal_id_cache[$lw_user_id];
+    $cache_key = $cal_name . ':' . $lw_user_id;
+    if (isset($cal_id_cache[$cache_key])) return $cal_id_cache[$cache_key];
 
-    // カレンダー一覧を取得（正しいエンドポイント: /calendar-personals）
+    // カレンダー一覧を取得
     $ch = curl_init("https://www.worksapis.com/v1.0/users/{$lw_user_id}/calendar-personals");
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER     => ["Authorization: Bearer {$access_token}"],
-    ]);
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => ["Authorization: Bearer {$access_token}"]]);
     $res = json_decode(curl_exec($ch), true);
     curl_close($ch);
 
-    // 既存の「タスクカレンダー」を検索（フィールドは calendarName）
     foreach (($res['calendarPersonals'] ?? []) as $cal) {
-        if (($cal['calendarName'] ?? '') === TASK_CAL_NAME) {
-            $cal_id_cache[$lw_user_id] = $cal['calendarId'];
+        if (($cal['calendarName'] ?? '') === $cal_name) {
+            $cal_id_cache[$cache_key] = $cal['calendarId'];
             return $cal['calendarId'];
         }
     }
 
-    // なければ作成（正しいエンドポイント: POST /calendars）
+    // なければ作成
     $ch = curl_init("https://www.worksapis.com/v1.0/calendars");
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST           => true,
-        CURLOPT_HTTPHEADER     => [
-            "Authorization: Bearer {$access_token}",
-            'Content-Type: application/json',
-        ],
-        CURLOPT_POSTFIELDS => json_encode([
-            'calendarName' => TASK_CAL_NAME,
+        CURLOPT_HTTPHEADER     => ["Authorization: Bearer {$access_token}", 'Content-Type: application/json'],
+        CURLOPT_POSTFIELDS     => json_encode([
+            'calendarName' => $cal_name,
             'members'      => [['id' => $lw_user_id, 'type' => 'USER', 'role' => 'CALENDAR_EVENT_READ_WRITE']],
             'isPublic'     => false,
         ], JSON_UNESCAPED_UNICODE),
@@ -113,9 +109,14 @@ function getTaskCalendarId(string $lw_user_id, string $access_token): ?string {
     curl_close($ch);
 
     $cal_id = $res2['calendarId'] ?? null;
-    if ($cal_id) $cal_id_cache[$lw_user_id] = $cal_id;
+    if ($cal_id) $cal_id_cache[$cache_key] = $cal_id;
     return $cal_id;
 }
+
+function getTaskCalendarId(string $lw_user_id, string $access_token): ?string {
+    return getOrCreateCalendar(TASK_CAL_NAME, $lw_user_id, $access_token);
+}
+
 
 // ── リクエスト解析 ────────────────────────────────────────────
 $body   = json_decode(file_get_contents('php://input'), true);
@@ -146,6 +147,43 @@ if ($action === 'debug_calendar') {
         'calendars'   => $list_json['calendarPersonals'] ?? [],
         'task_cal_id' => $cal_id,
     ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    exit;
+}
+
+// ── 基本カレンダーのイベントリスト取得（summary一致を削除） ──
+if ($action === 'find_and_delete_by_summary') {
+    $lw_user_id = $body['lw_user_id']  ?? '';
+    $summary    = $body['summary']     ?? '';
+    $from       = $body['from']        ?? '2026-01-01';
+    $until      = $body['until']       ?? '2027-12-31';
+    if (!$lw_user_id || !$summary) { echo json_encode(['ok' => false, 'error' => 'lw_user_id/summary required']); exit; }
+
+    // + だけ %2B に変換（コロン等はそのまま）
+    $from_enc  = str_replace('+', '%2B', $from  . 'T00:00:00+09:00');
+    $until_enc = str_replace('+', '%2B', $until . 'T23:59:59+09:00');
+    $url = "https://www.worksapis.com/v1.0/users/{$lw_user_id}/calendar/events?fromDateTime={$from_enc}&untilDateTime={$until_enc}";
+
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => ["Authorization: Bearer {$access_token}"]]);
+    $raw  = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    $data   = json_decode($raw, true);
+    $found  = [];
+    $deleted = [];
+    foreach (($data['events'] ?? []) as $ev_wrap) {
+        $ev_id  = $ev_wrap['eventComponents'][0]['eventId'] ?? null;
+        $ev_sum = $ev_wrap['eventComponents'][0]['summary'] ?? '';
+        if ($ev_id && $ev_sum === $summary) {
+            $found[] = $ev_id;
+            $del_ch = curl_init("https://www.worksapis.com/v1.0/users/{$lw_user_id}/calendar/events/{$ev_id}");
+            curl_setopt_array($del_ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_CUSTOMREQUEST => 'DELETE', CURLOPT_HTTPHEADER => ["Authorization: Bearer {$access_token}"]]);
+            curl_exec($del_ch); $del_code = curl_getinfo($del_ch, CURLINFO_HTTP_CODE); curl_close($del_ch);
+            $deleted[] = ['event_id' => $ev_id, 'status' => $del_code];
+        }
+    }
+    echo json_encode(['ok' => true, 'list_code' => $code, 'found' => count($found), 'deleted' => $deleted], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     exit;
 }
 
@@ -184,9 +222,10 @@ if ($action === 'create') {
             'sendNotification' => false,
         ], JSON_UNESCAPED_UNICODE);
 
-        // 「タスクカレンダー」に登録（cal_idが渡されていればそれを使用、なければ自動取得）
-        $cal_id = $ev['cal_id'] ?? null;
-        if (!$cal_id) $cal_id = getTaskCalendarId($lw_user_id, $access_token);
+        // カレンダーに登録（cal_idが渡されていればそれを使用、calendar_nameがあればその名前で取得、なければタスクカレンダー）
+        $cal_id      = $ev['cal_id']       ?? null;
+        $cal_name_ev = $ev['calendar_name'] ?? TASK_CAL_NAME;
+        if (!$cal_id) $cal_id = getOrCreateCalendar($cal_name_ev, $lw_user_id, $access_token);
         $url = $cal_id
             ? "https://www.worksapis.com/v1.0/users/{$lw_user_id}/calendars/{$cal_id}/events"
             : "https://www.worksapis.com/v1.0/users/{$lw_user_id}/calendar/events"; // フォールバック
