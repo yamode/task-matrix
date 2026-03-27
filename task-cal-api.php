@@ -77,26 +77,25 @@ function getTaskCalendarId(string $lw_user_id, string $access_token): ?string {
     global $cal_id_cache;
     if (isset($cal_id_cache[$lw_user_id])) return $cal_id_cache[$lw_user_id];
 
-    // カレンダー一覧を取得
-    $ch = curl_init("https://www.worksapis.com/v1.0/users/{$lw_user_id}/calendars");
+    // カレンダー一覧を取得（正しいエンドポイント: /calendar-personals）
+    $ch = curl_init("https://www.worksapis.com/v1.0/users/{$lw_user_id}/calendar-personals");
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_HTTPHEADER     => ["Authorization: Bearer {$access_token}"],
     ]);
-    $res  = json_decode(curl_exec($ch), true);
-    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $res = json_decode(curl_exec($ch), true);
     curl_close($ch);
 
-    // 既存の「タスクカレンダー」を検索
-    foreach (($res['calendars'] ?? []) as $cal) {
-        if (($cal['summary'] ?? '') === TASK_CAL_NAME) {
+    // 既存の「タスクカレンダー」を検索（フィールドは calendarName）
+    foreach (($res['calendarPersonals'] ?? []) as $cal) {
+        if (($cal['calendarName'] ?? '') === TASK_CAL_NAME) {
             $cal_id_cache[$lw_user_id] = $cal['calendarId'];
             return $cal['calendarId'];
         }
     }
 
-    // なければ作成
-    $ch = curl_init("https://www.worksapis.com/v1.0/users/{$lw_user_id}/calendars");
+    // なければ作成（正しいエンドポイント: POST /calendars）
+    $ch = curl_init("https://www.worksapis.com/v1.0/calendars");
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST           => true,
@@ -104,9 +103,13 @@ function getTaskCalendarId(string $lw_user_id, string $access_token): ?string {
             "Authorization: Bearer {$access_token}",
             'Content-Type: application/json',
         ],
-        CURLOPT_POSTFIELDS => json_encode(['summary' => TASK_CAL_NAME], JSON_UNESCAPED_UNICODE),
+        CURLOPT_POSTFIELDS => json_encode([
+            'calendarName' => TASK_CAL_NAME,
+            'members'      => [['id' => $lw_user_id, 'type' => 'USER', 'role' => 'CALENDAR_EVENT_READ_WRITE']],
+            'isPublic'     => false,
+        ], JSON_UNESCAPED_UNICODE),
     ]);
-    $res2  = json_decode(curl_exec($ch), true);
+    $res2 = json_decode(curl_exec($ch), true);
     curl_close($ch);
 
     $cal_id = $res2['calendarId'] ?? null;
@@ -120,6 +123,31 @@ $action = $body['action'] ?? '';
 $events = $body['events'] ?? [];
 
 $results = [];
+
+// ── デバッグ：カレンダー一覧・タスクカレンダー取得/作成テスト ─
+if ($action === 'debug_calendar') {
+    $lw_user_id = $body['lw_user_id'] ?? '';
+    if (!$lw_user_id) { echo json_encode(['ok' => false, 'error' => 'lw_user_id required']); exit; }
+
+    // 1. カレンダー一覧取得
+    $ch = curl_init("https://www.worksapis.com/v1.0/users/{$lw_user_id}/calendar-personals");
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => ["Authorization: Bearer {$access_token}"]]);
+    $list_raw  = curl_exec($ch);
+    $list_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    $list_json = json_decode($list_raw, true);
+
+    // 2. タスクカレンダーID取得（なければ作成）
+    $cal_id = getTaskCalendarId($lw_user_id, $access_token);
+
+    echo json_encode([
+        'ok'          => true,
+        'list_code'   => $list_code,
+        'calendars'   => $list_json['calendarPersonals'] ?? [],
+        'task_cal_id' => $cal_id,
+    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    exit;
+}
 
 // ── タスクカレンダーID取得（なければ作成）────────────────────
 if ($action === 'ensure_calendar') {
