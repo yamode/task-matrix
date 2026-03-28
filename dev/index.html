@@ -1031,7 +1031,9 @@
 
     <div style="margin-bottom:28px;">
       <div style="font-size:15px;font-weight:700;color:#333;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #eee;">🏢 組織管理</div>
-      <div style="font-size:13px;color:#666;margin-bottom:12px;">LINE WORKSユーザー情報をCSVで一括登録できます。まずテンプレートをダウンロードして、必要な情報を入力してください。</div>
+      <div id="org-mgmt-body" style="margin-bottom:16px;"><div style="color:#aaa;font-size:13px;">読み込み中...</div></div>
+      <div style="font-size:14px;font-weight:600;color:#555;margin-bottom:10px;border-top:1px solid #eee;padding-top:14px;">📥 メンバーCSV一括登録</div>
+      <div style="font-size:13px;color:#666;margin-bottom:12px;">LINE WORKSユーザー情報をCSVで一括インポートできます。まずテンプレートをダウンロードして必要な情報を入力してください。</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
         <button class="btn-secondary" onclick="downloadOrgCsvTemplate()" style="font-size:14px;padding:10px 18px;">📥 テンプレートDL</button>
         <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;background:#f5f5f5;border:1.5px solid #ddd;border-radius:8px;padding:10px 18px;font-size:14px;font-family:inherit;color:#555;">
@@ -3517,6 +3519,7 @@
       document.getElementById('setting-debug-panel').checked = panelShown;
     }
     document.getElementById('settings-overlay').classList.add('open');
+    loadOrgSection();
   }
 
   function toggleDebugPanel(show) {
@@ -3634,6 +3637,162 @@
     btn.style.display = 'none';
     dbg('importOrgCsv:', ok, '件成功', errors.length, '件エラー');
   }
+  // ── 組織管理 ──────────────────────────────────────────────────
+  async function loadOrgSection() {
+    const el = document.getElementById('org-mgmt-body');
+    if (!el || !currentUser) return;
+
+    // 自分がオーナーの組織を検索
+    const { data: ownedOrg } = await sb.from('organizations')
+      .select('id, name').eq('owner_id', currentUser.id).maybeSingle();
+
+    if (!ownedOrg) {
+      renderOrgCreate(el);
+      return;
+    }
+
+    // メンバー一覧取得（org_members + users JOIN）
+    const { data: members } = await sb
+      .from('org_members')
+      .select('id, role, user_id, users(id, name, display_name, lw_account_id)')
+      .eq('org_id', ownedOrg.id)
+      .order('role');
+
+    renderOrgPanel(el, ownedOrg, members || []);
+  }
+
+  function renderOrgCreate(el) {
+    el.innerHTML = `
+      <div style="font-size:13px;color:#666;margin-bottom:12px;">まだ組織が作成されていません。組織を作成するとメンバーを管理できます。</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="org-create-name" type="text" placeholder="組織名（例: 株式会社山人）"
+          style="flex:1;padding:9px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;"
+          onkeydown="if(event.key==='Enter')createOrg()" />
+        <button onclick="createOrg()"
+          style="padding:9px 18px;background:#667eea;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;white-space:nowrap;">
+          ＋ 作成
+        </button>
+      </div>
+      <div id="org-create-err" style="font-size:12px;color:#e74c3c;margin-top:6px;"></div>`;
+  }
+
+  function renderOrgPanel(el, org, members) {
+    const isOwner = org.owner_id === currentUser?.id || true; // オーナーのみここに到達
+    const rows = members.map(m => {
+      const u = m.users;
+      const displayName = u?.display_name || u?.name || '?';
+      const sub = u?.lw_account_id ? `<div style="font-size:11px;color:#aaa;">${esc(u.lw_account_id)}</div>` : '';
+      const roleBadge = m.role === 'owner'
+        ? `<span style="font-size:11px;background:#fef3cd;color:#856404;padding:2px 8px;border-radius:4px;">オーナー</span>`
+        : `<span style="font-size:11px;background:#e8f4fd;color:#0c5460;padding:2px 8px;border-radius:4px;">メンバー</span>`;
+      const toggleBtn = m.user_id !== currentUser.id
+        ? `<button onclick="toggleOrgRole('${m.id}','${m.role}')" title="ロール変更"
+            style="font-size:11px;padding:3px 8px;background:#f5f5f5;border:1px solid #ddd;border-radius:4px;cursor:pointer;">
+            ${m.role === 'owner' ? '↓ メンバーに' : '↑ オーナーに'}
+          </button>`
+        : '';
+      const delBtn = m.user_id !== currentUser.id
+        ? `<button onclick="removeOrgMember('${m.id}','${esc(displayName)}')" title="削除"
+            style="font-size:13px;background:none;border:none;color:#ccc;cursor:pointer;padding:2px 4px;"
+            onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='#ccc'">✕</button>`
+        : `<span style="font-size:11px;color:#aaa;">（自分）</span>`;
+      return `<tr style="border-bottom:1px solid #f0f0f0;">
+        <td style="padding:8px 6px;">${esc(displayName)}${sub}</td>
+        <td style="padding:8px 6px;">${roleBadge}</td>
+        <td style="padding:8px 6px;white-space:nowrap;">${toggleBtn}</td>
+        <td style="padding:8px 6px;text-align:right;">${delBtn}</td>
+      </tr>`;
+    }).join('');
+
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="font-size:14px;font-weight:600;color:#333;">🏢 ${esc(org.name)}</div>
+        <div style="font-size:12px;color:#aaa;">${members.length} 名</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:13px;">
+        <thead><tr style="background:#f8f8f8;font-size:12px;color:#888;">
+          <th style="padding:6px;text-align:left;font-weight:600;">名前</th>
+          <th style="padding:6px;text-align:left;font-weight:600;">ロール</th>
+          <th style="padding:6px;"></th><th style="padding:6px;"></th>
+        </tr></thead>
+        <tbody>${rows || '<tr><td colspan="4" style="padding:12px;text-align:center;color:#aaa;">メンバーなし</td></tr>'}</tbody>
+      </table>
+      <div style="display:flex;gap:8px;align-items:center;position:relative;">
+        <input id="org-add-input" type="text" placeholder="メンバーを追加（名前で検索）"
+          style="flex:1;padding:9px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;"
+          oninput="searchOrgAddUser(this.value,${org.id})" autocomplete="off" />
+        <div id="org-add-dropdown" style="display:none;position:absolute;top:100%;left:0;right:40px;background:#fff;border:1.5px solid #ddd;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:200;max-height:200px;overflow-y:auto;"></div>
+      </div>`;
+  }
+
+  async function createOrg() {
+    const name = document.getElementById('org-create-name')?.value.trim();
+    if (!name) return;
+    const errEl = document.getElementById('org-create-err');
+    const { data: org, error } = await sb.from('organizations')
+      .insert({ name, owner_id: currentUser.id }).select().single();
+    if (error) { errEl.textContent = '作成に失敗しました: ' + error.message; return; }
+    // オーナー自身を org_members に追加
+    await sb.from('org_members').insert({ org_id: org.id, user_id: currentUser.id, role: 'owner' });
+    await sb.from('users').update({ org_id: org.id }).eq('id', currentUser.id);
+    currentUser.org_id = org.id;
+    showToast('✅ 組織を作成しました');
+    loadOrgSection();
+  }
+
+  async function searchOrgAddUser(query, orgId) {
+    const dropdown = document.getElementById('org-add-dropdown');
+    if (!query || query.length < 1) { dropdown.style.display = 'none'; return; }
+    const { data: users } = await sb.from('users')
+      .select('id, name, display_name')
+      .or(`name.ilike.%${query}%,display_name.ilike.%${query}%`)
+      .neq('id', currentUser.id)
+      .limit(8);
+    if (!users?.length) { dropdown.style.display = 'none'; return; }
+    dropdown.innerHTML = users.map(u =>
+      `<div onclick="addOrgMember('${u.id}','${esc(u.display_name||u.name)}',${orgId})"
+        style="padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid #f0f0f0;"
+        onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background=''">
+        ${esc(u.display_name || u.name)}
+        <span style="font-size:11px;color:#aaa;margin-left:6px;">${esc(u.name)}</span>
+      </div>`
+    ).join('');
+    dropdown.style.display = 'block';
+  }
+
+  async function addOrgMember(userId, displayName, orgId) {
+    document.getElementById('org-add-dropdown').style.display = 'none';
+    document.getElementById('org-add-input').value = '';
+    const { error } = await sb.from('org_members')
+      .insert({ org_id: orgId, user_id: userId, role: 'member' });
+    if (error) {
+      showToast(error.code === '23505' ? `⚠️ ${displayName} はすでにメンバーです` : '❌ 追加に失敗しました');
+      return;
+    }
+    await sb.from('users').update({ org_id: orgId }).eq('id', userId);
+    showToast(`✅ ${displayName} を追加しました`);
+    loadOrgSection();
+  }
+
+  async function removeOrgMember(memberId, displayName) {
+    if (!confirm(`「${displayName}」をメンバーから削除しますか？`)) return;
+    // org_members から user_id を取得してから削除
+    const { data: m } = await sb.from('org_members').select('user_id').eq('id', memberId).maybeSingle();
+    const { error } = await sb.from('org_members').delete().eq('id', memberId);
+    if (error) { showToast('❌ 削除に失敗しました'); return; }
+    if (m?.user_id) await sb.from('users').update({ org_id: null }).eq('id', m.user_id);
+    showToast(`🗑 ${displayName} を削除しました`);
+    loadOrgSection();
+  }
+
+  async function toggleOrgRole(memberId, currentRole) {
+    const newRole = currentRole === 'owner' ? 'member' : 'owner';
+    const { error } = await sb.from('org_members').update({ role: newRole }).eq('id', memberId);
+    if (error) { showToast('❌ ロール変更に失敗しました'); return; }
+    showToast(`✅ ロールを「${newRole === 'owner' ? 'オーナー' : 'メンバー'}」に変更しました`);
+    loadOrgSection();
+  }
+
   function saveRetentionDays(val) {
     const n = parseInt(val);
     if (n >= 1 && n <= 365) localStorage.setItem('tm_retention_days', String(n));
@@ -3971,7 +4130,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-02</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-03</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
