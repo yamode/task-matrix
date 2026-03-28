@@ -148,6 +148,7 @@
     .task-text-wrap { flex:1; min-width:0; }
     .task-text   { font-size:14px; color:#333; line-height:1.4; word-break:break-all; }
     .task-badges { display:flex; gap:4px; flex-wrap:wrap; margin-top:3px; }
+    .task-meta-icons { display:flex; gap:3px; margin-top:2px; font-size:11px; opacity:.55; line-height:1; }
     .task-delete { background:none; border:none; cursor:pointer; color:#ccc; font-size:14px; padding:0 2px; line-height:1; transition:color .15s; flex-shrink:0; }
     .task-delete:hover { color:#e74c3c; }
     .add-task-row  { display:flex; gap:6px; margin-top:8px; }
@@ -1081,10 +1082,10 @@
 <!-- ファイルプレビューモーダル -->
 <div id="file-preview-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
   <div style="display:flex;justify-content:space-between;align-items:center;width:100%;max-width:900px;padding:0 16px;box-sizing:border-box;">
-    <span id="preview-file-name" style="color:#fff;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:70%;"></span>
-    <div style="display:flex;gap:8px;">
-      <a id="preview-open-link" href="#" target="_blank" class="btn-file-dl" style="text-decoration:none;">開く</a>
-      <button onclick="closeFilePreview()" style="background:none;border:none;color:#fff;font-size:26px;cursor:pointer;line-height:1;">✕</button>
+    <span id="preview-file-name" style="color:#fff;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:55%;"></span>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button id="preview-action-btn" class="btn-file-dl" onclick="">↑ 取得</button>
+      <button onclick="closeFilePreview()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:13px;font-weight:600;padding:5px 12px;border-radius:6px;cursor:pointer;">閉じる</button>
     </div>
   </div>
   <div id="preview-content" style="max-width:900px;max-height:80vh;overflow:auto;display:flex;align-items:center;justify-content:center;"></div>
@@ -1200,6 +1201,7 @@
   let allInstances      = {};   // { masterId: { "year_month": instance } }
   let shares            = {};   // { masterId: [{ id, user_id, name }] }
   let areasCache        = [];   // [{ id, name, color }]
+  let fileCountCache    = {};   // { taskId: count }
   let viewYear, viewMonth;
   let calMonthlyUndoneOnly = false;
   let _calResyncDone = false; // カレンダー再同期の重複防止フラグ
@@ -1504,6 +1506,16 @@
     const allMatrixTasks = QUADRANTS.flatMap(q => tasks[q]);
     await cacheUsersFromTasks([...allMatrixTasks, ...receivedTasks, ...assignedOutTasks]);
 
+    // 添付ファイル件数を一括取得
+    const allTaskIds = allMatrixTasks.map(t => t.id);
+    if (allTaskIds.length) {
+      const { data: fc } = await sb.from('task_files').select('task_id').in('task_id', allTaskIds).eq('is_completion', false);
+      fileCountCache = {};
+      (fc || []).forEach(f => { fileCountCache[f.task_id] = (fileCountCache[f.task_id] || 0) + 1; });
+    } else {
+      fileCountCache = {};
+    }
+
     renderMatrix();
     renderReceivedSection();
     renderAssignedOutSection();
@@ -1638,6 +1650,12 @@
     const areaBadge = area ? `<span style="font-size:11px;font-weight:700;padding:1px 6px;border-radius:99px;white-space:nowrap;background:${area.color}22;color:${area.color};">🏷 ${esc(area.name)}</span>` : '';
     const badges = [fromBadge, pendingBadge, dlBadge, areaBadge].filter(Boolean).join('');
     const subProgHTML = subs.length ? subtaskProgressHTML(subs.map(s => !!s.done)) : '';
+    const metaIcons = [
+      t.memo?.trim()      ? '💬' : '',
+      t.url?.trim()       ? '🔗' : '',
+      t.is_private        ? '🔒' : '',
+      fileCountCache[t.id]? '📎' : '',
+    ].filter(Boolean).join(' ');
 
     return `<div class="task-item ${t.done?'done':''}" data-id="${t.id}" data-qid="${qid}" onclick="openTaskDetail(${t.id})">
       <div class="task-check" onclick="event.stopPropagation();toggleTask('${qid}',${t.id})">
@@ -1646,6 +1664,7 @@
       <div class="task-text-wrap">
         <span class="task-text">${esc(t.text)}</span>
         ${badges ? `<div class="task-badges">${badges}</div>` : ''}
+        ${metaIcons ? `<div class="task-meta-icons">${metaIcons}</div>` : ''}
         ${subProgHTML}
       </div>
       ${extraIcon}
@@ -1878,12 +1897,14 @@
     if (_completionFilesStaging.length) {
       showToast('📎 報告ファイルをアップロード中…');
       for (const { file } of _completionFilesStaging) {
-        const path = `tasks/${currentUser.id}/${currentTaskId}/completion_${Date.now()}_${file.name}`;
-        const { error: upErr } = await sb.storage.from('task-attachments').upload(path, file);
-        if (upErr) { showToast(`❌ ${file.name} のアップロードに失敗`); continue; }
+        const safeName = `completion_${Date.now()}_${Math.random().toString(36).slice(2,8)}${extOf(file.name)}`;
+        const path = `tasks/${currentUser.id}/${currentTaskId}/${safeName}`;
+        const ct = file.type || 'application/octet-stream';
+        const { error: upErr } = await sb.storage.from('task-attachments').upload(path, file, { contentType: ct });
+        if (upErr) { dbg('upload error', upErr); showToast(`❌ ${file.name} のアップロードに失敗`); continue; }
         await sb.from('task_files').insert({
           task_id: currentTaskId, user_id: currentUser.id,
-          file_path: path, file_name: file.name, file_type: file.type, file_size: file.size,
+          file_path: path, file_name: file.name, file_type: ct, file_size: file.size,
           is_completion: true
         });
       }
@@ -2340,10 +2361,13 @@
     const { data: ud } = await sb.storage.from('task-attachments').createSignedUrl(f.file_path, 3600);
     const su = ud?.signedUrl || '#';
     const canPreview = f.file_type && (f.file_type.startsWith('image/') || f.file_type === 'application/pdf');
+    const actionBtn = canPreview
+      ? `<button class="btn-file-dl" onclick="previewFile('${su}','${esc(f.file_type)}','${esc(f.file_name)}')">👁 プレビュー</button>`
+      : `<button class="btn-file-dl" onclick="shareOrDownloadFile('${su}','${esc(f.file_name)}','${esc(f.file_type||'')}')">↑ 取得</button>`;
     return `<div class="file-item">
       <span class="file-icon">${icon}</span>
       <div class="file-info"><div class="file-name">${esc(f.file_name)}</div><div class="file-size">${formatBytes(f.file_size)}</div></div>
-      ${canPreview ? `<button class="btn-file-dl" onclick="previewFile('${su}','${f.file_type}','${esc(f.file_name)}')">👁 プレビュー</button>` : `<a class="btn-file-dl" href="${su}" target="_blank">開く</a>`}
+      ${actionBtn}
       ${deletable ? `<button class="btn-file-del" onclick="deleteTaskFile(${f.id},'${f.file_path}')">✕</button>` : ''}
     </div>`;
   }
@@ -2382,12 +2406,14 @@
     if (!files.length || !currentTaskId) return;
     showToast('📎 アップロード中…');
     for (const file of files) {
-      const path = `tasks/${currentUser.id}/${currentTaskId}/${Date.now()}_${file.name}`;
-      const { error: upErr } = await sb.storage.from('task-attachments').upload(path, file);
-      if (upErr) { showToast(`❌ ${file.name} のアップロードに失敗`); continue; }
+      const safeName = `${Date.now()}_${Math.random().toString(36).slice(2,8)}${extOf(file.name)}`;
+      const path = `tasks/${currentUser.id}/${currentTaskId}/${safeName}`;
+      const ct = file.type || 'application/octet-stream';
+      const { error: upErr } = await sb.storage.from('task-attachments').upload(path, file, { contentType: ct });
+      if (upErr) { dbg('upload error', upErr); showToast(`❌ ${file.name} のアップロードに失敗`); continue; }
       await sb.from('task_files').insert({
         task_id: currentTaskId, user_id: currentUser.id,
-        file_path: path, file_name: file.name, file_type: file.type, file_size: file.size
+        file_path: path, file_name: file.name, file_type: ct, file_size: file.size
       });
     }
     e.target.value = '';
@@ -3038,10 +3064,13 @@
       const { data: ud } = await sb.storage.from('task-attachments').createSignedUrl(f.file_path, 3600);
       const su = ud?.signedUrl || '#';
       const canPreview = f.file_type && (f.file_type.startsWith('image/') || f.file_type === 'application/pdf');
+      const actionBtn2 = canPreview
+        ? `<button class="btn-file-dl" onclick="previewFile('${su}','${esc(f.file_type)}','${esc(f.file_name)}')">👁 プレビュー</button>`
+        : `<button class="btn-file-dl" onclick="shareOrDownloadFile('${su}','${esc(f.file_name)}','${esc(f.file_type||'')}')">↑ 取得</button>`;
       return `<div class="file-item">
         <span class="file-icon">${icon}</span>
         <div class="file-info"><div class="file-name">${esc(f.file_name)}</div><div class="file-size">${formatBytes(f.file_size)}</div></div>
-        ${canPreview ? `<button class="btn-file-dl" onclick="previewFile('${su}','${f.file_type}','${esc(f.file_name)}')">👁 プレビュー</button>` : `<a class="btn-file-dl" href="${su}" target="_blank">開く</a>`}
+        ${actionBtn2}
         <button class="btn-file-del" onclick="deleteFile(${f.id},'${f.file_path}')">✕</button>
       </div>`;
     }));
@@ -3053,12 +3082,14 @@
     if (!files.length || !currentInstanceId) return;
     showToast('📎 アップロード中…');
     for (const file of files) {
-      const path = `${currentUser.id}/${currentInstanceId}/${Date.now()}_${file.name}`;
-      const { error: upErr } = await sb.storage.from('task-attachments').upload(path, file);
-      if (upErr) { showToast(`❌ ${file.name} のアップロードに失敗`); continue; }
+      const safeName = `${Date.now()}_${Math.random().toString(36).slice(2,8)}${extOf(file.name)}`;
+      const path = `${currentUser.id}/${currentInstanceId}/${safeName}`;
+      const ct = file.type || 'application/octet-stream';
+      const { error: upErr } = await sb.storage.from('task-attachments').upload(path, file, { contentType: ct });
+      if (upErr) { dbg('upload error', upErr); showToast(`❌ ${file.name} のアップロードに失敗`); continue; }
       await sb.from('recurring_instance_files').insert({
         instance_id: currentInstanceId, user_id: currentUser.id,
-        file_path: path, file_name: file.name, file_type: file.type, file_size: file.size
+        file_path: path, file_name: file.name, file_type: ct, file_size: file.size
       });
     }
     e.target.value = ''; await loadInstanceFiles(currentInstanceId); showToast('✅ アップロード完了');
@@ -3621,7 +3652,9 @@
   function previewFile(url, type, name) {
     const modal = document.getElementById('file-preview-modal');
     document.getElementById('preview-file-name').textContent = name;
-    document.getElementById('preview-open-link').href = url;
+    const btn = document.getElementById('preview-action-btn');
+    btn.textContent = navigator.share ? '↑ 共有' : '⬇ ダウンロード';
+    btn.onclick = () => shareOrDownloadFile(url, name, type);
     const content = document.getElementById('preview-content');
     if (type && type.startsWith('image/')) {
       content.innerHTML = `<img src="${url}" style="max-width:100%;max-height:78vh;border-radius:8px;box-shadow:0 4px 24px rgba(0,0,0,.4);" />`;
@@ -3639,6 +3672,29 @@
   document.getElementById('file-preview-modal').addEventListener('click', e => {
     if (e.target === document.getElementById('file-preview-modal')) closeFilePreview();
   });
+
+  function extOf(filename) {
+    const m = String(filename || '').match(/(\.[^./\\]+)$/);
+    return m ? m[1].toLowerCase() : '';
+  }
+
+  async function shareOrDownloadFile(url, name, type) {
+    if (navigator.share) {
+      try {
+        const resp = await fetch(url);
+        const blob = await resp.blob();
+        const file = new File([blob], name, { type: type || blob.type || 'application/octet-stream' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: name });
+          return;
+        }
+      } catch(e) { dbg('share failed, fallback to download', e); }
+    }
+    // フォールバック: ダウンロード
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
 
   function fileIcon(t) {
     if (!t) return '📎';
@@ -3677,7 +3733,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-16</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-17</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
