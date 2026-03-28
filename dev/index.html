@@ -198,6 +198,13 @@
     .inst-name { font-size:14px; font-weight:600; color:#333; flex:1; }
     .inst-meta { display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex-shrink:0; }
     .inst-sub-progress { font-size:11px; color:#aaa; }
+    /* サブタスク進捗インジケーター */
+    .sub-prog-dots { display:flex; gap:3px; margin-top:5px; flex-wrap:wrap; }
+    .sub-prog-dot { width:8px; height:8px; border-radius:2px; flex-shrink:0; }
+    .sub-prog-dot.done   { background:#27ae60; }
+    .sub-prog-dot.undone { background:#ddd; }
+    .sub-prog-bar-wrap { margin-top:5px; height:4px; border-radius:2px; background:#eee; overflow:hidden; max-width:120px; }
+    .sub-prog-bar-fill { height:100%; border-radius:2px; background:#27ae60; }
     .inst-arrow { font-size:15px; color:#ccc; margin-left:4px; flex-shrink:0; }
     .cal-empty { text-align:center; color:#ccc; font-size:13px; padding:28px; }
     .cal-month-header { font-size:14px; font-weight:700; color:#555; padding:14px 18px 4px; border-top:1px solid #f0f0f0; margin-top:4px; }
@@ -1380,10 +1387,10 @@
     const fromBadge = t.assigner_id && t.assigner_id !== currentUser.id
       ? `<span style="font-size:11px;color:#e67e22;background:#fef3e2;padding:1px 6px;border-radius:99px;font-weight:700;white-space:nowrap;">from ${esc(usersCache[t.assigner_id]||'?')}</span>` : '';
     const dlBadge = taskDeadlineBadge(t.deadline);
-    const subProg = subs.length ? `<span style="font-size:11px;color:#aaa;">✓${doneSubs}/${subs.length}</span>` : '';
     const area = t.area_id ? areasCache.find(a => a.id === t.area_id) : null;
     const areaBadge = area ? `<span style="font-size:11px;font-weight:700;padding:1px 6px;border-radius:99px;white-space:nowrap;background:${area.color}22;color:${area.color};">🏷 ${esc(area.name)}</span>` : '';
-    const badges = [fromBadge, dlBadge, subProg, areaBadge].filter(Boolean).join('');
+    const badges = [fromBadge, dlBadge, areaBadge].filter(Boolean).join('');
+    const subProgHTML = subs.length ? subtaskProgressHTML(subs.map(s => !!s.done)) : '';
 
     return `<div class="task-item ${t.done?'done':''}" data-id="${t.id}" data-qid="${qid}" onclick="openTaskDetail(${t.id})">
       <div class="task-check" onclick="event.stopPropagation();toggleTask('${qid}',${t.id})">
@@ -1392,6 +1399,7 @@
       <div class="task-text-wrap">
         <span class="task-text">${esc(t.text)}</span>
         ${badges ? `<div class="task-badges">${badges}</div>` : ''}
+        ${subProgHTML}
       </div>
       ${extraIcon}
       ${(!t.assigner_id || t.assigner_id === currentUser.id) ? `<button class="task-delete" onclick="event.stopPropagation();deleteTask('${qid}',${t.id})">✕</button>` : ''}
@@ -2315,13 +2323,16 @@
     const subs = Array.isArray(master.subtasks) ? master.subtasks : [];
     const doneCount = subs.filter(s => inst.subtask_done?.[s.id]).length;
     const badge = deadlineBadge(y, m, master.day, inst.done);
-    const prog  = subs.length ? `<span class="inst-sub-progress">✓ ${doneCount}/${subs.length}</span>` : '';
+    const subProgHTML = subs.length ? subtaskProgressHTML(subs.map(s => !!inst.subtask_done?.[s.id])) : '';
     return `<div class="inst-item ${inst.done?'done-inst':''}" onclick="openInstanceSheet(${master.id},${inst.id})">
       <div class="inst-check" onclick="event.stopPropagation();quickToggle(${inst.id},${master.id})">
         <div class="inst-check-inner"></div>
       </div>
-      <span class="inst-name">${esc(master.name)}</span>
-      <div class="inst-meta">${badge}${prog}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="inst-name">${esc(master.name)}</div>
+        ${subProgHTML}
+      </div>
+      <div class="inst-meta">${badge}</div>
       <span class="inst-arrow">›</span>
     </div>`;
   }
@@ -2995,6 +3006,20 @@
     await sb.from('tasks').update({ is_private: isPrivate }).eq('id', currentTaskId);
     const t = findTask(currentTaskId);
     if (t) t.is_private = isPrivate;
+  }
+
+  // ── サブタスク進捗インジケーター ────────────────────────────────
+  function subtaskProgressHTML(doneMask) {
+    const total = doneMask.length;
+    if (!total) return '';
+    if (total <= 8) {
+      return '<div class="sub-prog-dots">' +
+        doneMask.map(d => `<span class="sub-prog-dot ${d?'done':'undone'}"></span>`).join('') +
+        '</div>';
+    } else {
+      const pct = Math.round(doneMask.filter(Boolean).length / total * 100);
+      return `<div class="sub-prog-bar-wrap"><div class="sub-prog-bar-fill" style="width:${pct}%"></div></div>`;
+    }
   }
 
   // ── ユーティリティ ────────────────────────────────────────────
