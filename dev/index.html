@@ -2175,10 +2175,23 @@
 
     if (qid) tasks[qid] = tasks[qid].filter(x => x.id !== currentTaskId);
     assignSelectedUserId = null;
-    // 配布先ユーザーにBot通知
+    // 配布先の lw_user_id を DB から直接取得して通知
     const taskText = t?.text || '';
-    dbg('assignTask 配布通知: targetId=', targetId, 'taskText=', taskText, 't=', t ? 'found' : 'null');
-    await sendBotNotification(targetId, `📬 ${currentUser.display_name || currentUser.name || ''}さんからタスク「${taskText}」が配布されました`);
+    const { data: targetUser } = await sb.from('users').select('lw_user_id').eq('id', targetId).maybeSingle();
+    const targetLwUserId = targetUser?.lw_user_id || null;
+    dbg('assignTask 配布通知: targetId=', targetId, 'targetLwUserId=', targetLwUserId, 'taskText=', taskText);
+    if (targetLwUserId) {
+      try {
+        const res = await fetch(CAL_API, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'send_message', lw_user_id: targetLwUserId, content: `📬 ${currentUser.display_name || currentUser.name || ''}さんからタスク「${taskText}」が配布されました` }),
+        });
+        const json = await res.json();
+        dbg('assignTask Bot通知レスポンス:', JSON.stringify(json));
+      } catch(e) { dbg('assignTask Bot通知失敗:', e.message); }
+    } else {
+      dbg('assignTask Bot通知スキップ: 配布先の lw_user_id が未登録');
+    }
     closeTaskDetail(); renderMatrix();
     await loadTasks();
     showToast(`✅ ${targetLabel}さんにタスクを配布しました`);
