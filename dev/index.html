@@ -1693,9 +1693,9 @@
     if (deadline) msg += ` 期限: ${deadline}`;
     if (extraMsg) msg += `\n\n${extraMsg}`;
 
-    const lwId = lwIdCache[userId] || emailCache[userId];
+    const email = emailCache[userId];
     let url = `https://line.worksmobile.com/message/send?version=26&message=${encodeURIComponent(msg)}`;
-    if (lwId) url += `&emailList=${encodeURIComponent(lwId)}`;
+    if (email) url += `&emailList=${encodeURIComponent(email)}`;
 
     window.open(url, '_blank');
     closeLWTalkModal();
