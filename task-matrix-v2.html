@@ -425,6 +425,16 @@
     .td-private-row { display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; color:#777; padding:2px 0; }
     .td-private-row input[type=checkbox] { width:15px; height:15px; accent-color:#667eea; cursor:pointer; }
 
+    /* ── 完了報告 ── */
+    .completion-report-box { background:#f0fff4; border:1px solid #a8e6c0; border-radius:10px; padding:12px 14px; }
+    .completion-report-box .detail-sec-label { color:#1e8449; margin-bottom:6px; }
+    .completion-report-memo { font-size:14px; color:#333; white-space:pre-wrap; min-height:18px; line-height:1.5; }
+    .completion-report-pending { background:#fff8e1; border:1px solid #ffe082; border-radius:10px; padding:10px 14px; font-size:13px; font-weight:700; color:#b45309; }
+    .btn-reject-completion { padding:8px 14px; background:#fff; border:1.5px solid #e74c3c; color:#e74c3c; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; margin-top:10px; transition:all .15s; }
+    .btn-reject-completion:hover { background:#fef2f2; }
+    .btn-submit-completion { width:100%; padding:12px; background:#27ae60; color:#fff; border:none; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; margin-top:10px; transition:background .15s; }
+    .btn-submit-completion:hover { background:#1e8449; }
+
     /* ── モバイル ── */
     @media (max-width: 767px) {
       #app { padding:12px 14px 100px; }
@@ -725,6 +735,14 @@
       <div id="td-assigner-name" style="font-size:13px;"></div>
     </div>
 
+    <!-- 完了報告（配布者閲覧用）-->
+    <div class="detail-section completion-report-box" id="td-completion-display" style="display:none;">
+      <div class="detail-sec-label">📋 完了報告</div>
+      <div class="completion-report-memo" id="td-completion-memo-display"></div>
+      <div id="td-completion-files-display" style="margin-top:6px;"></div>
+      <button class="btn-reject-completion" id="td-reject-completion-btn" onclick="rejectCompletion()" style="display:none;">↩️ 差し戻す（やり直し）</button>
+    </div>
+
     <!-- 期限 -->
     <div class="detail-section">
       <div class="detail-sec-label">期限</div>
@@ -799,6 +817,25 @@
         </div>
         <button class="btn-td-assign" onclick="assignTask()">配布する</button>
       </div>
+    </div>
+
+    <!-- 完了報告（受信者・確認待ち表示）-->
+    <div class="completion-report-pending" id="td-completion-submitted" style="display:none;">
+      <div>⏳ 完了報告を送信しました（配布者の確認待ち）</div>
+      <div class="completion-report-memo" id="td-completion-memo-submitted" style="margin-top:6px;font-size:13px;font-weight:400;color:#555;"></div>
+      <div id="td-completion-files-submitted" style="margin-top:6px;"></div>
+    </div>
+
+    <!-- 完了報告入力（受信者用）-->
+    <div class="detail-section completion-report-box" id="td-completion-input" style="display:none;">
+      <div class="detail-sec-label">完了報告を送る</div>
+      <textarea id="td-completion-memo-input" class="detail-memo-input" placeholder="完了内容・作業報告（任意）…" rows="3" style="margin-top:4px;"></textarea>
+      <div id="td-completion-files-staging" style="margin-top:6px;"></div>
+      <button class="btn-upload" onclick="document.getElementById('td-completion-file-input').click()" style="margin-top:6px;">
+        📎 報告用ファイルを添付
+      </button>
+      <input type="file" id="td-completion-file-input" multiple style="display:none;" onchange="stageCompletionFiles(event)" />
+      <button class="btn-submit-completion" onclick="submitCompletionReport()">完了報告を送る</button>
     </div>
 
     <button class="btn-done-toggle incomplete" id="td-done-btn" onclick="toggleCurrentTask()">完了にする</button>
@@ -1163,7 +1200,8 @@
   let currentInstanceId = null;
   let currentTaskId     = null;
   let disputingTaskId   = null;
-  let assignedOutOpen   = true;
+  let assignedOutOpen           = true;
+  let _completionFilesStaging   = []; // {file: File, name: string}[]
 
   // ── ローディング ──────────────────────────────────────────────
   function showLoading() { document.getElementById('loading-overlay').classList.add('show'); }
@@ -1439,7 +1477,7 @@
   async function loadTasks() {
     const [{ data: myTasks }, { data: outTasks }] = await Promise.all([
       sb.from('tasks').select('*').eq('user_id', currentUser.id).order('created_at'),
-      sb.from('tasks').select('*').eq('assigner_id', currentUser.id).neq('user_id', currentUser.id).order('created_at')
+      sb.from('tasks').select('*').eq('assigner_id', currentUser.id).neq('user_id', currentUser.id).is('assigner_archived_at', null).order('created_at')
     ]);
 
     tasks = { tray:[], q1:[], q2:[], q3:[], q4:[] };
@@ -1586,10 +1624,12 @@
     const extraIcon = '';
     const fromBadge = t.assigner_id && t.assigner_id !== currentUser.id
       ? `<span style="font-size:11px;color:#e67e22;background:#fef3e2;padding:1px 6px;border-radius:99px;font-weight:700;white-space:nowrap;">from ${esc(usersCache[t.assigner_id]||'?')}</span>` : '';
+    const pendingBadge = t.approval_status === 'done_pending'
+      ? `<span style="font-size:11px;background:#fff8e1;color:#b45309;padding:1px 6px;border-radius:99px;font-weight:700;white-space:nowrap;">⏳ 確認待ち</span>` : '';
     const dlBadge = taskDeadlineBadge(t.deadline);
     const area = t.area_id ? areasCache.find(a => a.id === t.area_id) : null;
     const areaBadge = area ? `<span style="font-size:11px;font-weight:700;padding:1px 6px;border-radius:99px;white-space:nowrap;background:${area.color}22;color:${area.color};">🏷 ${esc(area.name)}</span>` : '';
-    const badges = [fromBadge, dlBadge, areaBadge].filter(Boolean).join('');
+    const badges = [fromBadge, pendingBadge, dlBadge, areaBadge].filter(Boolean).join('');
     const subProgHTML = subs.length ? subtaskProgressHTML(subs.map(s => !!s.done)) : '';
 
     return `<div class="task-item ${t.done?'done':''}" data-id="${t.id}" data-qid="${qid}" onclick="openTaskDetail(${t.id})">
@@ -1746,9 +1786,10 @@
       if (currentUser?.lw_enabled !== false) {
         actions.push(`<button class="btn-icon" onclick="event.stopPropagation();openLWTalkModal(${t.id})">💬 LW</button>`);
       }
-      return `<div class="ao-item" onclick="openTaskDetail(${t.id})" style="cursor:pointer;">
+      const isDone = status === 'confirmed';
+      return `<div class="ao-item" onclick="openTaskDetail(${t.id})" style="cursor:pointer;${isDone ? 'opacity:.65;' : ''}">
         <div class="ao-info">
-          <div class="ao-text">${esc(t.text)}</div>
+          <div class="ao-text" style="${isDone ? 'text-decoration:line-through;' : ''}">${isDone ? '✓ ' : ''}${esc(t.text)}</div>
           <div class="ao-to">→ ${esc(toName)}${t.dispute_reason ? `<span style="color:#e74c3c;margin-left:6px;">理由: ${esc(t.dispute_reason)}</span>` : ''}</div>
         </div>
         <div class="ao-actions">
@@ -1789,6 +1830,90 @@
     }).eq('id', taskId);
     if (error) { showToast('❌ 更新に失敗しました'); return; }
     showToast('✅ タスクを完了として受け取りました');
+    closeTaskDetail();
+    await loadTasks();
+  }
+
+  // ── 完了報告（受信者→配布者）────────────────────────────────
+  function stageCompletionFiles(e) {
+    const files = Array.from(e.target.files);
+    files.forEach(f => _completionFilesStaging.push({ file: f, name: f.name }));
+    e.target.value = '';
+    renderCompletionFileStaging();
+  }
+
+  function renderCompletionFileStaging() {
+    const el = document.getElementById('td-completion-files-staging');
+    if (!el) return;
+    if (!_completionFilesStaging.length) { el.innerHTML = ''; return; }
+    el.innerHTML = _completionFilesStaging.map((item, i) =>
+      `<div class="file-item" style="margin-bottom:4px;">
+        <span class="file-icon">📄</span>
+        <div class="file-info"><div class="file-name">${esc(item.name)}</div></div>
+        <button class="btn-file-del" onclick="_completionFilesStaging.splice(${i},1);renderCompletionFileStaging()">✕</button>
+      </div>`
+    ).join('');
+  }
+
+  async function submitCompletionReport() {
+    if (!currentTaskId) return;
+    const t = findTask(currentTaskId); if (!t) return;
+    const memo = document.getElementById('td-completion-memo-input').value.trim();
+
+    const { error } = await sb.from('tasks').update({
+      done: true, approval_status: 'done_pending', completion_memo: memo,
+      updated_at: new Date().toISOString()
+    }).eq('id', currentTaskId);
+    if (error) { showToast('❌ 完了報告に失敗しました'); return; }
+
+    t.done = true; t.approval_status = 'done_pending'; t.completion_memo = memo;
+
+    if (_completionFilesStaging.length) {
+      showToast('📎 報告ファイルをアップロード中…');
+      for (const { file } of _completionFilesStaging) {
+        const path = `tasks/${currentUser.id}/${currentTaskId}/completion_${Date.now()}_${file.name}`;
+        const { error: upErr } = await sb.storage.from('task-attachments').upload(path, file);
+        if (upErr) { showToast(`❌ ${file.name} のアップロードに失敗`); continue; }
+        await sb.from('task_files').insert({
+          task_id: currentTaskId, user_id: currentUser.id,
+          file_path: path, file_name: file.name, file_type: file.type, file_size: file.size,
+          is_completion: true
+        });
+      }
+      _completionFilesStaging = [];
+    }
+
+    if (t.assigner_id) await sendBotNotification(t.assigner_id, `📋 タスク「${t.text}」の完了報告が届きました`);
+    showToast('✅ 完了報告を送りました');
+    closeTaskDetail();
+    renderMatrix();
+  }
+
+  async function rejectCompletion() {
+    if (!currentTaskId) return;
+    const t = assignedOutTasks.find(x => x.id === currentTaskId); if (!t) return;
+    const reason = (prompt('差し戻しの理由を入力してください（任意）') ?? '').trim();
+
+    const { error } = await sb.from('tasks').update({
+      done: false, approval_status: 'accepted', completion_memo: '',
+      updated_at: new Date().toISOString()
+    }).eq('id', currentTaskId);
+    if (error) { showToast('❌ 差し戻しに失敗しました'); return; }
+
+    // 完了報告ファイルを削除
+    const { data: compFiles } = await sb.from('task_files').select('*')
+      .eq('task_id', currentTaskId).eq('is_completion', true);
+    if (compFiles?.length) {
+      await sb.storage.from('task-attachments').remove(compFiles.map(f => f.file_path));
+      await sb.from('task_files').delete().in('id', compFiles.map(f => f.id));
+    }
+
+    const msg = reason
+      ? `↩️ タスク「${t.text}」の完了報告が差し戻されました\n理由: ${reason}`
+      : `↩️ タスク「${t.text}」の完了報告が差し戻されました`;
+    await sendBotNotification(t.user_id, msg);
+
+    showToast('↩️ 完了報告を差し戻しました');
     closeTaskDetail();
     await loadTasks();
   }
@@ -1850,16 +1975,21 @@
     const isAssignee = !!(t.assigner_id && t.assigner_id !== currentUser.id);
     const isAssigner = t.assigner_id === currentUser.id;
 
+    // ── 基本フィールド ──
     document.getElementById('td-name').value = t.text;
     renderQuadrantSelector(t.quadrant);
     document.getElementById('td-deadline').value = t.deadline || '';
 
+    // ── 配布情報バナー ──
     const assignerRow = document.getElementById('td-assigner-row');
     const assignSec   = document.getElementById('td-assign-section');
     if (isAssignee) {
+      let statusSuffix = '';
+      if (t.done && t.approval_status === 'done_pending') statusSuffix = '　⏳ 確認待ち';
+      else if (t.approval_status === 'confirmed') statusSuffix = '　✅ 確認済み';
       document.getElementById('td-assigner-label').textContent = '📬 配布されたタスク';
       document.getElementById('td-assigner-name').textContent =
-        `配布者: ${usersCache[t.assigner_id] || t.assigner_id}`;
+        `配布者: ${usersCache[t.assigner_id] || t.assigner_id}${statusSuffix}`;
       assignerRow.style.display = 'block';
       assignSec.style.display = 'none';
     } else if (isAssigner) {
@@ -1878,37 +2008,80 @@
       assignSelectedUserId = null;
     }
 
-    // 編集可否：assignee はサブタスク・ファイルのみ編集可、assigner は全て読み取り専用
-    const readOnly = isAssignee || isAssigner;
-    document.getElementById('td-name').disabled     = readOnly;
-    document.querySelectorAll('.qsel-btn').forEach(b => b.disabled = readOnly);
-    document.getElementById('td-deadline').disabled = readOnly;
-    document.getElementById('td-memo').disabled     = readOnly;
-    document.getElementById('td-url').disabled      = readOnly;
-    document.getElementById('td-private').disabled  = readOnly;
+    // ── フィールド編集可否（役割別）──
+    // 配布者: 名前・象限・領域・非公開 = disabled / メモ・URL・期限・ファイル = 編集可
+    // 受信者: 名前・期限・URL・非公開   = disabled / サブタスク・ファイル・象限・領域・メモ = 編集可
+    document.getElementById('td-name').disabled     = isAssignee || isAssigner;
+    document.querySelectorAll('.qsel-btn').forEach(b => b.disabled = isAssigner);
+    document.getElementById('td-deadline').disabled = isAssignee;
+    document.getElementById('td-memo').disabled     = false;
+    document.getElementById('td-url').disabled      = isAssignee;
+    document.getElementById('td-private').disabled  = isAssignee || isAssigner;
     renderAreaSelect();
     document.getElementById('td-area-select').value    = t.area_id || '';
-    document.getElementById('td-area-select').disabled = readOnly;
-    // サブタスク追加行・ファイルアップロード: assigner には非表示、assignee には表示
-    document.querySelector('.subtask-add-row').style.display  = isAssigner ? 'none' : '';
-    document.querySelector('button.btn-upload').style.display = isAssigner ? 'none' : '';
+    document.getElementById('td-area-select').disabled = isAssigner;
+    // サブタスク追加行: assigner は非表示
+    document.querySelector('.subtask-add-row').style.display = isAssigner ? 'none' : '';
+    // ファイルアップロードボタン: 配布者・受信者ともに使用可
+    document.querySelector('button.btn-upload').style.display = '';
 
     renderTaskSubtasks(t, isAssigner);
-    document.getElementById('td-memo').value    = t.memo || '';
-    document.getElementById('td-url').value     = t.url  || '';
+    document.getElementById('td-memo').value      = t.memo || '';
+    document.getElementById('td-url').value       = t.url  || '';
     document.getElementById('td-private').checked = !!t.is_private;
 
-    // 完了ボタン
+    // ── 完了報告セクション（配布者閲覧）──
+    const compDisplay = document.getElementById('td-completion-display');
+    const rejectBtn   = document.getElementById('td-reject-completion-btn');
+    if (isAssigner && (t.approval_status === 'done_pending' || t.approval_status === 'confirmed')) {
+      compDisplay.style.display = '';
+      document.getElementById('td-completion-memo-display').textContent =
+        t.completion_memo || '（報告メモなし）';
+      rejectBtn.style.display = t.approval_status === 'done_pending' ? '' : 'none';
+    } else {
+      compDisplay.style.display = 'none';
+    }
+
+    // ── 完了報告セクション（受信者）──
+    const compInput     = document.getElementById('td-completion-input');
+    const compSubmitted = document.getElementById('td-completion-submitted');
+    if (isAssignee) {
+      if (!t.done) {
+        compInput.style.display = '';
+        compSubmitted.style.display = 'none';
+        document.getElementById('td-completion-memo-input').value = '';
+        _completionFilesStaging = [];
+        renderCompletionFileStaging();
+      } else if (t.approval_status === 'done_pending') {
+        compInput.style.display = 'none';
+        compSubmitted.style.display = '';
+        document.getElementById('td-completion-memo-submitted').textContent =
+          t.completion_memo || '（報告メモなし）';
+      } else {
+        compInput.style.display = 'none';
+        compSubmitted.style.display = 'none';
+      }
+    } else {
+      compInput.style.display = 'none';
+      compSubmitted.style.display = 'none';
+    }
+
+    // ── 完了ボタン ──
     const doneBtn = document.getElementById('td-done-btn');
     if (isAssigner) {
-      if (t.approval_status === 'confirmed') {
+      if (t.approval_status === 'done_pending') {
+        // 詳細シートからも確認済みにできる
         doneBtn.style.display = '';
         doneBtn.className = 'btn-done-toggle incomplete';
-        doneBtn.textContent = '✓ 受け取って自分の完了タスクにする';
-        doneBtn.onclick = () => completeAssignedTask(t.id);
+        doneBtn.textContent = '✅ 確認済みにする';
+        doneBtn.onclick = () => { confirmDone(t.id); closeTaskDetail(); };
       } else {
+        // confirmed はシートから操作不要（「整理」ボタンでアーカイブ）
         doneBtn.style.display = 'none';
       }
+    } else if (isAssignee) {
+      // 受信者の完了はセクション内「完了報告を送る」ボタンを使う
+      doneBtn.style.display = 'none';
     } else {
       doneBtn.style.display = '';
       doneBtn.onclick = toggleCurrentTask;
@@ -2058,7 +2231,7 @@
   async function saveTaskMemo() {
     if (!currentTaskId) return;
     const memo = document.getElementById('td-memo').value;
-    const t = findTask(currentTaskId); if (!t) return;
+    const t = findAnyTask(currentTaskId); if (!t) return;
     t.memo = memo;
     await sb.from('tasks').update({ memo, updated_at: new Date().toISOString() }).eq('id', currentTaskId);
   }
@@ -2070,7 +2243,7 @@
   async function saveTaskUrl() {
     if (!currentTaskId) return;
     const url = document.getElementById('td-url').value.trim();
-    const t = findTask(currentTaskId); if (!t) return;
+    const t = findAnyTask(currentTaskId); if (!t) return;
     t.url = url;
     await sb.from('tasks').update({ url, updated_at: new Date().toISOString() }).eq('id', currentTaskId);
   }
@@ -2155,24 +2328,46 @@
   }
 
   // ── タスク詳細: ファイル ──────────────────────────────────────
+  async function renderFileItemHtml(f, deletable = true) {
+    const icon = fileIcon(f.file_type);
+    const { data: ud } = await sb.storage.from('task-attachments').createSignedUrl(f.file_path, 3600);
+    const su = ud?.signedUrl || '#';
+    const canPreview = f.file_type && (f.file_type.startsWith('image/') || f.file_type === 'application/pdf');
+    return `<div class="file-item">
+      <span class="file-icon">${icon}</span>
+      <div class="file-info"><div class="file-name">${esc(f.file_name)}</div><div class="file-size">${formatBytes(f.file_size)}</div></div>
+      ${canPreview ? `<button class="btn-file-dl" onclick="previewFile('${su}','${f.file_type}','${esc(f.file_name)}')">👁 プレビュー</button>` : `<a class="btn-file-dl" href="${su}" target="_blank">開く</a>`}
+      ${deletable ? `<button class="btn-file-del" onclick="deleteTaskFile(${f.id},'${f.file_path}')">✕</button>` : ''}
+    </div>`;
+  }
+
   async function loadTaskFiles(taskId) {
-    const c = document.getElementById('td-files');
+    const c           = document.getElementById('td-files');
+    const compDisplay = document.getElementById('td-completion-files-display');
+    const compSubmit  = document.getElementById('td-completion-files-submitted');
     c.innerHTML = '<div style="font-size:12px;color:#aaa;padding:4px 0;">読み込み中…</div>';
+
     const { data } = await sb.from('task_files').select('*').eq('task_id', taskId).order('created_at');
-    if (!data?.length) { c.innerHTML = ''; return; }
-    const html = await Promise.all(data.map(async f => {
-      const icon = fileIcon(f.file_type);
-      const { data: ud } = await sb.storage.from('task-attachments').createSignedUrl(f.file_path, 3600);
-      const su = ud?.signedUrl || '#';
-      const canPreview = f.file_type && (f.file_type.startsWith('image/') || f.file_type === 'application/pdf');
-      return `<div class="file-item">
-        <span class="file-icon">${icon}</span>
-        <div class="file-info"><div class="file-name">${esc(f.file_name)}</div><div class="file-size">${formatBytes(f.file_size)}</div></div>
-        ${canPreview ? `<button class="btn-file-dl" onclick="previewFile('${su}','${f.file_type}','${esc(f.file_name)}')">👁 プレビュー</button>` : `<a class="btn-file-dl" href="${su}" target="_blank">開く</a>`}
-        <button class="btn-file-del" onclick="deleteTaskFile(${f.id},'${f.file_path}')">✕</button>
-      </div>`;
-    }));
-    c.innerHTML = html.join('');
+    const regular    = (data || []).filter(f => !f.is_completion);
+    const completion = (data || []).filter(f =>  f.is_completion);
+
+    // 通常ファイル
+    if (!regular.length) { c.innerHTML = ''; }
+    else {
+      const html = await Promise.all(regular.map(f => renderFileItemHtml(f, true)));
+      c.innerHTML = html.join('');
+    }
+
+    // 完了報告ファイル（配布者閲覧欄 + 受信者送信済み欄）
+    if (compDisplay) compDisplay.innerHTML = '';
+    if (compSubmit)  compSubmit.innerHTML  = '';
+    if (completion.length) {
+      // 配布者欄: 削除不可（証跡）
+      const htmlAssigner = await Promise.all(completion.map(f => renderFileItemHtml(f, false)));
+      if (compDisplay) compDisplay.innerHTML += htmlAssigner.join('');
+      // 受信者欄: 削除不可
+      if (compSubmit) compSubmit.innerHTML += htmlAssigner.join('');
+    }
   }
 
   async function handleTaskFileUpload(e) {
@@ -3190,16 +3385,34 @@
 
   // ── 処理済みタスク自動削除 ────────────────────────────────────
   async function archiveDoneTasks() {
-    const doneTasks = QUADRANTS.flatMap(q => tasks[q].filter(t => t.done));
-    if (!doneTasks.length) { showToast('完了済みタスクはありません'); return; }
     const now = new Date().toISOString();
-    const ids = doneTasks.map(t => t.id);
-    const { error } = await sb.from('tasks').update({ archived_at: now }).in('id', ids);
-    if (error) { showToast('❌ 整理に失敗しました'); dbg('archiveDoneTasks error', error); return; }
-    // ローカルキャッシュから削除
-    QUADRANTS.forEach(q => { tasks[q] = tasks[q].filter(t => !t.done); });
-    renderMatrix();
-    showToast(`🗂 ${ids.length}件をアーカイブしました`);
+    // 自分のタスク: done=true かつ done_pending でないもの（確認待ちはアーカイブ不可）
+    const doneTasks = QUADRANTS.flatMap(q => tasks[q].filter(t => t.done && t.approval_status !== 'done_pending'));
+    // 配布したタスク: confirmed のみ（assigner_archived_at で管理）
+    const confirmedOut = assignedOutTasks.filter(t => t.approval_status === 'confirmed');
+
+    if (!doneTasks.length && !confirmedOut.length) {
+      showToast('アーカイブできる完了タスクはありません');
+      return;
+    }
+
+    let total = 0;
+    if (doneTasks.length) {
+      const ids = doneTasks.map(t => t.id);
+      const { error } = await sb.from('tasks').update({ archived_at: now }).in('id', ids);
+      if (error) { showToast('❌ 整理に失敗しました'); return; }
+      QUADRANTS.forEach(q => { tasks[q] = tasks[q].filter(t => !(t.done && t.approval_status !== 'done_pending')); });
+      renderMatrix();
+      total += ids.length;
+    }
+    if (confirmedOut.length) {
+      const outIds = confirmedOut.map(t => t.id);
+      await sb.from('tasks').update({ assigner_archived_at: now }).in('id', outIds);
+      assignedOutTasks = assignedOutTasks.filter(t => t.approval_status !== 'confirmed');
+      renderAssignedOutSection();
+      total += outIds.length;
+    }
+    showToast(`🗂 ${total}件をアーカイブしました`);
   }
 
   function openArchive() {
@@ -3447,7 +3660,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-13</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-14</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
