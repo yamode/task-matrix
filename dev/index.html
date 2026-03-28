@@ -20,7 +20,8 @@
     /* ── ログイン ── */
     #login-screen { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:24px; }
     .login-card { background:#fff; border-radius:16px; box-shadow:0 4px 24px rgba(0,0,0,0.1); padding:36px 32px; width:100%; max-width:400px; text-align:center; }
-    .login-logo  { font-size:40px; margin-bottom:12px; }
+    .login-logo  { margin-bottom:16px; }
+    .login-logo img { width:180px; height:auto; display:block; margin:0 auto; }
     .login-title { font-size:21px; font-weight:700; color:#1a1a2e; margin-bottom:6px; }
     .login-sub   { font-size:14px; color:#888; margin-bottom:20px; line-height:1.5; }
     .login-tabs  { display:flex; border-bottom:2px solid #eee; margin-bottom:20px; }
@@ -535,8 +536,7 @@
 <!-- ログイン -->
 <div id="login-screen">
   <div class="login-card">
-    <div class="login-logo">✅</div>
-    <div class="login-title">TASKUL</div>
+    <div class="login-logo"><img src="img/logo_300.png" alt="TASKUL"></div>
     <div class="login-sub">powered by YAMADO</div>
     <div class="login-tabs">
       <button class="login-tab active" id="tab-login"  onclick="switchLoginTab('login')">ログイン</button>
@@ -3840,7 +3840,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-21</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-22</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
