@@ -443,12 +443,12 @@
 
     /* ── フッターナビ ── */
     #footer-nav {
-      position:fixed; bottom:0; left:0; right:0;
+      position:fixed; bottom:env(safe-area-inset-bottom, 20px); left:0; right:0;
       display:none;
       grid-template-columns:1fr 1fr 1fr 1fr; grid-template-rows:44px 44px;
-      background:#fff; border-top:1.5px solid #e4e4e4;
+      background:#fff;
+      border-top:1.5px solid #e4e4e4; border-bottom:1.5px solid #e4e4e4;
       z-index:150;
-      padding-bottom: env(safe-area-inset-bottom, 20px);
     }
     #footer-nav.visible { display:grid; }
     @media (min-width:1200px) { #footer-nav.visible { display:none; } }
@@ -3390,11 +3390,11 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-09</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-10</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
-  position:fixed; bottom:calc(88px + env(safe-area-inset-bottom, 20px)); left:0; right:0;
+  position:fixed; bottom:calc(88px + env(safe-area-inset-bottom, 20px) + 4px); left:0; right:0;
   background:rgba(0,0,0,.8); color:#0f0;
   font-size:10px; padding:6px; max-height:28vh; overflow:auto;
   z-index:9999; white-space:pre-wrap; pointer-events:none;
