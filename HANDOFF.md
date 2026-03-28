@@ -5,18 +5,6 @@
 
 ---
 
-## 開発版・製品版の運用ルール
-
-| ファイル | URL | 用途 |
-|---|---|---|
-| `dev/index.html` | `https://yamode.github.io/task-matrix/dev/` | **開発中はこちらのみ編集** |
-| `index.html` | `https://yamode.github.io/task-matrix/` | リリース時に dev をコピーして反映 |
-
-- WOFF（LINE WORKS）は現在 dev 版に向けている（test bot のため開発者のみ閲覧可）
-- リリース時： `cp dev/index.html index.html` → commit → push → WOFF URL を製品版に戻す
-
----
-
 ## プロジェクト概要
 
 **単一HTMLファイルのタスク管理Webアプリ（Supabase + GitHub Pages）**
@@ -25,17 +13,6 @@
 - ソース: `D:\山人 Dropbox\00_YAMADO ALL\55_Claude\task\index.html`（Macは `/Users/hikaru/山人 Dropbox/...`）
 - GitHubリポジトリ: https://github.com/yamode/task-matrix（branch: main, file: index.html）
 - Supabase Project: https://ynzpjdarpfaurzomrddu.supabase.co
-
----
-
-## Supabase 認証情報
-
-```
-URL: https://ynzpjdarpfaurzomrddu.supabase.co
-KEY: sb_publishable_iumeCKdl6tr3AU3DL0roWA_B_WiCOwn
-```
-
-（新形式のpublishable key。RLSはすべてのテーブルで `allow_all` ポリシーを設定済み）
 
 ---
 
@@ -193,36 +170,7 @@ areas: id bigserial PK, name text NOT NULL, color text DEFAULT '#667eea', create
 
 ---
 
-## 作業開始前の手順（必須）
-
-**編集対象は `dev/index.html`。完成したら `cp dev/index.html index.html` して両方コミット・プッシュ。**
-
-```bash
-# Mac のリポジトリパス
-cd "/Users/hikaru/山人 Dropbox/00_YAMADO ALL/55_Claude/task"
-
-# .git 内がDropbox Smart Syncでオンライン専用になっている場合は先にダウンロード
-for f in "/Users/hikaru/山人 Dropbox/00_YAMADO ALL/55_Claude/task/.git/"*; do
-  [ -f "$f" ] && open -g "$f"
-done
-sleep 5
-
-# リモートの最新を取得（作業開始前に必ず実行）
-git pull origin main
-```
-
-## GitHubへのプッシュ手順（作業後）
-
-```bash
-cd "/Users/hikaru/山人 Dropbox/00_YAMADO ALL/55_Claude/task"
-# 本番反映する場合
-cp dev/index.html index.html
-git add dev/index.html index.html
-git commit -m "コミットメッセージ"
-git push origin main
-```
-
----
+> 開発フロー・プッシュ手順・Supabase 認証情報・LINE WORKS 設定値は `.claude/CLAUDE.md` に移動済み。
 
 ## ロードマップ
 
@@ -238,12 +186,7 @@ git push origin main
 - ブラウザアクセス時はメール+パスワードにフォールバック
 - no-cacheメタタグ追加済み（LINE WORKS WebViewのキャッシュ対策）
 
-**LINE WORKS Developer Console設定：**
-- アプリ名: タスクマトリクス（Client ID: IJaFwFL_nzmI5Thmne4d）
-- WOFFアプリ: タスクマトリクス（ID: 2sGuLQU8T2BvJXN88QeCIg）
-- Endpoint URL: `https://yamode.github.io/task-matrix/`
-- WOFF URL: `https://woff.worksmobile.com/woff/2sGuLQU8T2BvJXN88QeCIg`
-- 固定メニュー登録スクリプト: `55_Claude/woff-approval/`の認証情報を流用
+（LINE WORKS 設定値の詳細は `.claude/CLAUDE.md` 参照）
 
 ---
 
