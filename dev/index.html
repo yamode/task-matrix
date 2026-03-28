@@ -1084,7 +1084,7 @@
   <div style="display:flex;justify-content:space-between;align-items:center;width:100%;max-width:900px;padding:0 16px;box-sizing:border-box;">
     <span id="preview-file-name" style="color:#fff;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:55%;"></span>
     <div style="display:flex;gap:8px;align-items:center;">
-      <button id="preview-action-btn" class="btn-file-dl" onclick="">↑ 取得</button>
+      <button id="preview-action-btn" onclick="" style="background:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:#333;cursor:pointer;display:flex;align-items:center;gap:5px;">↑ 取得</button>
       <button onclick="closeFilePreview()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:13px;font-weight:600;padding:5px 12px;border-radius:6px;cursor:pointer;">閉じる</button>
     </div>
   </div>
@@ -1615,8 +1615,14 @@
 
   async function deleteTask(qid, id) {
     if (!confirm('このタスクを削除しますか？')) return;
+    const t = tasks[qid].find(t => t.id === id);
+    // LWカレンダーイベントを先に削除
+    if (t?.lw_calendar_event_ids && Object.keys(t.lw_calendar_event_ids).length) {
+      await calDelete(t.lw_calendar_event_ids);
+    }
     const orig = [...tasks[qid]];
     tasks[qid] = tasks[qid].filter(t => t.id !== id);
+    delete fileCountCache[id];
     renderMatrix();
     const { error } = await sb.from('tasks').delete().eq('id', id);
     if (error) { tasks[qid] = orig; renderMatrix(); showToast('❌ 削除に失敗しました'); }
@@ -2418,6 +2424,10 @@
     }
     e.target.value = '';
     await loadTaskFiles(currentTaskId);
+    // fileCountCache を即時更新してアイコンを反映
+    const { count } = await sb.from('task_files').select('*', { count: 'exact', head: true }).eq('task_id', currentTaskId).eq('is_completion', false);
+    fileCountCache[currentTaskId] = count || 0;
+    renderMatrix();
     showToast('✅ アップロード完了');
   }
 
@@ -2425,7 +2435,12 @@
     if (!confirm('このファイルを削除しますか？')) return;
     await sb.storage.from('task-attachments').remove([filePath]);
     await sb.from('task_files').delete().eq('id', fileId);
-    if (currentTaskId) await loadTaskFiles(currentTaskId);
+    if (currentTaskId) {
+      await loadTaskFiles(currentTaskId);
+      const { count } = await sb.from('task_files').select('*', { count: 'exact', head: true }).eq('task_id', currentTaskId).eq('is_completion', false);
+      fileCountCache[currentTaskId] = count || 0;
+      renderMatrix();
+    }
     showToast('🗑 削除しました');
   }
 
@@ -3733,7 +3748,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-17</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-18</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
