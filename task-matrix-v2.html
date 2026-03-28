@@ -795,12 +795,9 @@
     <!-- 領域 -->
     <div class="detail-section">
       <div class="detail-sec-label">領域（タグ）</div>
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;" id="td-area-row">
-        <select class="form-field" id="td-area-select" onchange="saveTaskArea()" style="flex:1;min-width:0;">
-          <option value="">なし</option>
-        </select>
-        <button class="btn-icon" onclick="openAreaManager()" title="領域を管理">⚙</button>
-      </div>
+      <select class="form-field" id="td-area-select" onchange="saveTaskArea()">
+        <option value="">なし</option>
+      </select>
     </div>
 
     <!-- サブタスク -->
@@ -4396,7 +4393,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-12</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-13</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
