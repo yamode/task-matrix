@@ -429,6 +429,25 @@
     .report-task-item:last-child { border-bottom:none; }
     .report-task-done { text-decoration:line-through; color:#aaa; }
     .report-task-private { color:#bbb; font-style:italic; }
+    /* ── 領域別ビュー ── */
+    .area-view-overlay { position:fixed; inset:0; z-index:900; background:#fff; overflow-y:auto; display:none; flex-direction:column; }
+    .area-view-overlay.open { display:flex; }
+    .area-kanban { display:flex; gap:12px; overflow-x:auto; padding:4px 0 32px; align-items:flex-start; -webkit-overflow-scrolling:touch; }
+    .area-col { background:#f8f9fa; border-radius:12px; flex:0 0 220px; overflow:hidden; border:1px solid #eee; }
+    .area-col-header { padding:10px 12px; display:flex; align-items:center; gap:8px; border-bottom:1px solid #eee; }
+    .area-col-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .area-col-name { font-weight:700; font-size:13px; color:#333; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .area-col-count { background:rgba(0,0,0,.08); border-radius:99px; padding:1px 8px; font-size:11px; font-weight:700; color:#555; }
+    .area-col-tasks { padding:8px; display:flex; flex-direction:column; gap:6px; min-height:40px; }
+    .area-task-card { background:#fff; border-radius:8px; padding:9px 10px; border:1px solid #eee; cursor:pointer; transition:background .12s; }
+    .area-task-card:hover { background:#f5f3ff; border-color:#667eea55; }
+    .area-task-meta { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:5px; align-items:center; }
+    .area-task-q { font-size:10px; font-weight:700; padding:1px 5px; border-radius:4px; white-space:nowrap; }
+    .area-task-text { font-size:13px; color:#333; line-height:1.4; word-break:break-word; }
+    @media (max-width:799px) {
+      .area-kanban { flex-direction:column; overflow-x:visible; }
+      .area-col { flex:none; width:100%; box-sizing:border-box; }
+    }
     .td-private-row { display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; color:#777; padding:2px 0; }
     .td-private-row input[type=checkbox] { width:15px; height:15px; accent-color:#667eea; cursor:pointer; }
 
@@ -554,6 +573,7 @@
       <div class="user-bar-pc-actions">
         <button class="btn-report" onclick="archiveDoneTasks()">🗂 完了済を整理</button>
         <button class="btn-report" onclick="openReport()">📊 レポート</button>
+        <button class="btn-report" onclick="openAreaView()">🏷 領域別</button>
         <button class="btn-report" onclick="openArchive()">🗂 アーカイブ</button>
         <button class="btn-report" onclick="openSettings()">⚙️ 設定</button>
         <button class="btn-logout" onclick="handleLogout()">ログアウト</button>
@@ -571,6 +591,7 @@
   <div class="user-bar-row2">
     <button class="btn-report" onclick="archiveDoneTasks()">🗂 完了済を整理</button>
     <button class="btn-report" onclick="openReport()">📊 レポート</button>
+    <button class="btn-report" onclick="openAreaView()">🏷 領域別</button>
   </div>
 </div>
 
@@ -923,6 +944,17 @@
   </div>
   <div class="master-overlay-body">
     <div id="report-content"><div style="text-align:center;padding:40px;color:#888;">読み込み中...</div></div>
+  </div>
+</div>
+
+<!-- 領域別ビューオーバーレイ -->
+<div class="area-view-overlay" id="area-view-overlay">
+  <div class="master-overlay-header">
+    <div class="master-overlay-title">🏷 領域別タスク</div>
+    <button class="btn-secondary" onclick="closeAreaView()" style="font-size:13px;">閉じる</button>
+  </div>
+  <div class="master-overlay-body">
+    <div id="area-view-content"></div>
   </div>
 </div>
 
@@ -3387,6 +3419,59 @@
     document.getElementById('report-overlay').classList.remove('open');
   }
 
+  // ── 領域別ビュー ──────────────────────────────────────────────
+  function openAreaView() {
+    renderAreaView();
+    document.getElementById('area-view-overlay').classList.add('open');
+  }
+  function closeAreaView() {
+    document.getElementById('area-view-overlay').classList.remove('open');
+  }
+
+  function renderAreaView() {
+    const content = document.getElementById('area-view-content');
+    if (!areasCache.length) {
+      content.innerHTML = '<div style="text-align:center;padding:60px;color:#aaa;">領域がまだ登録されていません。<br>設定 → 領域マスタから追加してください。</div>';
+      return;
+    }
+    const allTasks = QUADRANTS.flatMap(q => tasks[q].filter(t => !t.done));
+    const qLabel = { tray:'トレー', q1:'Q1', q2:'Q2', q3:'Q3', q4:'Q4' };
+    const qBg    = { tray:'#eee',   q1:'#e8ecf5', q2:'#e8ecf5', q3:'#f8f0db', q4:'#fdf5dc' };
+    const qFg    = { tray:'#666',   q1:'#1a2744', q2:'#1a2744', q3:'#a07820', q4:'#a07820' };
+
+    function taskCard(t) {
+      const qid = findTaskQid(t.id) || 'tray';
+      const dl = taskDeadlineBadge(t.deadline);
+      return `<div class="area-task-card" onclick="openTaskDetail(${t.id})">
+        <div class="area-task-meta">
+          <span class="area-task-q" style="background:${qBg[qid]};color:${qFg[qid]};">${qLabel[qid]}</span>
+          ${dl}
+        </div>
+        <div class="area-task-text">${esc(t.text)}</div>
+      </div>`;
+    }
+
+    function areaCol(name, color, colTasks) {
+      const cards = colTasks.map(taskCard).join('');
+      return `<div class="area-col">
+        <div class="area-col-header">
+          <span class="area-col-dot" style="background:${color};"></span>
+          <span class="area-col-name">${esc(name)}</span>
+          <span class="area-col-count">${colTasks.length}</span>
+        </div>
+        <div class="area-col-tasks">
+          ${cards || '<div style="font-size:12px;color:#bbb;text-align:center;padding:10px 0;">タスクなし</div>'}
+        </div>
+      </div>`;
+    }
+
+    const cols = areasCache.map(a => areaCol(a.name, a.color, allTasks.filter(t => t.area_id === a.id)));
+    const noArea = allTasks.filter(t => !t.area_id);
+    if (noArea.length) cols.push(areaCol('領域なし', '#bbb', noArea));
+
+    content.innerHTML = `<div class="area-kanban">${cols.join('')}</div>`;
+  }
+
   // ── 設定画面 ──────────────────────────────────────────────────
   function openSettings() {
     const days = parseInt(localStorage.getItem('tm_retention_days') || '30');
@@ -3748,7 +3833,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-18</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-19</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
