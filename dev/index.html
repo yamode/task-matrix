@@ -2175,6 +2175,9 @@
 
     if (qid) tasks[qid] = tasks[qid].filter(x => x.id !== currentTaskId);
     assignSelectedUserId = null;
+    // 配布先ユーザーにBot通知
+    const taskText = t?.text || '';
+    sendBotNotification(targetId, `📬 ${currentUser.display_name || currentUser.name || ''}さんからタスク「${taskText}」が配布されました`);
     closeTaskDetail(); renderMatrix();
     await loadTasks();
     showToast(`✅ ${targetLabel}さんにタスクを配布しました`);
