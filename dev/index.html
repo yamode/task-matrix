@@ -459,7 +459,7 @@
   <div class="app-title">TASKUL</div>
   <div class="user-bar-name" style="flex:1;">ログイン中: <span id="user-bar-name"></span></div>
   <div class="user-bar-actions">
-    <button class="btn-report" id="btn-done-box-toggle" onclick="toggleDoneBoxMode()">📦 完了済みをまとめる</button>
+    <button class="btn-report" onclick="archiveDoneTasks()">🗂 完了済みを整理する</button>
     <button class="btn-report" onclick="openArchive()">🗂 アーカイブ</button>
     <button class="btn-report" onclick="openReport()">📊 レポート</button>
     <button class="btn-report" onclick="openSettings()">⚙️ 設定</button>
@@ -539,12 +539,11 @@
 
   <!-- 処理済みボックス -->
   <div id="done-box-section" style="display:none;max-width:960px;margin:16px auto 0;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);overflow:hidden;border-top:3px solid #27ae60;">
-    <div style="display:flex;align-items:center;gap:8px;padding:14px 20px;border-bottom:1px solid #f0f0f0;">
-      <span style="font-size:20px;cursor:pointer;" onclick="toggleDoneBox()">📦</span>
-      <span style="font-size:15px;font-weight:700;color:#444;flex:1;cursor:pointer;" onclick="toggleDoneBox()">完了済みタスク</span>
+    <div style="display:flex;align-items:center;gap:8px;padding:14px 20px;cursor:pointer;user-select:none;border-bottom:1px solid #f0f0f0;" onclick="toggleDoneBox()">
+      <span style="font-size:20px;">📦</span>
+      <span style="font-size:15px;font-weight:700;color:#444;flex:1;">完了済みタスク</span>
       <span id="done-box-count" style="font-size:12px;background:#eafaf1;color:#27ae60;padding:2px 8px;border-radius:99px;font-weight:700;">0</span>
-      <button onclick="archiveDoneTasks()" style="padding:5px 12px;background:#27ae60;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">🗂 整理する</button>
-      <span id="done-box-chevron" style="color:#aaa;font-size:13px;margin-left:4px;cursor:pointer;" onclick="toggleDoneBox()">▼</span>
+      <span id="done-box-chevron" style="color:#aaa;font-size:13px;margin-left:4px;">▼</span>
     </div>
     <div id="done-box-list" style="padding:4px 20px 20px;display:none;"></div>
   </div>
@@ -1239,14 +1238,14 @@
 
   async function loadTasks() {
     const [{ data: myTasks }, { data: outTasks }] = await Promise.all([
-      sb.from('tasks').select('*').eq('user_id', currentUser.id).is('archived_at', null).order('created_at'),
-      sb.from('tasks').select('*').eq('assigner_id', currentUser.id).neq('user_id', currentUser.id).is('archived_at', null).order('created_at')
+      sb.from('tasks').select('*').eq('user_id', currentUser.id).order('created_at'),
+      sb.from('tasks').select('*').eq('assigner_id', currentUser.id).neq('user_id', currentUser.id).order('created_at')
     ]);
 
     tasks = { tray:[], q1:[], q2:[], q3:[], q4:[] };
     receivedTasks = [];
 
-    (myTasks||[]).forEach(t => {
+    (myTasks||[]).filter(t => !t.archived_at).forEach(t => {
       if (t.approval_status === 'pending') {
         receivedTasks.push(t);
       } else if (tasks[t.quadrant] !== undefined) {
@@ -1404,15 +1403,7 @@
     </div>`;
   }
 
-  let showDoneBox = false;
   let doneBoxOpen = false;
-
-  function toggleDoneBoxMode() {
-    showDoneBox = !showDoneBox;
-    const btn = document.getElementById('btn-done-box-toggle');
-    if (btn) { btn.style.background = showDoneBox ? '#eafaf1' : ''; btn.style.color = showDoneBox ? '#27ae60' : ''; btn.style.borderColor = showDoneBox ? '#27ae60' : ''; }
-    renderMatrix();
-  }
 
   function toggleDoneBox() {
     doneBoxOpen = !doneBoxOpen;
@@ -1422,7 +1413,6 @@
 
   function renderDoneBox() {
     const sec = document.getElementById('done-box-section');
-    if (!showDoneBox) { sec.style.display = 'none'; return; }
     const doneTasks = QUADRANTS.flatMap(q => tasks[q].filter(t => t.done));
     document.getElementById('done-box-count').textContent = doneTasks.length;
     sec.style.display = doneTasks.length ? 'block' : 'none';
@@ -1439,7 +1429,7 @@
   function renderMatrix() {
     QUADRANTS.forEach(qid => {
       const list = document.getElementById('list-'+qid); if (!list) return;
-      const visible = showDoneBox ? tasks[qid].filter(t => !t.done) : tasks[qid];
+      const visible = tasks[qid].filter(t => !t.done);
       list.innerHTML = !visible.length
         ? '<div class="empty-hint">タスクなし</div>'
         : visible.map(t => renderTaskItem(t, qid)).join('');
