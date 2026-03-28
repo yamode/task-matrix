@@ -37,14 +37,19 @@
 
     /* ── ユーザーバー ── */
     .user-bar { background:#fff; border-bottom:1px solid #eee; padding:0; position:sticky; top:0; z-index:100; }
-    .user-bar-row1 { position:relative; }
-    .user-bar-row1 { padding:9px 16px; display:flex; align-items:center; gap:10px; }
+    .user-bar-row1 { position:relative; padding:9px 16px; display:flex; align-items:center; gap:10px; }
+    /* モバイル: 2行目アクションバー */
     .user-bar-row2 { padding:6px 16px 8px; display:flex; gap:8px; border-top:1px solid #f0f0f0; }
     .app-title { font-size:17px; font-weight:800; color:#1a2744; letter-spacing:2px; flex-shrink:0; }
-    .user-bar-name { font-size:14px; font-weight:700; color:#667eea; flex:1; }
+    /* 右側まとめ */
+    .user-bar-right { display:flex; align-items:center; gap:8px; margin-left:auto; }
+    .user-bar-name { font-size:14px; font-weight:700; color:#667eea; }
+    /* PCインライン要素（モバイルでは非表示） */
+    .user-bar-pc-actions { display:none; flex:1; align-items:center; justify-content:flex-end; gap:8px; }
+    .user-bar-pc-settings { display:none; align-items:center; gap:8px; }
     .btn-logout { padding:6px 13px; background:none; border:1px solid #ddd; border-radius:6px; font-size:12px; cursor:pointer; color:#888; font-family:inherit; transition:all .15s; }
     .btn-logout:hover { border-color:#e74c3c; color:#e74c3c; }
-    /* ハンバーガーメニュー */
+    /* ハンバーガーメニュー（モバイルのみ） */
     .btn-hamburger { width:34px; height:34px; background:none; border:1px solid #ddd; border-radius:7px; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background .15s; }
     .btn-hamburger:hover { background:#f5f5f5; }
     .hamburger-menu { position:absolute; top:100%; right:16px; background:#fff; border:1px solid #eee; border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,.12); min-width:180px; z-index:200; display:none; overflow:hidden; }
@@ -53,6 +58,13 @@
     .hamburger-item:hover { background:#f5f5f5; }
     .hamburger-item.danger { color:#e74c3c; }
     .hamburger-item + .hamburger-item { border-top:1px solid #f5f5f5; }
+    /* PC版レイアウト */
+    @media (min-width: 768px) {
+      .user-bar-row2 { display:none; }
+      .user-bar-pc-actions { display:flex; }
+      .user-bar-pc-settings { display:flex; }
+      .btn-hamburger { display:none; }
+    }
 
     /* ── グローバル入力バー ── */
     #global-add-bar { background:#fff; border-bottom:1px solid #eee; padding:8px 20px; display:none; gap:8px; align-items:center; position:sticky; top:83px; z-index:99; flex-wrap:wrap; }
@@ -481,14 +493,30 @@
 <div class="user-bar" id="user-bar" style="display:none;">
   <div class="user-bar-row1">
     <div class="app-title">TASKUL</div>
-    <div class="user-bar-name" id="user-bar-name"></div>
-    <button class="btn-hamburger" onclick="toggleHamburger(event)">⋮</button>
-    <div class="hamburger-menu" id="hamburger-menu">
-      <button class="hamburger-item" onclick="closeHamburger();openArchive()">🗂 アーカイブ</button>
-      <button class="hamburger-item" onclick="closeHamburger();openSettings()">⚙️ 設定</button>
-      <button class="hamburger-item danger btn-logout" onclick="handleLogout()">ログアウト</button>
+    <!-- PC版: インラインアクションボタン -->
+    <div class="user-bar-pc-actions">
+      <button class="btn-report" onclick="archiveDoneTasks()">🗂 完了済みを整理する</button>
+      <button class="btn-report" onclick="openReport()">📊 レポート</button>
+      <button class="btn-report" onclick="openArchive()">🗂 アーカイブ</button>
+    </div>
+    <!-- 右側: 名前 + PC設定 or ハンバーガー -->
+    <div class="user-bar-right">
+      <div class="user-bar-name" id="user-bar-name"></div>
+      <!-- PC版: 設定・ログアウトをインライン表示 -->
+      <div class="user-bar-pc-settings">
+        <button class="btn-report" onclick="openSettings()">⚙️ 設定</button>
+        <button class="btn-logout" onclick="handleLogout()">ログアウト</button>
+      </div>
+      <!-- モバイル版: ハンバーガーメニュー -->
+      <button class="btn-hamburger" onclick="toggleHamburger(event)">⋮</button>
+      <div class="hamburger-menu" id="hamburger-menu">
+        <button class="hamburger-item" onclick="closeHamburger();openArchive()">🗂 アーカイブ</button>
+        <button class="hamburger-item" onclick="closeHamburger();openSettings()">⚙️ 設定</button>
+        <button class="hamburger-item danger" onclick="handleLogout()">ログアウト</button>
+      </div>
     </div>
   </div>
+  <!-- モバイル版: 2行目アクションバー -->
   <div class="user-bar-row2">
     <button class="btn-report" onclick="archiveDoneTasks()">🗂 完了済みを整理する</button>
     <button class="btn-report" onclick="openReport()">📊 レポート</button>
@@ -840,6 +868,7 @@
           onchange="saveLwEnabled(this.checked)" />
       </div>
       <div style="font-size:12px;color:#aaa;margin-top:6px;">オフにするとカレンダー同期・LWボタン・Bot通知が無効になります</div>
+      <button onclick="testBotNotification()" style="margin-top:12px;padding:8px 16px;background:#f0f7ff;border:1px solid #667eea;border-radius:6px;font-size:13px;color:#667eea;cursor:pointer;font-family:inherit;font-weight:700;">🔔 Bot通知テスト（自分に送信）</button>
     </div>
 
   </div>
@@ -2842,13 +2871,27 @@
 
   // ── LW Bot通知 ───────────────────────────────────────────────
   async function sendBotNotification(toSupabaseUserId, message) {
-    if (currentUser?.lw_enabled === false) return; // LW連携オフはスキップ
+    if (currentUser?.lw_enabled === false) { dbg('Bot通知スキップ: LW連携オフ'); return; }
     const toLwId = lwIdCache[toSupabaseUserId];
-    if (!toLwId) return; // LW未連携ユーザーはスキップ
+    dbg('Bot通知 toUserId:', toSupabaseUserId, '→ lwId:', toLwId);
+    if (!toLwId) { dbg('Bot通知スキップ: lwIdCache にユーザーなし'); return; }
     try {
-      await calPost({ action: 'send_message', lw_user_id: toLwId, content: message });
-      dbg('Bot通知送信:', toLwId, message);
-    } catch(e) { dbg('Bot通知失敗', e); }
+      const res = await fetch(CAL_API, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'send_message', lw_user_id: toLwId, content: message }),
+      });
+      const json = await res.json();
+      dbg('Bot通知レスポンス:', JSON.stringify(json));
+    } catch(e) { dbg('Bot通知 fetch失敗:', e.message); }
+  }
+
+  async function testBotNotification() {
+    dbg('--- Bot通知テスト開始 ---');
+    dbg('currentUser.id:', currentUser?.id, '/ lw_user_id:', currentUser?.lw_user_id);
+    dbg('lwIdCache:', JSON.stringify(lwIdCache));
+    if (!currentUser?.lw_user_id) { showToast('自分の lw_user_id が未設定です'); return; }
+    await sendBotNotification(currentUser.id, '🔔 Bot通知テスト from TASKUL');
+    showToast('テスト送信しました（デバッグパネルで結果確認）');
   }
 
   // ── 処理済みタスク自動削除 ────────────────────────────────────
