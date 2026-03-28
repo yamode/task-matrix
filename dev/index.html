@@ -538,16 +538,6 @@
   </div>
 
   <!-- 処理済みボックス -->
-  <div id="done-box-section" style="display:none;max-width:960px;margin:16px auto 0;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);overflow:hidden;border-top:3px solid #27ae60;">
-    <div style="display:flex;align-items:center;gap:8px;padding:14px 20px;cursor:pointer;user-select:none;border-bottom:1px solid #f0f0f0;" onclick="toggleDoneBox()">
-      <span style="font-size:20px;">📦</span>
-      <span style="font-size:15px;font-weight:700;color:#444;flex:1;">完了済みタスク</span>
-      <span id="done-box-count" style="font-size:12px;background:#eafaf1;color:#27ae60;padding:2px 8px;border-radius:99px;font-weight:700;">0</span>
-      <span id="done-box-chevron" style="color:#aaa;font-size:13px;margin-left:4px;">▼</span>
-    </div>
-    <div id="done-box-list" style="padding:4px 20px 20px;display:none;"></div>
-  </div>
-
   <!-- 配布したタスク -->
   <div class="assigned-out-section" id="assigned-out-section" style="display:none;">
     <div class="assigned-out-header" onclick="toggleAssignedOut()">
@@ -1403,39 +1393,15 @@
     </div>`;
   }
 
-  let doneBoxOpen = false;
-
-  function toggleDoneBox() {
-    doneBoxOpen = !doneBoxOpen;
-    document.getElementById('done-box-list').style.display = doneBoxOpen ? 'block' : 'none';
-    document.getElementById('done-box-chevron').textContent = doneBoxOpen ? '▲' : '▼';
-  }
-
-  function renderDoneBox() {
-    const sec = document.getElementById('done-box-section');
-    const doneTasks = QUADRANTS.flatMap(q => tasks[q].filter(t => t.done));
-    document.getElementById('done-box-count').textContent = doneTasks.length;
-    sec.style.display = doneTasks.length ? 'block' : 'none';
-    const list = document.getElementById('done-box-list');
-    list.innerHTML = doneTasks.map(t => `
-      <div class="task-item done" style="margin-bottom:4px;" onclick="openTaskDetail(${t.id})">
-        <div class="task-check" onclick="event.stopPropagation();toggleTask('${QUADRANTS.find(q=>tasks[q].find(x=>x.id===t.id))||'tray'}',${t.id})" style="background:#27ae60;border-color:#27ae60;">
-          <div class="task-check-inner" style="display:flex;">✓</div>
-        </div>
-        <div class="task-text-wrap"><span class="task-text">${esc(t.text)}</span></div>
-      </div>`).join('') || '<div class="empty-hint">完了済みタスクなし</div>';
-  }
-
   function renderMatrix() {
     QUADRANTS.forEach(qid => {
       const list = document.getElementById('list-'+qid); if (!list) return;
-      const visible = tasks[qid].filter(t => !t.done);
+      const visible = tasks[qid];
       list.innerHTML = !visible.length
         ? '<div class="empty-hint">タスクなし</div>'
         : visible.map(t => renderTaskItem(t, qid)).join('');
     });
     document.getElementById('tray-count').textContent = tasks.tray.length;
-    renderDoneBox();
     initSortable();
   }
 
