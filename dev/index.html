@@ -3662,23 +3662,31 @@
     const el = document.getElementById('org-mgmt-body');
     if (!el || !currentUser) return;
 
-    // 自分がオーナーの組織を検索
+    // オーナーとして所有する組織を検索
     const { data: ownedOrg } = await sb.from('organizations')
       .select('id, name').eq('owner_id', currentUser.id).maybeSingle();
 
-    if (!ownedOrg) {
-      renderOrgCreate(el);
+    if (ownedOrg) {
+      const { data: members } = await sb.from('org_members')
+        .select('id').eq('org_id', ownedOrg.id);
+      renderOrgPanel(el, ownedOrg, members || [], true);
       return;
     }
 
-    // メンバー一覧取得（org_members + users JOIN）
-    const { data: members } = await sb
-      .from('org_members')
-      .select('id, role, user_id, users(id, name, display_name, lw_account_id)')
-      .eq('org_id', ownedOrg.id)
-      .order('role');
+    // オーナーでないが組織に所属している場合
+    if (currentUser.org_id) {
+      const { data: memberOrg } = await sb.from('organizations')
+        .select('id, name').eq('id', currentUser.org_id).maybeSingle();
+      if (memberOrg) {
+        const { data: members } = await sb.from('org_members')
+          .select('id').eq('org_id', memberOrg.id);
+        renderOrgPanel(el, memberOrg, members || [], false);
+        return;
+      }
+    }
 
-    renderOrgPanel(el, ownedOrg, members || []);
+    // どの組織にも属していない → 作成フォーム
+    renderOrgCreate(el);
   }
 
   function renderOrgCreate(el) {
@@ -3696,17 +3704,20 @@
       <div id="org-create-err" style="font-size:12px;color:#e74c3c;margin-top:6px;"></div>`;
   }
 
-  function renderOrgPanel(el, org, members) {
+  function renderOrgPanel(el, org, members, isOwner) {
+    const actionBtn = isOwner
+      ? `<button onclick="openOrgMembersOverlay()"
+           style="padding:9px 18px;background:#667eea;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;">
+           👥 メンバーを管理
+         </button>`
+      : `<span style="font-size:12px;color:#aaa;">閲覧のみ</span>`;
     el.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
         <div>
           <div style="font-size:14px;font-weight:600;color:#333;">🏢 ${esc(org.name)}</div>
           <div style="font-size:12px;color:#aaa;margin-top:2px;">${members.length} 名</div>
         </div>
-        <button onclick="openOrgMembersOverlay()"
-          style="padding:9px 18px;background:#667eea;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;">
-          👥 メンバーを管理
-        </button>
+        ${actionBtn}
       </div>`;
   }
 
@@ -4241,7 +4252,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-06</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-07</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
