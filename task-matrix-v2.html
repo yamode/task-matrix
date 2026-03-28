@@ -2405,7 +2405,7 @@
       if (calId) {
         let results;
         if (existing?.event_id) {
-          // 既存イベントを更新（削除→作成 ではなく PUT で日付・タイトル変更）
+          // 既存イベントを更新（PUT）
           results = await calUpdate([{
             lw_user_id: currentUser.lw_user_id,
             event_id:   existing.event_id,
@@ -2413,6 +2413,14 @@
             summary:    t.text,
             date:       deadline,
           }]);
+          // LW側でイベントが削除されていた場合（404等）は新規作成にフォールバック
+          if (!results.length || (results[0].status && results[0].status >= 400)) {
+            dbg('calUpdate failed (status=' + (results[0]?.status) + '), fallback to calCreate');
+            results = await calCreate([{
+              lw_user_id: currentUser.lw_user_id, cal_id: calId,
+              summary: t.text, date: deadline,
+            }]);
+          }
         } else {
           // 初回：新規作成
           results = await calCreate([{
@@ -4388,7 +4396,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-10</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-11</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
