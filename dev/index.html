@@ -1032,8 +1032,17 @@
     <div style="margin-bottom:28px;">
       <div style="font-size:15px;font-weight:700;color:#333;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #eee;">🏢 組織管理</div>
       <div style="font-size:13px;color:#666;margin-bottom:12px;">LINE WORKSユーザー情報をCSVで一括登録できます。まずテンプレートをダウンロードして、必要な情報を入力してください。</div>
-      <button class="btn-secondary" onclick="downloadOrgCsvTemplate()" style="font-size:14px;padding:10px 18px;">📥 CSVテンプレートをダウンロード</button>
-      <div style="font-size:12px;color:#aaa;margin-top:8px;">カラム: name, email, lw_user_id, lw_account_id, display_name</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+        <button class="btn-secondary" onclick="downloadOrgCsvTemplate()" style="font-size:14px;padding:10px 18px;">📥 テンプレートDL</button>
+        <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;background:#f5f5f5;border:1.5px solid #ddd;border-radius:8px;padding:10px 18px;font-size:14px;font-family:inherit;color:#555;">
+          📂 CSVを選択
+          <input type="file" id="org-csv-input" accept=".csv" style="display:none;" onchange="handleOrgCsvSelect(this)" />
+        </label>
+      </div>
+      <div id="org-csv-filename" style="font-size:12px;color:#888;margin-bottom:10px;display:none;"></div>
+      <button id="org-csv-import-btn" onclick="importOrgCsv()" style="display:none;font-size:14px;padding:10px 18px;background:#667eea;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:inherit;">⬆️ インポート実行</button>
+      <div id="org-csv-result" style="margin-top:14px;font-size:13px;line-height:1.7;display:none;"></div>
+      <div style="font-size:12px;color:#aaa;margin-top:10px;">カラム: name, email, lw_user_id, lw_account_id, display_name（name・email は必須）</div>
     </div>
 
     <!-- 開発者設定（DEBUG=true のときのみ表示） -->
@@ -3530,6 +3539,101 @@
     a.click();
     URL.revokeObjectURL(url);
   }
+
+  // CSVをパース（ダブルクォート対応・シンプル実装）
+  function parseCsv(text) {
+    const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+    if (lines.length < 2) return { headers: [], rows: [] };
+    const parseRow = line => {
+      const cols = []; let cur = ''; let inQ = false;
+      for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+        if (c === '"') { inQ = !inQ; }
+        else if (c === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+        else { cur += c; }
+      }
+      cols.push(cur.trim());
+      return cols;
+    };
+    const headers = parseRow(lines[0]).map(h => h.replace(/^\uFEFF/, ''));
+    const rows = lines.slice(1).map(l => {
+      const vals = parseRow(l);
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = vals[i] ?? ''; });
+      return obj;
+    });
+    return { headers, rows };
+  }
+
+  let orgCsvParsed = null;
+
+  function handleOrgCsvSelect(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const filenameEl = document.getElementById('org-csv-filename');
+    filenameEl.textContent = `📄 ${file.name}（${file.size.toLocaleString()} bytes）`;
+    filenameEl.style.display = 'block';
+    document.getElementById('org-csv-result').style.display = 'none';
+    const reader = new FileReader();
+    reader.onload = e => {
+      const { headers, rows } = parseCsv(e.target.result);
+      const missingCols = ['name', 'email'].filter(c => !headers.includes(c));
+      if (missingCols.length) {
+        document.getElementById('org-csv-result').innerHTML =
+          `<span style="color:#e74c3c;">❌ 必須カラムが不足しています: ${missingCols.join(', ')}</span>`;
+        document.getElementById('org-csv-result').style.display = 'block';
+        document.getElementById('org-csv-import-btn').style.display = 'none';
+        orgCsvParsed = null;
+        return;
+      }
+      orgCsvParsed = rows.filter(r => r.name && r.email);
+      document.getElementById('org-csv-result').innerHTML =
+        `<span style="color:#27ae60;">✅ ${orgCsvParsed.length} 件を読み込みました。「インポート実行」で登録します。</span>`;
+      document.getElementById('org-csv-result').style.display = 'block';
+      document.getElementById('org-csv-import-btn').style.display = 'inline-block';
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  async function importOrgCsv() {
+    if (!orgCsvParsed || !orgCsvParsed.length) return;
+    const btn = document.getElementById('org-csv-import-btn');
+    const resultEl = document.getElementById('org-csv-result');
+    btn.disabled = true; btn.textContent = '登録中...';
+
+    let ok = 0, skipped = 0;
+    const errors = [];
+
+    for (const row of orgCsvParsed) {
+      const payload = { name: row.name, email: row.email };
+      if (row.lw_user_id)   payload.lw_user_id   = row.lw_user_id;
+      if (row.lw_account_id) payload.lw_account_id = row.lw_account_id;
+      if (row.display_name)  payload.display_name  = row.display_name;
+
+      const { error } = await sb.from('users')
+        .upsert(payload, { onConflict: 'email', ignoreDuplicates: false });
+
+      if (error) {
+        errors.push(`${row.name}（${row.email}）: ${error.message}`);
+      } else {
+        ok++;
+      }
+    }
+
+    let html = `<strong>登録完了</strong>: ${ok} 件成功`;
+    if (errors.length) {
+      html += `、${errors.length} 件エラー<br><ul style="margin:6px 0 0 16px;color:#e74c3c;">` +
+        errors.map(e => `<li>${e}</li>`).join('') + '</ul>';
+    }
+    resultEl.innerHTML = html;
+    resultEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = '⬆️ インポート実行';
+    orgCsvParsed = null;
+    document.getElementById('org-csv-input').value = '';
+    document.getElementById('org-csv-filename').style.display = 'none';
+    btn.style.display = 'none';
+    dbg('importOrgCsv:', ok, '件成功', errors.length, '件エラー');
+  }
   function saveRetentionDays(val) {
     const n = parseInt(val);
     if (n >= 1 && n <= 365) localStorage.setItem('tm_retention_days', String(n));
@@ -3867,7 +3971,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-01</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-02</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
