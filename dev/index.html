@@ -79,7 +79,7 @@
     #global-add-btn:disabled { opacity:.5; cursor:not-allowed; }
 
     /* ── メインアプリ ── */
-    #app { padding:20px 20px 60px; display:none; }
+    #app { padding:20px 20px 108px; display:none; }
 
     /* ── 受信タスクセクション ── */
     .received-section { max-width:960px; margin:0 auto 16px; background:#fffbf0; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.06); padding:14px 16px; border-top:3px solid #f0ad4e; }
@@ -448,6 +448,7 @@
       grid-template-columns:1fr 1fr 1fr 1fr; grid-template-rows:44px 44px;
       background:#fff; border-top:1.5px solid #e4e4e4;
       z-index:150;
+      padding-bottom: env(safe-area-inset-bottom, 8px);
     }
     #footer-nav.visible { display:grid; }
     @media (min-width:1200px) { #footer-nav.visible { display:none; } }
@@ -850,7 +851,6 @@
   <div class="master-overlay-header">
     <div class="master-overlay-title">⚙️ 定型タスク マスタ管理</div>
     <div class="master-overlay-header-actions">
-      <button class="btn-primary" onclick="openMasterModal()">＋ 追加</button>
       <button class="modal-close" onclick="closeMasterOverlay()">✕</button>
     </div>
   </div>
@@ -859,10 +859,11 @@
       <button class="mo-tab active" data-tab="master" onclick="switchMoTab('master')">マスタ一覧</button>
       <button class="mo-tab"        data-tab="share"  onclick="switchMoTab('share')">共有設定</button>
     </div>
-    <div id="mo-type-filter" style="display:flex;gap:6px;padding:10px 20px 0;">
+    <div id="mo-type-filter" style="display:flex;gap:6px;padding:10px 20px 0;align-items:center;">
       <button class="mo-type-btn active" data-type="all"     onclick="setMasterTypeFilter('all')">すべて</button>
       <button class="mo-type-btn"        data-type="monthly" onclick="setMasterTypeFilter('monthly')">🔁 月次</button>
       <button class="mo-type-btn"        data-type="annual"  onclick="setMasterTypeFilter('annual')">📆 年次</button>
+      <button class="btn-primary" onclick="openMasterModal()" style="margin-left:auto;font-size:13px;padding:6px 14px;">＋ 追加</button>
     </div>
     <div id="mo-tab-master"></div>
     <div id="mo-tab-share" style="display:none;"></div>
@@ -3360,7 +3361,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-06</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-07</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
