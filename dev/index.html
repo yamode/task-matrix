@@ -825,6 +825,27 @@
   </div>
 </div>
 
+<!-- LWトーク送信モーダル -->
+<div class="modal-overlay" id="lw-talk-modal">
+  <div class="modal">
+    <div class="modal-title">
+      💬 LWトークを開く
+      <button class="modal-close" onclick="closeLWTalkModal()">✕</button>
+    </div>
+    <div id="lw-talk-task-info" style="background:#f8f9fa;border-radius:8px;padding:12px;margin-bottom:16px;font-size:14px;color:#555;line-height:1.7;"></div>
+    <div style="margin-bottom:18px;">
+      <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:6px;">追加メッセージ（任意）</label>
+      <textarea id="lw-talk-message" rows="3" placeholder="一言メッセージを追加できます"
+        style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;resize:vertical;outline:none;transition:border-color .2s;"
+        onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#ddd'"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn-secondary" onclick="closeLWTalkModal()">キャンセル</button>
+      <button class="btn-primary" onclick="executeLWTalk()">💬 LWで開く</button>
+    </div>
+  </div>
+</div>
+
 <!-- 設定オーバーレイ -->
 <div class="master-overlay" id="archive-overlay">
   <div class="master-overlay-header">
@@ -1016,6 +1037,7 @@
   let usersCache        = {};   // { userId: displayName }
   let assignSelectedUserId = null; // 配布先として選択したユーザーID
   let lwIdCache  = {};             // { supabase_uuid: lw_user_id }
+  let emailCache = {};             // { supabase_uuid: email }
   let calIdCache = {};             // { supabase_uuid: lw_task_calendar_id }
   let recurringTasks    = [];
   let allInstances      = {};   // { masterId: { "year_month": instance } }
@@ -1068,6 +1090,7 @@
         _isWoffLogin = true;
         usersCache[user.id] = user.display_name || user.name;
         if (user.lw_user_id) lwIdCache[user.id] = user.lw_user_id;
+        if (user.email) emailCache[user.id] = user.email;
         if (user.lw_task_calendar_id) calIdCache[user.id] = user.lw_task_calendar_id;
         if (user.lw_user_id && !user.lw_task_calendar_id) ensureCalendarId(user.lw_user_id, user.id);
         return true;
@@ -1130,6 +1153,7 @@
         currentUser = data;
         usersCache[data.id] = data.display_name || data.name;
         if (data.lw_user_id) lwIdCache[data.id] = data.lw_user_id;
+        if (data.email) emailCache[data.id] = data.email;
         if (data.lw_task_calendar_id) calIdCache[data.id] = data.lw_task_calendar_id;
         if (data.lw_user_id && !data.lw_task_calendar_id) ensureCalendarId(data.lw_user_id, data.id);
         document.getElementById('login-screen').style.display = 'none';
@@ -1149,6 +1173,7 @@
           currentUser = { ...data2, auth_id: session.user.id };
           usersCache[data2.id] = data2.display_name || data2.name;
           if (data2.lw_user_id) lwIdCache[data2.id] = data2.lw_user_id;
+          if (data2.email) emailCache[data2.id] = data2.email;
           if (data2.lw_task_calendar_id) calIdCache[data2.id] = data2.lw_task_calendar_id;
           if (data2.lw_user_id && !data2.lw_task_calendar_id) ensureCalendarId(data2.lw_user_id, data2.id);
           document.getElementById('login-screen').style.display = 'none';
@@ -1193,6 +1218,7 @@
     currentUser = user;
     usersCache[user.id] = user.display_name || user.name;
     if (user.lw_user_id) lwIdCache[user.id] = user.lw_user_id;
+    if (user.email) emailCache[user.id] = user.email;
     saveSessionManually(authData.session);
     document.getElementById('login-screen').style.display = 'none';
     showLoading(); await showApp(); hideLoading();
@@ -1322,10 +1348,11 @@
     });
     const uncached = [...ids].filter(id => id && !usersCache[id]);
     if (!uncached.length) return;
-    const { data } = await sb.from('users').select('id, name, display_name, lw_user_id').in('id', uncached);
+    const { data } = await sb.from('users').select('id, name, display_name, lw_user_id, email').in('id', uncached);
     (data||[]).forEach(u => {
       usersCache[u.id] = u.display_name || u.name;
       if (u.lw_user_id) lwIdCache[u.id] = u.lw_user_id;
+      if (u.email) emailCache[u.id] = u.email;
     });
   }
 
@@ -1590,9 +1617,8 @@
       if (status === 'pending' || status === 'disputed') {
         actions.push(`<button class="btn-icon danger" onclick="cancelAssignment(${t.id})">取消</button>`);
       }
-      const toLwId = lwIdCache[t.user_id];
-      if (toLwId) {
-        actions.push(`<a href="https://talk.worksmobile.com/talk/${toLwId}" target="_blank" class="btn-icon" style="text-decoration:none;">💬 LW</a>`);
+      if (currentUser?.lw_enabled !== false) {
+        actions.push(`<button class="btn-icon" onclick="openLWTalkModal('${t.user_id}', ${JSON.stringify(t.text)}, ${JSON.stringify(t.deadline || '')})">💬 LW</button>`);
       }
       return `<div class="ao-item">
         <div class="ao-info">
@@ -1636,6 +1662,41 @@
     if (error) { showToast('❌ キャンセルに失敗しました'); return; }
     showToast('↩️ タスクをトレーに戻しました');
     await loadTasks();
+  }
+
+  // ── LWトークモーダル ──────────────────────────────────────────
+  let _lwTalkTarget = null;
+
+  function openLWTalkModal(userId, taskText, deadline) {
+    _lwTalkTarget = { userId, taskText, deadline };
+    let info = `📋 <strong>${esc(taskText)}</strong>`;
+    if (deadline) info += `<br>⏰ 期限: ${deadline}`;
+    document.getElementById('lw-talk-task-info').innerHTML = info;
+    document.getElementById('lw-talk-message').value = '';
+    document.getElementById('lw-talk-modal').classList.add('open');
+    setTimeout(() => document.getElementById('lw-talk-message').focus(), 100);
+  }
+
+  function closeLWTalkModal() {
+    document.getElementById('lw-talk-modal').classList.remove('open');
+    _lwTalkTarget = null;
+  }
+
+  function executeLWTalk() {
+    if (!_lwTalkTarget) return;
+    const { userId, taskText, deadline } = _lwTalkTarget;
+    const extraMsg = document.getElementById('lw-talk-message').value.trim();
+
+    let msg = `【${taskText}】`;
+    if (deadline) msg += ` 期限: ${deadline}`;
+    if (extraMsg) msg += `\n\n${extraMsg}`;
+
+    const lwId = lwIdCache[userId] || emailCache[userId];
+    let url = `https://line.worksmobile.com/message/send?version=26&message=${encodeURIComponent(msg)}`;
+    if (lwId) url += `&emailList=${encodeURIComponent(lwId)}`;
+
+    window.open(url, '_blank');
+    closeLWTalkModal();
   }
 
   // ── タスク詳細シート ──────────────────────────────────────────
