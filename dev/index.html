@@ -1036,7 +1036,8 @@
   let assignedOutTasks  = [];   // tasks I assigned to others
   let usersCache        = {};   // { userId: displayName }
   let assignSelectedUserId = null; // 配布先として選択したユーザーID
-  let lwIdCache  = {};             // { supabase_uuid: lw_user_id }
+  let lwIdCache       = {};        // { supabase_uuid: lw_user_id }
+  let lwAccountIdCache = {};       // { supabase_uuid: lw_account_id } — App Link emailList用
   let emailCache = {};             // { supabase_uuid: email }
   let calIdCache = {};             // { supabase_uuid: lw_task_calendar_id }
   let recurringTasks    = [];
@@ -1090,6 +1091,7 @@
         _isWoffLogin = true;
         usersCache[user.id] = user.display_name || user.name;
         if (user.lw_user_id) lwIdCache[user.id] = user.lw_user_id;
+        if (user.lw_account_id) lwAccountIdCache[user.id] = user.lw_account_id;
         if (user.email) emailCache[user.id] = user.email;
         if (user.lw_task_calendar_id) calIdCache[user.id] = user.lw_task_calendar_id;
         if (user.lw_user_id && !user.lw_task_calendar_id) ensureCalendarId(user.lw_user_id, user.id);
@@ -1153,6 +1155,7 @@
         currentUser = data;
         usersCache[data.id] = data.display_name || data.name;
         if (data.lw_user_id) lwIdCache[data.id] = data.lw_user_id;
+        if (data.lw_account_id) lwAccountIdCache[data.id] = data.lw_account_id;
         if (data.email) emailCache[data.id] = data.email;
         if (data.lw_task_calendar_id) calIdCache[data.id] = data.lw_task_calendar_id;
         if (data.lw_user_id && !data.lw_task_calendar_id) ensureCalendarId(data.lw_user_id, data.id);
@@ -1173,6 +1176,7 @@
           currentUser = { ...data2, auth_id: session.user.id };
           usersCache[data2.id] = data2.display_name || data2.name;
           if (data2.lw_user_id) lwIdCache[data2.id] = data2.lw_user_id;
+          if (data2.lw_account_id) lwAccountIdCache[data2.id] = data2.lw_account_id;
           if (data2.email) emailCache[data2.id] = data2.email;
           if (data2.lw_task_calendar_id) calIdCache[data2.id] = data2.lw_task_calendar_id;
           if (data2.lw_user_id && !data2.lw_task_calendar_id) ensureCalendarId(data2.lw_user_id, data2.id);
@@ -1218,6 +1222,7 @@
     currentUser = user;
     usersCache[user.id] = user.display_name || user.name;
     if (user.lw_user_id) lwIdCache[user.id] = user.lw_user_id;
+    if (user.lw_account_id) lwAccountIdCache[user.id] = user.lw_account_id;
     if (user.email) emailCache[user.id] = user.email;
     saveSessionManually(authData.session);
     document.getElementById('login-screen').style.display = 'none';
@@ -1348,10 +1353,11 @@
     });
     const uncached = [...ids].filter(id => id && !usersCache[id]);
     if (!uncached.length) return;
-    const { data } = await sb.from('users').select('id, name, display_name, lw_user_id, email').in('id', uncached);
+    const { data } = await sb.from('users').select('id, name, display_name, lw_user_id, lw_account_id, email').in('id', uncached);
     (data||[]).forEach(u => {
       usersCache[u.id] = u.display_name || u.name;
       if (u.lw_user_id) lwIdCache[u.id] = u.lw_user_id;
+      if (u.lw_account_id) lwAccountIdCache[u.id] = u.lw_account_id;
       if (u.email) emailCache[u.id] = u.email;
     });
   }
@@ -1693,10 +1699,9 @@
     if (deadline) msg += ` 期限: ${deadline}`;
     if (extraMsg) msg += `\n\n${extraMsg}`;
 
-    const emailFull = emailCache[userId];
-    const lwId = emailFull ? emailFull.replace('.co.jp', '') : null;
+    const lwAccountId = lwAccountIdCache[userId];
     let url = `https://line.worksmobile.com/message/send?version=26&message=${encodeURIComponent(msg)}`;
-    if (lwId) url += `&emailList=${encodeURIComponent(lwId)}`;
+    if (lwAccountId) url += `&emailList=${encodeURIComponent(lwAccountId)}`;
 
     window.open(url, '_blank');
     closeLWTalkModal();
@@ -3243,7 +3248,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-03</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-04</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
