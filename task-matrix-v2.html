@@ -786,7 +786,10 @@
     <!-- 期限 -->
     <div class="detail-section">
       <div class="detail-sec-label">期限</div>
-      <input class="form-field" id="td-deadline" type="date" onchange="saveTaskDeadline()" />
+      <input class="form-field" id="td-deadline" type="date" onchange="saveDeadlineOnly()" />
+      <button id="td-lw-sync-btn" onclick="syncTaskToLwCalendar()"
+        style="display:none;margin-top:8px;width:100%;padding:10px;border-radius:8px;font-size:13px;font-family:inherit;cursor:pointer;border:none;font-weight:600;transition:all .2s;">
+      </button>
     </div>
 
     <!-- 領域 -->
@@ -2107,6 +2110,7 @@
     document.getElementById('td-name').value = t.text;
     renderQuadrantSelector(t.quadrant);
     document.getElementById('td-deadline').value = t.deadline || '';
+    updateLwSyncBtn(t);
 
     // ── 配布情報バナー ──
     const assignerRow = document.getElementById('td-assigner-row');
@@ -2327,13 +2331,109 @@
     renderMatrix();
   }
 
+  // LW同期ボタンの表示を更新
+  function updateLwSyncBtn(t) {
+    const btn = document.getElementById('td-lw-sync-btn');
+    if (!btn) return;
+    const lwEnabled = currentUser?.lw_enabled !== false;
+    if (!lwEnabled || !t?.deadline) { btn.style.display = 'none'; return; }
+    const hasSynced = t.lw_calendar_event_ids && Object.keys(t.lw_calendar_event_ids).length > 0;
+    btn.style.display = 'block';
+    if (hasSynced) {
+      btn.textContent = '✅ LW同期済（再同期）';
+      btn.style.background = '#eafaf1'; btn.style.color = '#27ae60';
+      btn.style.border = '1.5px solid #a9dfbf';
+    } else {
+      btn.textContent = '🔄 LWカレンダーに同期する';
+      btn.style.background = '#667eea'; btn.style.color = '#fff';
+      btn.style.border = 'none';
+    }
+    btn.disabled = false;
+  }
+
+  // 期限をDBに保存するだけ（カレンダー操作なし）
+  async function saveDeadlineOnly() {
+    if (!currentTaskId) return;
+    const deadline = document.getElementById('td-deadline').value || null;
+    const t = findAnyTask(currentTaskId); if (!t) return;
+    t.deadline = deadline;
+
+    // 期限クリア時 → 既存LWイベントだけ削除
+    if (!deadline && t.lw_calendar_event_ids && Object.keys(t.lw_calendar_event_ids).length) {
+      await calDelete(t.lw_calendar_event_ids);
+      t.lw_calendar_event_ids = {};
+      await sb.from('tasks').update({
+        deadline: null, lw_calendar_event_ids: {}, updated_at: new Date().toISOString()
+      }).eq('id', currentTaskId);
+      updateLwSyncBtn(t);
+      renderMatrix();
+      return;
+    }
+
+    await sb.from('tasks').update({
+      deadline, updated_at: new Date().toISOString()
+    }).eq('id', currentTaskId);
+
+    // 日付が変わったら同期済み状態をリセット（ボタンを未同期に戻す）
+    if (t.lw_calendar_event_ids && Object.keys(t.lw_calendar_event_ids).length) {
+      t.lw_calendar_event_ids = {};
+      await sb.from('tasks').update({ lw_calendar_event_ids: {} }).eq('id', currentTaskId);
+    }
+
+    updateLwSyncBtn(t);
+    renderMatrix();
+  }
+
+  // 手動LW同期ボタン
+  async function syncTaskToLwCalendar() {
+    if (!currentTaskId) return;
+    const t = findAnyTask(currentTaskId); if (!t) return;
+    const deadline = t.deadline;
+    if (!deadline) { showToast('⚠️ 期限を設定してから同期してください'); return; }
+
+    const btn = document.getElementById('td-lw-sync-btn');
+    btn.disabled = true; btn.textContent = '同期中...';
+    btn.style.background = '#f0f0f0'; btn.style.color = '#888'; btn.style.border = 'none';
+
+    // 旧イベント削除
+    const oldCalIds = t.lw_calendar_event_ids || {};
+    if (Object.keys(oldCalIds).length) await calDelete(oldCalIds);
+
+    // 新イベント作成
+    let newCalIds = {};
+    if (currentUser?.lw_user_id) {
+      const calId = await getOrCreateTaskCalendarId(currentUser.id);
+      if (calId) {
+        const results = await calCreate([{
+          lw_user_id: currentUser.lw_user_id, cal_id: calId,
+          summary: t.text, date: deadline,
+        }]);
+        results.forEach(r => {
+          if (r.event_id) newCalIds[r.lw_user_id] = { event_id: r.event_id, cal_id: r.cal_id || calId };
+        });
+      }
+    }
+
+    t.lw_calendar_event_ids = newCalIds;
+    await sb.from('tasks').update({
+      lw_calendar_event_ids: newCalIds, updated_at: new Date().toISOString()
+    }).eq('id', currentTaskId);
+
+    if (Object.keys(newCalIds).length) {
+      showToast('✅ LWカレンダーに同期しました');
+    } else {
+      showToast('⚠️ 同期に失敗しました（LW設定を確認してください）');
+    }
+    updateLwSyncBtn(t);
+  }
+
   async function saveTaskDeadline() {
     if (!currentTaskId) return;
     const deadline = document.getElementById('td-deadline').value || null;
     const t = findAnyTask(currentTaskId); if (!t) return;
     t.deadline = deadline;
 
-    // カレンダー同期：旧イベント削除 → 新イベント作成
+    // カレンダー同期：旧イベント削除 → 新イベント作成（旧互換・呼び出し箇所なし）
     const oldCalIds = t.lw_calendar_event_ids || {};
     let newCalIds = {};
     if (Object.keys(oldCalIds).length) await calDelete(oldCalIds);
@@ -4270,7 +4370,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-08</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-09</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
