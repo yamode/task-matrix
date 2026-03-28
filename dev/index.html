@@ -3750,12 +3750,21 @@
     const orgId = typeof orgOrId === 'object' ? orgOrId.id : orgMembersOrgId;
     const wrap = document.getElementById('org-members-table-wrap');
     wrap.innerHTML = '<div style="text-align:center;padding:40px;color:#888;">読み込み中...</div>';
-    const { data: members } = await sb
-      .from('org_members')
-      .select('id, role, user_id, users(id, name, display_name, email, lw_user_id, lw_account_id)')
-      .eq('org_id', orgId)
-      .order('created_at');
-    renderOrgMembersTable(members || []);
+
+    // org_members とユーザー情報を別クエリで取得してマージ
+    const { data: members, error: mErr } = await sb
+      .from('org_members').select('id, role, user_id').eq('org_id', orgId);
+    if (mErr) { wrap.innerHTML = `<div style="color:#e74c3c;padding:20px;">読み込み失敗: ${mErr.message}</div>`; return; }
+    if (!members?.length) { renderOrgMembersTable([]); return; }
+
+    const userIds = members.map(m => m.user_id);
+    const { data: users } = await sb
+      .from('users').select('id, name, display_name, email, lw_user_id, lw_account_id').in('id', userIds);
+
+    const usersById = Object.fromEntries((users || []).map(u => [u.id, u]));
+    const merged = members.map(m => ({ ...m, users: usersById[m.user_id] || {} }));
+    merged.sort((a, b) => (a.users.display_name || a.users.name || '').localeCompare(b.users.display_name || b.users.name || '', 'ja'));
+    renderOrgMembersTable(merged);
   }
 
   function renderOrgMembersTable(members) {
@@ -4232,7 +4241,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-05</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-06</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
