@@ -788,7 +788,7 @@
       <div class="detail-sec-label">期限</div>
       <input class="form-field" id="td-deadline" type="date" onchange="saveDeadlineOnly()" />
       <button id="td-lw-sync-btn" onclick="syncTaskToLwCalendar()"
-        style="display:none;margin-top:8px;width:100%;padding:10px;border-radius:8px;font-size:13px;font-family:inherit;cursor:pointer;border:none;font-weight:600;transition:all .2s;">
+        style="display:none;margin-top:6px;width:50%;padding:6px 10px;border-radius:6px;font-size:12px;font-family:inherit;cursor:pointer;font-weight:500;transition:all .2s;">
       </button>
     </div>
 
@@ -2340,13 +2340,13 @@
     const hasSynced = t.lw_calendar_event_ids && Object.keys(t.lw_calendar_event_ids).length > 0;
     btn.style.display = 'block';
     if (hasSynced) {
-      btn.textContent = '✅ LW同期済（再同期）';
-      btn.style.background = '#eafaf1'; btn.style.color = '#27ae60';
-      btn.style.border = '1.5px solid #a9dfbf';
+      btn.textContent = '✅ LW同期済';
+      btn.style.background = '#f0f0f0'; btn.style.color = '#888';
+      btn.style.border = '1px solid #ddd';
     } else {
-      btn.textContent = '🔄 LWカレンダーに同期する';
-      btn.style.background = '#667eea'; btn.style.color = '#fff';
-      btn.style.border = 'none';
+      btn.textContent = '🔄 LW同期';
+      btn.style.background = '#f0f0f0'; btn.style.color = '#555';
+      btn.style.border = '1px solid #ddd';
     }
     btn.disabled = false;
   }
@@ -4396,7 +4396,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-11</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-12</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
