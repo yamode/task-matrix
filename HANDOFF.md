@@ -1,6 +1,6 @@
 # タスク管理アプリ 引き継ぎメモ
 
-> **最終更新**: 2026-03-28（TASKUL改名・入力欄集約・設定画面・Bot通知・組織管理DB等 大量実装）
+> **最終更新**: 2026-03-28（LW App Link 修正・lw_account_id カラム追加・Supabaseマイグレーション全実行済み）
 > **次の作業担当への指示**: このファイルを読んでから、**必ず下記「作業開始前の手順」を実行してから** `dev/index.html` を読むこと。
 
 ---
@@ -44,7 +44,8 @@ KEY: sb_publishable_iumeCKdl6tr3AU3DL0roWA_B_WiCOwn
 ```sql
 -- ユーザー（Phase 1+2: Supabase Auth + LINE WORKS WOFF 連携済み）
 users: id uuid PK, name text UNIQUE, email text UNIQUE, auth_id uuid UNIQUE,
-       lw_user_id text UNIQUE,
+       lw_user_id text UNIQUE,              -- LINE WORKS内部UUID（Bot API・WOFF認証用）
+       lw_account_id text UNIQUE,           -- LW App Link emailList用（例: xxx@yamado）※組織ごとに形式が異なるため別管理
        display_name text,                   -- LW WOFFから取得した表示名（例: 佐々木 耀）
        lw_task_calendar_id text,            -- LWタスクカレンダーID
        lw_enabled boolean DEFAULT true,     -- LW連携オン/オフ（2026-03-28 追加）
@@ -123,22 +124,9 @@ org_members:   id bigserial PK, org_id bigint FK → organizations, user_id uuid
 areas: id bigserial PK, name text NOT NULL, color text DEFAULT '#667eea', created_at
 ```
 
-⚠️ **未実行マイグレーション（Supabase SQLエディタで実行要）**:
-```sql
-GRANT ALL ON TABLE areas TO anon, authenticated;
-GRANT USAGE, SELECT ON SEQUENCE areas_id_seq TO anon, authenticated;
-ALTER TABLE tasks ADD COLUMN IF NOT EXISTS processed_at timestamptz;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS lw_enabled boolean DEFAULT true;
-CREATE TABLE IF NOT EXISTS organizations (id bigserial PRIMARY KEY, name text NOT NULL, owner_id uuid REFERENCES users(id), created_at timestamptz DEFAULT now());
-CREATE TABLE IF NOT EXISTS org_members (id bigserial PRIMARY KEY, org_id bigint REFERENCES organizations(id) ON DELETE CASCADE, user_id uuid REFERENCES users(id), role text DEFAULT 'member', UNIQUE(org_id, user_id));
-ALTER TABLE users ADD COLUMN IF NOT EXISTS org_id bigint REFERENCES organizations(id);
-GRANT ALL ON TABLE organizations TO anon, authenticated;
-GRANT USAGE, SELECT ON SEQUENCE organizations_id_seq TO anon, authenticated;
-GRANT ALL ON TABLE org_members TO anon, authenticated;
-GRANT USAGE, SELECT ON SEQUENCE org_members_id_seq TO anon, authenticated;
-CREATE POLICY "allow_all" ON organizations FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "allow_all" ON org_members FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
-```
+✅ **マイグレーション全実行済み（2026-03-28）**:
+- areas テーブル GRANT、tasks.processed_at、users.lw_enabled、organizations/org_members テーブル、users.org_id
+- users.lw_account_id（lw_account_id text UNIQUE + 既存ユーザーへのデータ移行）
 
 ---
 
@@ -315,7 +303,8 @@ git push origin main
 - [x] タスク追加スキル: `~/.claude/commands/add-task.md`。Supabase REST API経由でトレーにタスクを追加
 - [x] セッション永続化（PCブラウザ）: リロード後もログイン状態を維持
 - [x] レポーティング: 全員のタスク件数をメンバー一覧で表示。行クリックで明細展開。非公開タスクは件数のみカウント・明細は「🔒 非公開」表示
-- [ ] Bot通知（配布タスクの承認/不服/完了確認時）← 未着手
+- [x] Bot通知（タスク配布時に配布先へ通知）（2026-03-28 実装・修正完了）
+  - ⚠️ 承認/差し戻し/完了確認時の通知は未実装
 
 **前提**: Phase 2 完了後に着手
 
@@ -427,8 +416,12 @@ curl --ftp-ssl -u "yamado:yamado132586" \
   - `api.php` に `send_message` アクション追加。Xserverにデプロイ済み
   - ⚠️ LW Developer Console で Service Account に `bot` スコープの権限付与が必要
 - [x] 組織管理機能 Phase A: DB のみ（`organizations` / `org_members` テーブル作成 + `users.org_id`）（2026-03-28）
-  - ⚠️ Supabase マイグレーション必要（HANDOFF.md STEP 1 SQL参照）
+  - Supabase マイグレーション実行済み
   - UI実装は別セッション（Phase B）
+- [x] `users.lw_account_id` カラム追加（2026-03-28）
+  - LW App Link の `emailList` 用。`lw_user_id`（Bot API UUID）・`email`（ログイン用）・`lw_account_id`（App Link用）を分離管理
+  - 組織管理実装時にインポート機能で各ユーザーへ設定できる設計
+  - 既存ユーザーへのデータ移行済み（`email` から `.co.jp` 除去で自動セット）
 - [ ] 多言語対応
 - [ ] Payment機能（製品配布用）
 - [ ] 製品化ロードマップの策定
@@ -536,6 +529,50 @@ UX改善:
 - 領域別カンバンビュー → 未着手
 - レポートの領域別ビュー → 未着手
 - Bot通知（配布タスクの承認/不服/完了確認時）→ 未着手
+
+---
+
+### 2026-03-28
+
+**実施内容:**
+
+LW App Link 修正（複数セッション）:
+- LWボタンを App Link（`line.worksmobile.com/message/send`）方式に修正
+- メッセージ入力モーダル追加（タスク名・期限＋任意メッセージを組み合わせて送信）
+- `emailList` パラメータの試行錯誤:
+  - UUID → NG（「ゲスト参加者は利用できません」エラー）
+  - `users.email`（フルメール）→ NG
+  - `.co.jp` 除去した `xxx@yamado` 形式 → OK（動作確認済み）
+
+設計改善（lw_account_id）:
+- LW IDは組織ごとに形式が異なるため `users.lw_account_id` カラムを独立追加
+- `lw_user_id`（Bot API UUID）・`lw_account_id`（App Link用）・`email`（ログイン用）を分離管理
+- Supabase マイグレーション実行済み・既存ユーザーへのデータ移行済み
+- 組織管理機能（Phase B）でインポート機能を実装予定
+
+Bot通知バグ修正:
+- キャッシュミス時に通知が届かない問題を修正（DB直接取得フォールバック追加）
+- `assignTask` の配布通知に `await` 追加・詳細ログ出力
+
+Supabaseマイグレーション全実行:
+- 前セッションから積み残していたマイグレーション SQL を全て実行済み
+
+**バージョン:** `v2026-03-28-04`
+
+**コミット:**
+- `82a18c4` fix: Bot通知がキャッシュミスのユーザーに届かない問題を修正
+- `c554f3a` fix: タスク配布時に配布先ユーザーへのBot通知が抜けていた
+- `cb5dbc1` fix: LWボタンをApp Link方式に修正・メッセージ入力モーダル追加
+- `17914b2` fix: LWトークのemailListをxxx@yamado形式に修正・バージョン表記追加
+- `2c45932` feat: lw_account_id カラム追加・App Link emailList を専用フィールドで管理
+
+**残作業:**
+- 添付ファイルの確認ができない問題 → 未調査
+- 添付ファイルを開くと右上閉じるでアプリが閉じる → 未調査
+- Bot通知（承認/差し戻し/完了確認時）→ 未着手
+- 領域別カンバンビュー → 未着手
+- レポートの領域別ビュー → 未着手
+- 組織管理 Phase B（UI実装）→ 未着手
 
 ---
 
