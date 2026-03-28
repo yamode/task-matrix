@@ -434,6 +434,13 @@ curl --ftp-ssl -u "yamado:yamado132586" \
   - LW App Link の `emailList` 用。`lw_user_id`（Bot API UUID）・`email`（ログイン用）・`lw_account_id`（App Link用）を分離管理
   - 組織管理実装時にインポート機能で各ユーザーへ設定できる設計
   - 既存ユーザーへのデータ移行済み（`email` から `.co.jp` 除去で自動セット）
+- [ ] **製品版公開前：リポジトリ・フォルダ名を TASKUL に統一**（アプリ名正式決定に伴う整理）
+  - ローカルフォルダ: `96_Claude/task/` → `96_Claude/taskul/`
+  - GitHubリポジトリ: `task-matrix` → `taskul`
+  - メインHTMLファイル: `task-matrix-v2.html` → `index.html`（または `taskul.html`）
+  - GitHub Pages URL 変更: `yamode.github.io/task-matrix/` → `yamode.github.io/taskul/`
+  - ⚠️ WOFFアプリのURL設定を同時に変更すること（旧URLは即時404になる）
+  - `.claude/CLAUDE.md`・`HANDOFF.md` 内の参照を一括置換
 - [ ] 多言語対応
 - [ ] Payment機能（製品配布用）
 - [ ] 製品化ロードマップの策定
