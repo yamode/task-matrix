@@ -1693,9 +1693,10 @@
     if (deadline) msg += ` 期限: ${deadline}`;
     if (extraMsg) msg += `\n\n${extraMsg}`;
 
-    const email = emailCache[userId];
+    const emailFull = emailCache[userId];
+    const lwId = emailFull ? emailFull.replace('.co.jp', '') : null;
     let url = `https://line.worksmobile.com/message/send?version=26&message=${encodeURIComponent(msg)}`;
-    if (email) url += `&emailList=${encodeURIComponent(email)}`;
+    if (lwId) url += `&emailList=${encodeURIComponent(lwId)}`;
 
     window.open(url, '_blank');
     closeLWTalkModal();
@@ -3242,7 +3243,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-02</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-03</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
