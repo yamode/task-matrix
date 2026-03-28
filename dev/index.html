@@ -1618,7 +1618,7 @@
         actions.push(`<button class="btn-icon danger" onclick="cancelAssignment(${t.id})">取消</button>`);
       }
       if (currentUser?.lw_enabled !== false) {
-        actions.push(`<button class="btn-icon" onclick="openLWTalkModal('${t.user_id}', ${JSON.stringify(t.text)}, ${JSON.stringify(t.deadline || '')})">💬 LW</button>`);
+        actions.push(`<button class="btn-icon" onclick="openLWTalkModal(${t.id})">💬 LW</button>`);
       }
       return `<div class="ao-item">
         <div class="ao-info">
@@ -1667,10 +1667,12 @@
   // ── LWトークモーダル ──────────────────────────────────────────
   let _lwTalkTarget = null;
 
-  function openLWTalkModal(userId, taskText, deadline) {
-    _lwTalkTarget = { userId, taskText, deadline };
-    let info = `📋 <strong>${esc(taskText)}</strong>`;
-    if (deadline) info += `<br>⏰ 期限: ${deadline}`;
+  function openLWTalkModal(taskId) {
+    const t = assignedOutTasks.find(x => x.id === taskId);
+    if (!t) return;
+    _lwTalkTarget = { userId: t.user_id, taskText: t.text, deadline: t.deadline };
+    let info = `📋 <strong>${esc(t.text)}</strong>`;
+    if (t.deadline) info += `<br>⏰ 期限: ${t.deadline}`;
     document.getElementById('lw-talk-task-info').innerHTML = info;
     document.getElementById('lw-talk-message').value = '';
     document.getElementById('lw-talk-modal').classList.add('open');
@@ -3238,6 +3240,9 @@
   // ── 起動 ─────────────────────────────────────────────────────
   init();
 </script>
+
+<!-- バージョン表記 -->
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-02</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
