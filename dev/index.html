@@ -427,7 +427,7 @@
 
     /* ── モバイル ── */
     @media (max-width: 767px) {
-      #app { padding:12px 14px 60px; }
+      #app { padding:12px 14px 100px; }
       h1   { font-size:18px; }
       .axis-labels { grid-template-columns:1fr; grid-template-rows:none; }
       .label-urgent,.label-not-urgent,.label-important,.label-not-important { display:none; }
@@ -440,6 +440,36 @@
       .bottom-sheet-content { border-radius:14px; max-width:540px; width:90%; max-height:84vh; }
       .bottom-sheet-handle { display:none; }
     }
+
+    /* ── フッターナビ ── */
+    #footer-nav {
+      position:fixed; bottom:0; left:0; right:0;
+      display:none;
+      grid-template-columns:1fr 1fr 1fr 1fr; grid-template-rows:44px 44px;
+      background:#fff; border-top:1.5px solid #e4e4e4;
+      z-index:150;
+    }
+    #footer-nav.visible { display:grid; }
+    @media (min-width:1200px) { #footer-nav.visible { display:none; } }
+    .fnav-btn {
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:2px; border:none; background:none; cursor:pointer; font-family:inherit;
+      border-right:1px solid #f0f0f0; border-bottom:1px solid #f0f0f0;
+      padding:4px 2px; -webkit-tap-highlight-color:transparent; transition:background .1s;
+    }
+    .fnav-btn:nth-child(n+5) { border-bottom:none; }
+    .fnav-btn:active { background:#f0f3ff; }
+    .fnav-btn.active { background:#f5f3ff; }
+    .fnav-icon  { font-size:17px; line-height:1; }
+    .fnav-label { font-size:10px; font-weight:700; color:#666; letter-spacing:.02em; }
+    .fnav-btn.active .fnav-label { color:#667eea; }
+    /* 月次：右端2行span */
+    .fnav-btn-span {
+      grid-row:1 / span 2; grid-column:4;
+      border-right:none; border-bottom:none;
+    }
+    .fnav-btn-span .fnav-icon  { font-size:20px; }
+    .fnav-btn-span .fnav-label { font-size:11px; }
     @media (min-width: 1200px) {
       #app { max-width:none; padding:20px 24px 60px; }
       .three-col-layout { display:grid; grid-template-columns:280px 1fr 320px; gap:0 20px; align-items:start; }
@@ -562,7 +592,7 @@
   </div>
 
   <!-- タスクトレー -->
-  <div class="tray-section">
+  <div class="tray-section" id="section-tray">
     <div class="tray-header">
       <span style="font-size:20px;">📥</span>
       <span class="tray-header-title">タスクトレー</span>
@@ -577,19 +607,19 @@
 
   <!-- 4象限 -->
   <div class="axis-labels">
-    <div class="quadrant q1">
+    <div class="quadrant q1" id="section-q1">
       <div class="quadrant-header"><span class="quadrant-icon">🚨</span><div><div class="quadrant-title">緊急かつ重要</div><div class="quadrant-hint">今すぐ対応する</div></div><div class="quadrant-qnum">Q1</div></div>
       <div class="task-list" id="list-q1"></div>
     </div>
-    <div class="quadrant q2">
+    <div class="quadrant q2" id="section-q2">
       <div class="quadrant-header"><span class="quadrant-icon">🎯</span><div><div class="quadrant-title">緊急ではないが重要</div><div class="quadrant-hint">計画して取り組む</div></div><div class="quadrant-qnum">Q2</div></div>
       <div class="task-list" id="list-q2"></div>
     </div>
-    <div class="quadrant q3">
+    <div class="quadrant q3" id="section-q3">
       <div class="quadrant-header"><span class="quadrant-icon">📨</span><div><div class="quadrant-title">緊急だが重要ではない</div><div class="quadrant-hint">委任・効率化を検討</div></div><div class="quadrant-qnum">Q3</div></div>
       <div class="task-list" id="list-q3"></div>
     </div>
-    <div class="quadrant q4">
+    <div class="quadrant q4" id="section-q4">
       <div class="quadrant-header"><span class="quadrant-icon">🗑️</span><div><div class="quadrant-title">緊急でも重要でもない</div><div class="quadrant-hint">削除・後回し</div></div><div class="quadrant-qnum">Q4</div></div>
       <div class="task-list" id="list-q4"></div>
     </div>
@@ -611,7 +641,7 @@
   <div class="col-right">
 
   <!-- 定型タスク -->
-  <div class="recurring-section">
+  <div class="recurring-section" id="section-cal">
     <div class="rec-card">
       <div class="cal-nav">
         <button class="cal-nav-btn" onclick="changeMonth(-1)">◀</button>
@@ -640,6 +670,31 @@
   </div>
   <p class="footer">データは Supabase クラウドに保存されています</p>
 </div>
+
+<!-- フッターナビ -->
+<nav id="footer-nav">
+  <button class="fnav-btn" onclick="fnavScroll('section-tray')">
+    <span class="fnav-icon">📥</span><span class="fnav-label">トレー</span>
+  </button>
+  <button class="fnav-btn" onclick="fnavScroll('section-q1')">
+    <span class="fnav-icon">🚨</span><span class="fnav-label">緊急重要</span>
+  </button>
+  <button class="fnav-btn" onclick="fnavScroll('section-q2')">
+    <span class="fnav-icon">🎯</span><span class="fnav-label">重要</span>
+  </button>
+  <button class="fnav-btn fnav-btn-span" onclick="fnavScroll('section-cal')">
+    <span class="fnav-icon">📅</span><span class="fnav-label">月次</span>
+  </button>
+  <button class="fnav-btn" onclick="fnavScroll('assigned-out-section')">
+    <span class="fnav-icon">📤</span><span class="fnav-label">配布</span>
+  </button>
+  <button class="fnav-btn" onclick="fnavScroll('section-q3')">
+    <span class="fnav-icon">📨</span><span class="fnav-label">緊急</span>
+  </button>
+  <button class="fnav-btn" onclick="fnavScroll('section-q4')">
+    <span class="fnav-icon">🗑️</span><span class="fnav-label">後回し</span>
+  </button>
+</nav>
 
 <!-- ═══════════════════════ SHEETS & MODALS ═══════════════════════ -->
 
@@ -850,7 +905,7 @@
 <div class="master-overlay" id="archive-overlay">
   <div class="master-overlay-header">
     <div class="master-overlay-title">🗂 タスクアーカイブ</div>
-    <button class="modal-close" onclick="closeArchive()">✕</button>
+    <button class="btn-secondary" onclick="closeArchive()" style="font-size:13px;padding:6px 16px;">閉じる</button>
   </div>
   <div class="master-overlay-body" style="padding:20px;">
     <div id="archive-list"><div style="text-align:center;padding:40px;color:#888;">読み込み中...</div></div>
@@ -860,13 +915,18 @@
 <div class="master-overlay" id="settings-overlay">
   <div class="master-overlay-header">
     <div class="master-overlay-title">⚙️ 設定</div>
-    <button class="modal-close" onclick="closeSettings()">✕</button>
+    <button class="btn-secondary" onclick="closeSettings()" style="font-size:13px;padding:6px 16px;">閉じる</button>
   </div>
   <div class="master-overlay-body" style="padding:24px 20px;max-width:520px;margin:0 auto;">
 
     <div style="margin-bottom:28px;">
       <div style="font-size:15px;font-weight:700;color:#333;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #eee;">📅 定型タスク マスタ管理</div>
       <button class="btn-secondary" onclick="closeSettings();openMasterOverlay();" style="font-size:14px;padding:10px 18px;">⚙️ マスタ管理を開く</button>
+    </div>
+
+    <div style="margin-bottom:28px;">
+      <div style="font-size:15px;font-weight:700;color:#333;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #eee;">🏷 領域管理</div>
+      <button class="btn-secondary" onclick="closeSettings();openAreaManager();" style="font-size:14px;padding:10px 18px;">🏷 領域を管理する</button>
     </div>
 
     <div style="margin-bottom:28px;">
@@ -891,7 +951,6 @@
           onchange="saveLwEnabled(this.checked)" />
       </div>
       <div style="font-size:12px;color:#aaa;margin-top:6px;">オフにするとカレンダー同期・LWボタン・Bot通知が無効になります</div>
-      <button onclick="testBotNotification()" style="margin-top:12px;padding:8px 16px;background:#f0f7ff;border:1px solid #667eea;border-radius:6px;font-size:13px;color:#667eea;cursor:pointer;font-family:inherit;font-weight:700;">🔔 Bot通知テスト（自分に送信）</button>
     </div>
 
   </div>
@@ -1000,6 +1059,47 @@
   const SUPABASE_URL      = 'https://ynzpjdarpfaurzomrddu.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_iumeCKdl6tr3AU3DL0roWA_B_WiCOwn';
   // ================================================================
+
+  // ── フッターナビ ──────────────────────────────────────────────
+  function fnavScroll(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    // assigned-out-section は非表示の場合があるので表示してからスクロール
+    if (id === 'assigned-out-section' && el.style.display === 'none') {
+      el.style.display = '';
+    }
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  // スクロール位置に応じてアクティブボタンを更新
+  (function initFnavObserver() {
+    const targets = [
+      { id: 'section-tray',        btnIdx: 0 },
+      { id: 'section-q1',          btnIdx: 1 },
+      { id: 'section-q2',          btnIdx: 2 },
+      { id: 'section-cal',         btnIdx: 3 },
+      { id: 'assigned-out-section',btnIdx: 4 },
+      { id: 'section-q3',          btnIdx: 5 },
+      { id: 'section-q4',          btnIdx: 6 },
+    ];
+    const btns = () => document.querySelectorAll('.fnav-btn');
+    const setActive = (idx) => {
+      btns().forEach((b, i) => b.classList.toggle('active', i === idx));
+    };
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          const t = targets.find(t => t.id === e.target.id);
+          if (t) setActive(t.btnIdx);
+        }
+      });
+    }, { threshold: 0.3 });
+    window.addEventListener('load', () => {
+      targets.forEach(t => {
+        const el = document.getElementById(t.id);
+        if (el) observer.observe(el);
+      });
+    });
+  })();
 
   // ── デバッグ設定 ──────────────────────────────────────────────
   const DEBUG = true; // リリース時に false に変える
@@ -1291,6 +1391,7 @@
     document.querySelector('.btn-logout').style.display = _isWoffLogin ? 'none' : '';
     document.getElementById('global-add-bar').classList.add('visible');
     document.getElementById('app').style.display = 'block';
+    document.getElementById('footer-nav').classList.add('visible');
     fillDaySelect();
     await Promise.all([loadTasks(), loadRT(), loadAreas()]);
   }
@@ -1307,6 +1408,7 @@
     document.getElementById('app').style.display = 'none';
     document.getElementById('user-bar').style.display = 'none';
     document.getElementById('global-add-bar').classList.remove('visible');
+    document.getElementById('footer-nav').classList.remove('visible');
     document.getElementById('login-email').value = '';
     document.getElementById('login-password').value = '';
     document.getElementById('login-screen').style.display = 'flex';
@@ -2349,11 +2451,29 @@
     const c = document.getElementById('area-list');
     if (!areasCache.length) { c.innerHTML = '<div style="font-size:13px;color:#aaa;">領域はまだありません</div>'; return; }
     c.innerHTML = areasCache.map(a => `
-      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f5f5f5;">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f5f5f5;">
         <span style="width:14px;height:14px;border-radius:50%;background:${a.color};flex-shrink:0;display:inline-block;"></span>
-        <span style="flex:1;font-size:14px;color:#333;">${esc(a.name)}</span>
+        <input type="text" value="${esc(a.name)}" id="area-name-${a.id}"
+          style="flex:1;font-size:14px;color:#333;border:1.5px solid #eee;border-radius:6px;padding:4px 8px;font-family:inherit;outline:none;"
+          onfocus="this.style.borderColor='#667eea'"
+          onblur="this.style.borderColor='#eee'"
+          onkeydown="if(event.key==='Enter')updateAreaName(${a.id})" />
+        <button class="btn-icon" onclick="updateAreaName(${a.id})" style="font-size:12px;color:#667eea;border-color:#667eea;">変更</button>
         <button class="btn-icon danger" onclick="deleteArea(${a.id})">削除</button>
       </div>`).join('');
+  }
+
+  async function updateAreaName(id) {
+    const input = document.getElementById('area-name-' + id);
+    if (!input) return;
+    const name = input.value.trim();
+    if (!name) { showToast('❌ 名称を入力してください'); return; }
+    const { error } = await sb.from('areas').update({ name }).eq('id', id);
+    if (error) { showToast('❌ 更新に失敗しました'); return; }
+    await loadAreas();
+    renderAreaList();
+    renderMatrix();
+    showToast('✅ 名称を変更しました');
   }
 
   async function addArea() {
@@ -2980,14 +3100,6 @@
     } catch(e) { dbg('Bot通知 fetch失敗:', e.message); }
   }
 
-  async function testBotNotification() {
-    dbg('--- Bot通知テスト開始 ---');
-    dbg('currentUser.id:', currentUser?.id, '/ lw_user_id:', currentUser?.lw_user_id);
-    dbg('lwIdCache:', JSON.stringify(lwIdCache));
-    if (!currentUser?.lw_user_id) { showToast('自分の lw_user_id が未設定です'); return; }
-    await sendBotNotification(currentUser.id, '🔔 Bot通知テスト from TASKUL');
-    showToast('テスト送信しました（デバッグパネルで結果確認）');
-  }
 
   // ── 処理済みタスク自動削除 ────────────────────────────────────
   async function archiveDoneTasks() {
@@ -3248,7 +3360,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-04</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-06</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
