@@ -40,13 +40,15 @@
     .user-bar-row1 { position:relative; padding:9px 16px; display:flex; align-items:center; gap:10px; }
     /* モバイル: 2行目アクションバー */
     .user-bar-row2 { padding:6px 16px 8px; display:flex; gap:8px; border-top:1px solid #f0f0f0; }
-    .app-title { font-size:17px; font-weight:800; color:#1a2744; letter-spacing:2px; flex-shrink:0; }
-    /* 右側まとめ */
+    /* ロゴ（将来用・設定時にsrcをセットして表示） */
+    .app-logo { height:28px; width:auto; display:none; flex-shrink:0; }
+    /* タイトルテキスト: モバイルでは非表示（ブラウザ上部にタイトルが出るため重複回避） */
+    .app-title { font-size:17px; font-weight:800; color:#1a2744; letter-spacing:2px; flex-shrink:0; display:none; }
+    /* 右側まとめ（margin-left:auto で右寄せ） */
     .user-bar-right { display:flex; align-items:center; gap:8px; margin-left:auto; }
     .user-bar-name { font-size:14px; font-weight:700; color:#667eea; }
-    /* PCインライン要素（モバイルでは非表示） */
-    .user-bar-pc-actions { display:none; flex:1; align-items:center; justify-content:flex-end; gap:8px; }
-    .user-bar-pc-settings { display:none; align-items:center; gap:8px; }
+    /* PC版アクションボタン群（モバイルでは非表示） */
+    .user-bar-pc-actions { display:none; align-items:center; gap:8px; }
     .btn-logout { padding:6px 13px; background:none; border:1px solid #ddd; border-radius:6px; font-size:12px; cursor:pointer; color:#888; font-family:inherit; transition:all .15s; }
     .btn-logout:hover { border-color:#e74c3c; color:#e74c3c; }
     /* ハンバーガーメニュー（モバイルのみ） */
@@ -60,9 +62,9 @@
     .hamburger-item + .hamburger-item { border-top:1px solid #f5f5f5; }
     /* PC版レイアウト */
     @media (min-width: 768px) {
+      .app-title { display:block; }
       .user-bar-row2 { display:none; }
       .user-bar-pc-actions { display:flex; }
-      .user-bar-pc-settings { display:flex; }
       .btn-hamburger { display:none; }
     }
 
@@ -492,18 +494,18 @@
 <!-- ユーザーバー -->
 <div class="user-bar" id="user-bar" style="display:none;">
   <div class="user-bar-row1">
+    <!-- ロゴ（将来用：src設定後 display:block で表示） -->
+    <img id="app-logo" class="app-logo" src="" alt="TASKUL">
+    <!-- タイトルテキスト（PCのみ表示） -->
     <div class="app-title">TASKUL</div>
-    <!-- PC版: インラインアクションボタン -->
-    <div class="user-bar-pc-actions">
-      <button class="btn-report" onclick="archiveDoneTasks()">🗂 完了済みを整理する</button>
-      <button class="btn-report" onclick="openReport()">📊 レポート</button>
-      <button class="btn-report" onclick="openArchive()">🗂 アーカイブ</button>
-    </div>
-    <!-- 右側: 名前 + PC設定 or ハンバーガー -->
+    <!-- 右まとめ -->
     <div class="user-bar-right">
       <div class="user-bar-name" id="user-bar-name"></div>
-      <!-- PC版: 設定・ログアウトをインライン表示 -->
-      <div class="user-bar-pc-settings">
+      <!-- PC版: 名前の右にアクションボタン群 -->
+      <div class="user-bar-pc-actions">
+        <button class="btn-report" onclick="archiveDoneTasks()">🗂 完了済を整理</button>
+        <button class="btn-report" onclick="openReport()">📊 レポート</button>
+        <button class="btn-report" onclick="openArchive()">🗂 アーカイブ</button>
         <button class="btn-report" onclick="openSettings()">⚙️ 設定</button>
         <button class="btn-logout" onclick="handleLogout()">ログアウト</button>
       </div>
@@ -518,7 +520,7 @@
   </div>
   <!-- モバイル版: 2行目アクションバー -->
   <div class="user-bar-row2">
-    <button class="btn-report" onclick="archiveDoneTasks()">🗂 完了済みを整理する</button>
+    <button class="btn-report" onclick="archiveDoneTasks()">🗂 完了済を整理</button>
     <button class="btn-report" onclick="openReport()">📊 レポート</button>
   </div>
 </div>
