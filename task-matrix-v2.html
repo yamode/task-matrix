@@ -3100,14 +3100,6 @@
     } catch(e) { dbg('Bot通知 fetch失敗:', e.message); }
   }
 
-  async function testBotNotification() {
-    dbg('--- Bot通知テスト開始 ---');
-    dbg('currentUser.id:', currentUser?.id, '/ lw_user_id:', currentUser?.lw_user_id);
-    dbg('lwIdCache:', JSON.stringify(lwIdCache));
-    if (!currentUser?.lw_user_id) { showToast('自分の lw_user_id が未設定です'); return; }
-    await sendBotNotification(currentUser.id, '🔔 Bot通知テスト from TASKUL');
-    showToast('テスト送信しました（デバッグパネルで結果確認）');
-  }
 
   // ── 処理済みタスク自動削除 ────────────────────────────────────
   async function archiveDoneTasks() {
@@ -3368,7 +3360,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-05</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-06</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
