@@ -433,7 +433,7 @@
       .label-urgent,.label-not-urgent,.label-important,.label-not-important { display:none; }
       .quadrant { min-height:auto; }
       .task-item { cursor:default; }
-      #td-deadline { background:white !important; -webkit-appearance:none; appearance:none; width:100%; max-width:100%; box-sizing:border-box; }
+      #td-deadline { background:white !important; -webkit-appearance:none; appearance:none; width:100%; max-width:100%; box-sizing:border-box; min-height:42px; padding:9px 12px; }
     }
     @media (min-width: 768px) {
       .bottom-sheet { align-items:center; }
@@ -721,7 +721,7 @@
 
     <!-- 設定者情報 -->
     <div class="td-assigner-row" id="td-assigner-row" style="display:none;">
-      <div class="td-assigner-label">📬 配布されたタスク</div>
+      <div class="td-assigner-label" id="td-assigner-label">📬 配布されたタスク</div>
       <div id="td-assigner-name" style="font-size:13px;"></div>
     </div>
 
@@ -1163,7 +1163,7 @@
   let currentInstanceId = null;
   let currentTaskId     = null;
   let disputingTaskId   = null;
-  let assignedOutOpen   = false;
+  let assignedOutOpen   = true;
 
   // ── ローディング ──────────────────────────────────────────────
   function showLoading() { document.getElementById('loading-overlay').classList.add('show'); }
@@ -1422,7 +1422,7 @@
     tasks = { tray:[], q1:[], q2:[], q3:[], q4:[] };
     receivedTasks = []; assignedOutTasks = []; usersCache = {};
     recurringTasks = []; allInstances = {}; shares = {};
-    currentTaskId = null; currentInstanceId = null; assignedOutOpen = false;
+    currentTaskId = null; currentInstanceId = null; assignedOutOpen = true;
     document.getElementById('app').style.display = 'none';
     document.getElementById('user-bar').style.display = 'none';
     document.getElementById('global-add-bar').classList.remove('visible');
@@ -1738,15 +1738,15 @@
       const sc = STATUS_CLASS[status] || '';
       const actions = [];
       if (status === 'done_pending') {
-        actions.push(`<button class="btn-approve" onclick="confirmDone(${t.id})" style="padding:6px 12px;font-size:13px;">確認済みにする</button>`);
+        actions.push(`<button class="btn-approve" onclick="event.stopPropagation();confirmDone(${t.id})" style="padding:6px 12px;font-size:13px;">確認済みにする</button>`);
       }
       if (status === 'pending' || status === 'disputed') {
-        actions.push(`<button class="btn-icon danger" onclick="cancelAssignment(${t.id})">取消</button>`);
+        actions.push(`<button class="btn-icon danger" onclick="event.stopPropagation();cancelAssignment(${t.id})">取消</button>`);
       }
       if (currentUser?.lw_enabled !== false) {
-        actions.push(`<button class="btn-icon" onclick="openLWTalkModal(${t.id})">💬 LW</button>`);
+        actions.push(`<button class="btn-icon" onclick="event.stopPropagation();openLWTalkModal(${t.id})">💬 LW</button>`);
       }
-      return `<div class="ao-item">
+      return `<div class="ao-item" onclick="openTaskDetail(${t.id})" style="cursor:pointer;">
         <div class="ao-info">
           <div class="ao-text">${esc(t.text)}</div>
           <div class="ao-to">→ ${esc(toName)}${t.dispute_reason ? `<span style="color:#e74c3c;margin-left:6px;">理由: ${esc(t.dispute_reason)}</span>` : ''}</div>
@@ -1757,7 +1757,9 @@
         </div>
       </div>`;
     }).join('');
-    if (assignedOutOpen) list.style.display = 'block';
+    list.style.display = assignedOutOpen ? 'block' : 'none';
+    const chevron = document.getElementById('assigned-out-chevron');
+    if (chevron) chevron.textContent = assignedOutOpen ? '▲' : '▼';
   }
 
   function toggleAssignedOut() {
@@ -1775,7 +1777,19 @@
     }).eq('id', taskId);
     if (error) { showToast('❌ 確認に失敗しました'); return; }
     showToast('✅ 完了を確認しました');
-    if (t) sendBotNotification(t.user_id, `✅ タスク「${t.text}」の完了が確認されました`);
+    if (t) await sendBotNotification(t.user_id, `✅ タスク「${t.text}」の完了が確認されました`);
+    await loadTasks();
+  }
+
+  async function completeAssignedTask(taskId) {
+    if (!confirm('このタスクを自分の完了タスクとして受け取りますか？\n「整理」ボタンでアーカイブに移動できます。')) return;
+    const { error } = await sb.from('tasks').update({
+      user_id: currentUser.id, assigner_id: null, quadrant: 'tray',
+      done: true, approval_status: null, updated_at: new Date().toISOString()
+    }).eq('id', taskId);
+    if (error) { showToast('❌ 更新に失敗しました'); return; }
+    showToast('✅ タスクを完了として受け取りました');
+    closeTaskDetail();
     await loadTasks();
   }
 
@@ -1829,8 +1843,12 @@
 
   // ── タスク詳細シート ──────────────────────────────────────────
   async function openTaskDetail(taskId) {
-    const t = findTask(taskId); if (!t) return;
+    const t = findAnyTask(taskId); if (!t) return;
     currentTaskId = taskId;
+
+    // 役割判定
+    const isAssignee = !!(t.assigner_id && t.assigner_id !== currentUser.id);
+    const isAssigner = t.assigner_id === currentUser.id;
 
     document.getElementById('td-name').value = t.text;
     renderQuadrantSelector(t.quadrant);
@@ -1838,9 +1856,17 @@
 
     const assignerRow = document.getElementById('td-assigner-row');
     const assignSec   = document.getElementById('td-assign-section');
-    if (t.assigner_id && t.assigner_id !== currentUser.id) {
+    if (isAssignee) {
+      document.getElementById('td-assigner-label').textContent = '📬 配布されたタスク';
       document.getElementById('td-assigner-name').textContent =
         `配布者: ${usersCache[t.assigner_id] || t.assigner_id}`;
+      assignerRow.style.display = 'block';
+      assignSec.style.display = 'none';
+    } else if (isAssigner) {
+      document.getElementById('td-assigner-label').textContent = '📤 配布したタスク';
+      const status = STATUS_LABEL[t.approval_status] || t.approval_status || '';
+      document.getElementById('td-assigner-name').textContent =
+        `配布先: ${usersCache[t.user_id] || t.user_id}　${status}`;
       assignerRow.style.display = 'block';
       assignSec.style.display = 'none';
     } else {
@@ -1852,15 +1878,45 @@
       assignSelectedUserId = null;
     }
 
-    renderTaskSubtasks(t);
+    // 編集可否：assignee はサブタスク・ファイルのみ編集可、assigner は全て読み取り専用
+    const readOnly = isAssignee || isAssigner;
+    document.getElementById('td-name').disabled     = readOnly;
+    document.querySelectorAll('.qsel-btn').forEach(b => b.disabled = readOnly);
+    document.getElementById('td-deadline').disabled = readOnly;
+    document.getElementById('td-memo').disabled     = readOnly;
+    document.getElementById('td-url').disabled      = readOnly;
+    document.getElementById('td-private').disabled  = readOnly;
+    renderAreaSelect();
+    document.getElementById('td-area-select').value    = t.area_id || '';
+    document.getElementById('td-area-select').disabled = readOnly;
+    // サブタスク追加行・ファイルアップロード: assigner には非表示、assignee には表示
+    document.querySelector('.subtask-add-row').style.display  = isAssigner ? 'none' : '';
+    document.querySelector('button.btn-upload').style.display = isAssigner ? 'none' : '';
+
+    renderTaskSubtasks(t, isAssigner);
     document.getElementById('td-memo').value    = t.memo || '';
     document.getElementById('td-url').value     = t.url  || '';
     document.getElementById('td-private').checked = !!t.is_private;
-    updateTaskDoneBtn(t.done);
+
+    // 完了ボタン
+    const doneBtn = document.getElementById('td-done-btn');
+    if (isAssigner) {
+      if (t.approval_status === 'confirmed') {
+        doneBtn.style.display = '';
+        doneBtn.className = 'btn-done-toggle incomplete';
+        doneBtn.textContent = '✓ 受け取って自分の完了タスクにする';
+        doneBtn.onclick = () => completeAssignedTask(t.id);
+      } else {
+        doneBtn.style.display = 'none';
+      }
+    } else {
+      doneBtn.style.display = '';
+      doneBtn.onclick = toggleCurrentTask;
+      updateTaskDoneBtn(t.done);
+    }
+
     const canDelete = !t.assigner_id || t.assigner_id === currentUser.id;
-    document.getElementById('td-delete-btn').style.display = canDelete ? '' : 'none';
-    renderAreaSelect();
-    document.getElementById('td-area-select').value = t.area_id || '';
+    document.getElementById('td-delete-btn').style.display = canDelete && !isAssigner ? '' : 'none';
     await loadTaskFiles(taskId);
     document.getElementById('task-detail-sheet').classList.add('open');
   }
@@ -2020,7 +2076,7 @@
   }
 
   // ── タスク詳細: サブタスク ────────────────────────────────────
-  function renderTaskSubtasks(t) {
+  function renderTaskSubtasks(t, readOnly = false) {
     const subs = Array.isArray(t.subtasks) ? t.subtasks : [];
     const prog = document.getElementById('td-subtask-progress');
     const list = document.getElementById('td-subtask-list');
@@ -2028,9 +2084,9 @@
     prog.textContent = subs.length ? `${done}/${subs.length}` : '';
     list.innerHTML = subs.map(s => `
       <div class="subtask-detail-item">
-        <div class="subtask-chk ${s.done?'checked':''}" onclick="toggleTaskSubtask(${t.id},'${s.id}')">${s.done?'✓':''}</div>
-        <span class="subtask-chk-text ${s.done?'done':''}" onclick="startEditSubtask(this,'${s.id}',${t.id})" title="クリックして編集">${esc(s.text)}</span>
-        <button class="btn-file-del" onclick="deleteTaskSubtask('${s.id}')" title="削除">✕</button>
+        <div class="subtask-chk ${s.done?'checked':''}" ${readOnly?'':'onclick="toggleTaskSubtask('+t.id+',\''+s.id+'\')"'} style="${readOnly?'cursor:default;opacity:.7;':''}">${s.done?'✓':''}</div>
+        <span class="subtask-chk-text ${s.done?'done':''}" ${readOnly?'':'onclick="startEditSubtask(this,\''+s.id+'\','+t.id+')" title="クリックして編集"'}>${esc(s.text)}</span>
+        ${readOnly ? '' : `<button class="btn-file-del" onclick="deleteTaskSubtask('${s.id}')" title="削除">✕</button>`}
       </div>`).join('');
   }
 
@@ -3391,7 +3447,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-12</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-13</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
