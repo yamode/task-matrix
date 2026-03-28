@@ -295,6 +295,59 @@ if ($action === 'create') {
         $results[] = ['lw_user_id' => $lw_user_id, 'event_id' => $event_id, 'status' => $code];
     }
 
+// ── イベント更新（PUT）────────────────────────────────────────
+} elseif ($action === 'update') {
+    foreach ($events as $ev) {
+        $lw_user_id = $ev['lw_user_id'] ?? '';
+        $event_id   = $ev['event_id']   ?? '';
+        $summary    = $ev['summary']    ?? 'タスク';
+        $date       = $ev['date']       ?? '';
+        $cal_id     = $ev['cal_id']     ?? null;
+
+        if (!$lw_user_id || !$event_id || !$date || !$cal_id) {
+            $results[] = ['lw_user_id' => $lw_user_id, 'event_id' => $event_id, 'status' => 400, 'error' => 'missing params (lw_user_id/event_id/date/cal_id required)'];
+            continue;
+        }
+
+        $end_date   = date('Y-m-d', strtotime($date . ' +1 day'));
+        $event_body = json_encode([
+            'eventComponents' => [[
+                'eventId'      => $event_id,
+                'summary'      => $summary,
+                'start'        => ['date' => $date],
+                'end'          => ['date' => $end_date],
+                'transparency' => 'OPAQUE',
+                'visibility'   => 'PUBLIC',
+            ]],
+            'sendNotification' => false,
+        ], JSON_UNESCAPED_UNICODE);
+
+        $url = "https://www.worksapis.com/v1.0/users/{$lw_user_id}/calendars/{$cal_id}/events/" . urlencode($event_id);
+        $ch  = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CUSTOMREQUEST  => 'PUT',
+            CURLOPT_HTTPHEADER     => [
+                "Authorization: Bearer {$access_token}",
+                'Content-Type: application/json',
+            ],
+            CURLOPT_POSTFIELDS => $event_body,
+        ]);
+        $res  = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        $res_json          = json_decode($res, true);
+        $returned_event_id = $res_json['eventComponents'][0]['eventId'] ?? $event_id;
+
+        $results[] = [
+            'lw_user_id' => $lw_user_id,
+            'event_id'   => $returned_event_id,
+            'cal_id'     => $cal_id,
+            'status'     => $code,
+        ];
+    }
+
 // ── Bot メッセージ送信 ─────────────────────────────────────────
 } elseif ($action === 'send_message') {
     $bot_id     = $body['bot_id']     ?? '6811651';

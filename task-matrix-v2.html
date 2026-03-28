@@ -2395,19 +2395,31 @@
     btn.disabled = true; btn.textContent = '同期中...';
     btn.style.background = '#f0f0f0'; btn.style.color = '#888'; btn.style.border = 'none';
 
-    // 旧イベント削除
+    // 同期済みイベントIDを確認
     const oldCalIds = t.lw_calendar_event_ids || {};
-    if (Object.keys(oldCalIds).length) await calDelete(oldCalIds);
+    const existing  = currentUser?.lw_user_id ? oldCalIds[currentUser.lw_user_id] : null;
 
-    // 新イベント作成
     let newCalIds = {};
     if (currentUser?.lw_user_id) {
       const calId = await getOrCreateTaskCalendarId(currentUser.id);
       if (calId) {
-        const results = await calCreate([{
-          lw_user_id: currentUser.lw_user_id, cal_id: calId,
-          summary: t.text, date: deadline,
-        }]);
+        let results;
+        if (existing?.event_id) {
+          // 既存イベントを更新（削除→作成 ではなく PUT で日付・タイトル変更）
+          results = await calUpdate([{
+            lw_user_id: currentUser.lw_user_id,
+            event_id:   existing.event_id,
+            cal_id:     existing.cal_id || calId,
+            summary:    t.text,
+            date:       deadline,
+          }]);
+        } else {
+          // 初回：新規作成
+          results = await calCreate([{
+            lw_user_id: currentUser.lw_user_id, cal_id: calId,
+            summary: t.text, date: deadline,
+          }]);
+        }
         results.forEach(r => {
           if (r.event_id) newCalIds[r.lw_user_id] = { event_id: r.event_id, cal_id: r.cal_id || calId };
         });
@@ -2654,6 +2666,12 @@
   async function calCreate(events) {
     if (!events.length) return [];
     return calPost({ action: 'create', events });
+  }
+
+  // events: [{lw_user_id, event_id, cal_id, summary, date}] → results配列
+  async function calUpdate(events) {
+    if (!events.length) return [];
+    return calPost({ action: 'update', events });
   }
 
   // 後方互換: 旧形式 {lw_user_id: "event_id_string"} を
@@ -4370,7 +4388,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-09</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-10</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
