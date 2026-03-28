@@ -210,7 +210,9 @@
     .cal-nav-sub   { font-size:12px; opacity:.85; margin-top:2px; }
 
     /* インスタンスリスト */
-    .cal-section-label { font-size:12px; font-weight:700; color:#aaa; text-transform:uppercase; letter-spacing:.08em; padding:10px 18px 4px; }
+    .cal-section-label { font-size:12px; font-weight:700; color:#aaa; text-transform:uppercase; letter-spacing:.08em; padding:10px 18px 4px; display:flex; align-items:center; justify-content:space-between; }
+    .cal-filter-toggle { font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; border:1.5px solid #ddd; background:#fff; color:#999; cursor:pointer; transition:all .2s; text-transform:none; letter-spacing:0; }
+    .cal-filter-toggle.active { background:#4a90d9; border-color:#4a90d9; color:#fff; }
     .inst-item { display:flex; align-items:center; gap:10px; padding:13px 18px; border-bottom:1px solid #f5f5f5; cursor:pointer; transition:background .15s; }
     .inst-item:last-child { border-bottom:none; }
     .inst-item:hover { background:#fafafa; }
@@ -1195,6 +1197,7 @@
   let shares            = {};   // { masterId: [{ id, user_id, name }] }
   let areasCache        = [];   // [{ id, name, color }]
   let viewYear, viewMonth;
+  let calMonthlyUndoneOnly = false;
   let _calResyncDone = false; // カレンダー再同期の重複防止フラグ
   let _isWoffLogin   = false; // WOFFログイン中フラグ
   let currentInstanceId = null;
@@ -2817,6 +2820,11 @@
     await syncCalForNewInstances(newInsts);
   }
 
+  function toggleCalMonthlyFilter() {
+    calMonthlyUndoneOnly = !calMonthlyUndoneOnly;
+    renderCalendar();
+  }
+
   function renderCalendar() {
     const monthly = [], annual = [];
     recurringTasks.forEach(master => {
@@ -2834,8 +2842,13 @@
     let html = '';
     if (!all.length) { html = '<div class="cal-empty">この月の定型タスクはありません</div>'; }
     else {
-      if (monthly.length) html += `<div class="cal-section-label">月次タスク（${monthly.length}件）</div>` + monthly.map(x => instItemHTML(x.master, x.inst)).join('');
-      if (annual.length)  html += `<div class="cal-section-label">年次タスク（${annual.length}件）</div>`  + annual.map(x => instItemHTML(x.master, x.inst)).join('');
+      if (monthly.length) {
+        const visibleMonthly = calMonthlyUndoneOnly ? monthly.filter(x => !x.inst.done) : monthly;
+        const activeClass = calMonthlyUndoneOnly ? ' active' : '';
+        html += `<div class="cal-section-label"><span>月次タスク（${monthly.length}件）</span><button class="cal-filter-toggle${activeClass}" onclick="toggleCalMonthlyFilter()">未完了のみ</button></div>`;
+        html += visibleMonthly.length ? visibleMonthly.map(x => instItemHTML(x.master, x.inst)).join('') : '<div class="cal-empty" style="padding:10px 18px;font-size:13px;">完了済みのタスクが非表示です</div>';
+      }
+      if (annual.length)  html += `<div class="cal-section-label"><span>年次タスク（${annual.length}件）</span></div>`  + annual.map(x => instItemHTML(x.master, x.inst)).join('');
     }
     document.getElementById('cal-task-list').innerHTML = html;
   }
@@ -3660,7 +3673,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-14</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-15</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
