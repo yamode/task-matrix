@@ -48,6 +48,9 @@
     /* 右側まとめ（margin-left:auto で右寄せ） */
     .user-bar-right { display:flex; align-items:center; gap:8px; margin-left:auto; }
     .user-bar-name { font-size:14px; font-weight:700; color:#667eea; }
+    /* 組織名表示 */
+    .header-org-mobile { display:block; font-size:11px; font-weight:700; color:#1a2744; letter-spacing:.5px; flex-shrink:0; }
+    .header-org-pc     { display:none;  font-size:12px; font-weight:600; color:#667eea; padding-right:10px; border-right:1.5px solid #eee; white-space:nowrap; }
     /* PC版アクションボタン群（モバイルでは非表示） */
     .user-bar-pc-actions { display:none; align-items:center; gap:8px; }
     .btn-logout { padding:6px 13px; background:none; border:1px solid #ddd; border-radius:6px; font-size:12px; cursor:pointer; color:#888; font-family:inherit; transition:all .15s; }
@@ -67,6 +70,8 @@
       .user-bar-row2 { display:none; }
       .user-bar-pc-actions { display:flex; }
       .btn-hamburger { display:none; }
+      .header-org-mobile { display:none; }
+      .header-org-pc     { display:block; }
     }
 
     /* ── グローバル入力バー ── */
@@ -571,8 +576,12 @@
     <img id="app-logo" class="app-logo" src="" alt="TASKUL">
     <!-- タイトルテキスト（PCのみ表示） -->
     <div class="app-title">TASKUL</div>
+    <!-- スマホ：組織名（左側空きスペース） -->
+    <div id="header-org-mobile" class="header-org-mobile" style="display:none;"></div>
     <!-- 右まとめ -->
     <div class="user-bar-right">
+      <!-- PC：組織名（名前の左） -->
+      <div id="header-org-pc" class="header-org-pc" style="display:none;"></div>
       <div class="user-bar-name" id="user-bar-name"></div>
       <!-- PC版: 名前の右にアクションボタン群 -->
       <div class="user-bar-pc-actions">
@@ -1524,6 +1533,15 @@
   async function showApp() {
     document.getElementById('user-bar').style.display = 'flex';
     document.getElementById('user-bar-name').textContent = currentUser.display_name || currentUser.name;
+    // 組織名表示
+    if (currentUser.org_id) {
+      const { data: org } = await sb.from('organizations').select('name').eq('id', currentUser.org_id).maybeSingle();
+      const orgName = org?.name || '';
+      ['header-org-mobile', 'header-org-pc'].forEach(id => {
+        const el = document.getElementById(id);
+        if (orgName) { el.textContent = orgName; el.style.display = ''; }
+      });
+    }
     document.querySelector('.btn-logout').style.display = _isWoffLogin ? 'none' : '';
     document.getElementById('global-add-bar').classList.add('visible');
     document.getElementById('app').style.display = 'block';
@@ -4252,7 +4270,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-07</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-08</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
