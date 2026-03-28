@@ -36,15 +36,26 @@
     .login-error { font-size:13px; color:#e74c3c; margin-top:10px; min-height:18px; }
 
     /* ── ユーザーバー ── */
-    .user-bar { background:#fff; border-bottom:1px solid #eee; padding:9px 20px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; gap:12px; }
+    .user-bar { background:#fff; border-bottom:1px solid #eee; padding:0; position:sticky; top:0; z-index:100; }
+    .user-bar-row1 { position:relative; }
+    .user-bar-row1 { padding:9px 16px; display:flex; align-items:center; gap:10px; }
+    .user-bar-row2 { padding:6px 16px 8px; display:flex; gap:8px; border-top:1px solid #f0f0f0; }
     .app-title { font-size:17px; font-weight:800; color:#1a2744; letter-spacing:2px; flex-shrink:0; }
-    .user-bar-name { font-size:14px; font-weight:700; color:#444; }
-    .user-bar-name span { color:#667eea; }
+    .user-bar-name { font-size:14px; font-weight:700; color:#667eea; flex:1; }
     .btn-logout { padding:6px 13px; background:none; border:1px solid #ddd; border-radius:6px; font-size:12px; cursor:pointer; color:#888; font-family:inherit; transition:all .15s; }
     .btn-logout:hover { border-color:#e74c3c; color:#e74c3c; }
+    /* ハンバーガーメニュー */
+    .btn-hamburger { width:34px; height:34px; background:none; border:1px solid #ddd; border-radius:7px; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background .15s; }
+    .btn-hamburger:hover { background:#f5f5f5; }
+    .hamburger-menu { position:absolute; top:100%; right:16px; background:#fff; border:1px solid #eee; border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,.12); min-width:180px; z-index:200; display:none; overflow:hidden; }
+    .hamburger-menu.open { display:block; }
+    .hamburger-item { display:flex; align-items:center; gap:10px; padding:13px 16px; font-size:14px; color:#333; cursor:pointer; transition:background .15s; border:none; background:none; width:100%; text-align:left; font-family:inherit; }
+    .hamburger-item:hover { background:#f5f5f5; }
+    .hamburger-item.danger { color:#e74c3c; }
+    .hamburger-item + .hamburger-item { border-top:1px solid #f5f5f5; }
 
     /* ── グローバル入力バー ── */
-    #global-add-bar { background:#fff; border-bottom:1px solid #eee; padding:8px 20px; display:none; gap:8px; align-items:center; position:sticky; top:41px; z-index:99; flex-wrap:wrap; }
+    #global-add-bar { background:#fff; border-bottom:1px solid #eee; padding:8px 20px; display:none; gap:8px; align-items:center; position:sticky; top:83px; z-index:99; flex-wrap:wrap; }
     #global-add-bar.visible { display:flex; }
     #global-add-input { flex:1; min-width:120px; padding:9px 12px; border:1.5px solid #ddd; border-radius:8px; font-size:15px; font-family:inherit; outline:none; transition:border-color .2s; }
     #global-add-input:focus { border-color:#667eea; }
@@ -468,14 +479,19 @@
 
 <!-- ユーザーバー -->
 <div class="user-bar" id="user-bar" style="display:none;">
-  <div class="app-title">TASKUL</div>
-  <div class="user-bar-name" style="flex:1;">ログイン中: <span id="user-bar-name"></span></div>
-  <div class="user-bar-actions">
+  <div class="user-bar-row1">
+    <div class="app-title">TASKUL</div>
+    <div class="user-bar-name" id="user-bar-name"></div>
+    <button class="btn-hamburger" onclick="toggleHamburger(event)">⋮</button>
+    <div class="hamburger-menu" id="hamburger-menu">
+      <button class="hamburger-item" onclick="closeHamburger();openArchive()">🗂 アーカイブ</button>
+      <button class="hamburger-item" onclick="closeHamburger();openSettings()">⚙️ 設定</button>
+      <button class="hamburger-item danger btn-logout" onclick="handleLogout()">ログアウト</button>
+    </div>
+  </div>
+  <div class="user-bar-row2">
     <button class="btn-report" onclick="archiveDoneTasks()">🗂 完了済みを整理する</button>
-    <button class="btn-report" onclick="openArchive()">🗂 アーカイブ</button>
     <button class="btn-report" onclick="openReport()">📊 レポート</button>
-    <button class="btn-report" onclick="openSettings()">⚙️ 設定</button>
-    <button class="btn-logout" onclick="handleLogout()">ログアウト</button>
   </div>
 </div>
 
@@ -2784,6 +2800,16 @@
   }
 
   // ── レポート ──────────────────────────────────────────────────
+  // ── ハンバーガーメニュー ───────────────────────────────────────
+  function toggleHamburger(e) {
+    e.stopPropagation();
+    document.getElementById('hamburger-menu').classList.toggle('open');
+  }
+  function closeHamburger() {
+    document.getElementById('hamburger-menu').classList.remove('open');
+  }
+  document.addEventListener('click', () => closeHamburger());
+
   function openReport() {
     document.getElementById('report-overlay').classList.add('open');
     loadReport();
