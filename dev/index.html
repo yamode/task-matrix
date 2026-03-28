@@ -536,7 +536,7 @@
 <!-- ログイン -->
 <div id="login-screen">
   <div class="login-card">
-    <div class="login-logo"><img src="img/logo_300.png" alt="TASKUL"></div>
+    <div class="login-logo"><img id="login-logo-img" alt="TASKUL"></div>
     <div class="login-sub">powered by YAMADO</div>
     <div class="login-tabs">
       <button class="login-tab active" id="tab-login"  onclick="switchLoginTab('login')">ログイン</button>
@@ -1145,6 +1145,14 @@
   // ================================================================
   const SUPABASE_URL      = 'https://ynzpjdarpfaurzomrddu.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_iumeCKdl6tr3AU3DL0roWA_B_WiCOwn';
+  // ── 画像ベースパス（deploy階層を自動解決） ──
+  // /task-matrix/ → img/  /task-matrix/dev/ → ../img/
+  const IMG_BASE = (() => {
+    const segs = location.pathname.split('/').filter(s => s && !s.includes('.'));
+    return '../'.repeat(Math.max(0, segs.length - 1)) + 'img/';
+  })();
+  document.getElementById('login-logo-img').src = IMG_BASE + 'logo_300.png';
+  document.getElementById('app-logo').src        = IMG_BASE + 'logo_300.png';
   // ================================================================
 
   // ── フッターナビ ──────────────────────────────────────────────
@@ -3840,7 +3848,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-22</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-23</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
