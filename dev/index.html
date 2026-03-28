@@ -180,6 +180,7 @@
     .cal-nav-btn { width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,.2); border:none; color:#fff; font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s; }
     .cal-nav-btn:hover { background:rgba(255,255,255,.35); }
     .cal-nav-center { text-align:center; }
+    .cal-nav-title { font-size:12px; opacity:.75; margin-bottom:3px; letter-spacing:.04em; }
     .cal-nav-label { font-size:17px; font-weight:700; }
     .cal-nav-sub   { font-size:12px; opacity:.85; margin-top:2px; }
 
@@ -415,6 +416,10 @@
       .col-center .axis-labels { grid-template-columns:1fr 1fr; }
       .col-right .recurring-section { max-width:none; margin:0; }
       #done-box-section, .assigned-out-section { max-width:none; margin-left:0; margin-right:0; }
+      /* 配布タスクパネル：PC版は常時展開 */
+      #assigned-out-list { display: block !important; }
+      #assigned-out-chevron { display: none; }
+      .assigned-out-header { cursor: default; }
     }
   </style>
 </head>
@@ -554,16 +559,11 @@
 
   <!-- 定型タスク -->
   <div class="recurring-section">
-    <div class="section-header">
-      <div class="section-title">📅 定型タスク</div>
-      <div class="section-actions">
-        <button class="btn-secondary" onclick="openMasterOverlay()">⚙️ マスタ管理</button>
-      </div>
-    </div>
     <div class="rec-card">
       <div class="cal-nav">
         <button class="cal-nav-btn" onclick="changeMonth(-1)">◀</button>
         <div class="cal-nav-center">
+          <div class="cal-nav-title">📅 定型タスク</div>
           <div class="cal-nav-label" id="cal-nav-label"></div>
           <div class="cal-nav-sub"   id="cal-nav-sub"></div>
         </div>
@@ -789,6 +789,11 @@
     <button class="modal-close" onclick="closeSettings()">✕</button>
   </div>
   <div class="master-overlay-body" style="padding:24px 20px;max-width:520px;margin:0 auto;">
+
+    <div style="margin-bottom:28px;">
+      <div style="font-size:15px;font-weight:700;color:#333;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #eee;">📅 定型タスク マスタ管理</div>
+      <button class="btn-secondary" onclick="closeSettings();openMasterOverlay();" style="font-size:14px;padding:10px 18px;">⚙️ マスタ管理を開く</button>
+    </div>
 
     <div style="margin-bottom:28px;">
       <div style="font-size:15px;font-weight:700;color:#333;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #eee;">🗑 処理済みタスクの自動削除</div>
@@ -2964,10 +2969,9 @@
     const allUt = grouped[uid] || [];
     const byQ = {};
     QIDS.forEach(q => { byQ[q] = allUt.filter(t => t.quadrant === q && !t.done); });
-    byQ['done'] = allUt.filter(t => t.done);
 
     let inner = '';
-    [...QIDS, 'done'].forEach(q => {
+    QIDS.forEach(q => {
       const list = byQ[q];
       if (!list || !list.length) return;
       inner += `<div class="report-q-label">${QLABELS[q]}</div>`;
