@@ -446,12 +446,12 @@
     .area-task-meta { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:5px; align-items:center; }
     .area-task-q { font-size:10px; font-weight:700; padding:1px 5px; border-radius:4px; white-space:nowrap; }
     .area-task-text { font-size:13px; color:#333; line-height:1.4; word-break:break-word; }
-    .area-jump-strip { display:none; gap:6px; flex-wrap:nowrap; overflow-x:auto; padding-bottom:12px; -webkit-overflow-scrolling:touch; margin-bottom:4px; }
+    .area-jump-strip { display:none; gap:6px; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+    .area-jump-strip::-webkit-scrollbar { display:none; }
     .area-jump-tag { padding:5px 12px; border-radius:99px; font-size:12px; font-weight:700; white-space:nowrap; cursor:pointer; border:none; color:#fff; flex-shrink:0; opacity:.9; }
     @media (max-width:799px) {
       .area-kanban { flex-direction:column; overflow-x:visible; }
       .area-col { flex:none; width:100%; box-sizing:border-box; }
-      .area-jump-strip { display:flex; }
     }
     .td-private-row { display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; color:#777; padding:2px 0; }
     .td-private-row input[type=checkbox] { width:15px; height:15px; accent-color:#667eea; cursor:pointer; }
@@ -947,6 +947,7 @@
       <button class="report-tab" id="tab-area" onclick="switchReportTab('area')">🏷 領域別</button>
     </div>
     <button class="btn-secondary" onclick="closeReport()" style="font-size:13px;">閉じる</button>
+    <div id="area-jump-strip-container" class="area-jump-strip" style="display:none;width:100%;border-top:1px solid #f0f0f0;padding-top:8px;padding-bottom:2px;margin:0;"></div>
   </div>
   <div class="master-overlay-body">
     <div id="report-content"><div style="text-align:center;padding:40px;color:#888;">読み込み中...</div></div>
@@ -3416,8 +3417,9 @@
     document.getElementById('report-overlay').classList.remove('open');
   }
   function switchReportTab(tab) {
-    document.getElementById('report-content').style.display    = tab === 'report' ? '' : 'none';
-    document.getElementById('area-view-content').style.display = tab === 'area'   ? '' : 'none';
+    document.getElementById('report-content').style.display        = tab === 'report' ? '' : 'none';
+    document.getElementById('area-view-content').style.display     = tab === 'area'   ? '' : 'none';
+    document.getElementById('area-jump-strip-container').style.display = tab === 'area' ? 'flex' : 'none';
     document.getElementById('tab-report').classList.toggle('active', tab === 'report');
     document.getElementById('tab-area').classList.toggle('active',   tab === 'area');
     if (tab === 'report') loadReport();
@@ -3465,17 +3467,16 @@
     const cols = areasCache.map(a => areaCol(a.id, a.name, a.color, allTasks.filter(t => t.area_id === a.id)));
     if (noAreaTasks.length) cols.push(areaCol('noArea', '領域なし', '#bbb', noAreaTasks));
 
-    // モバイル用ジャンプタグ（各領域カラムへのスクロール）
+    // ジャンプタグをヘッダー内コンテナに注入（sticky追従）
     const jumpItems = [
       ...areasCache.map(a => ({ colId: a.id, name: a.name, color: a.color })),
       ...(noAreaTasks.length ? [{ colId: 'noArea', name: '領域なし', color: '#bbb' }] : [])
     ];
-    const jumpStrip = `<div class="area-jump-strip">
-      ${jumpItems.map(j => `<button class="area-jump-tag" style="background:${j.color};"
-        onclick="document.getElementById('area-col-${j.colId}').scrollIntoView({behavior:'smooth',block:'start'})">${esc(j.name)}</button>`).join('')}
-    </div>`;
+    document.getElementById('area-jump-strip-container').innerHTML =
+      jumpItems.map(j => `<button class="area-jump-tag" style="background:${j.color};"
+        onclick="document.getElementById('area-col-${j.colId}').scrollIntoView({behavior:'smooth',block:'start'})">${esc(j.name)}</button>`).join('');
 
-    content.innerHTML = jumpStrip + `<div class="area-kanban">${cols.join('')}</div>`;
+    content.innerHTML = `<div class="area-kanban">${cols.join('')}</div>`;
   }
 
   // ── 設定画面 ──────────────────────────────────────────────────
@@ -3839,7 +3840,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-20</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-28-21</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
