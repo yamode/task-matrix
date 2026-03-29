@@ -350,7 +350,7 @@ if ($action === 'create') {
 
 // ── Bot メッセージ送信 ─────────────────────────────────────────
 } elseif ($action === 'send_message') {
-    $bot_id     = $body['bot_id']     ?? '6811651';
+    $bot_id     = $body['bot_id']     ?? '6807893';
     $lw_user_id = $body['lw_user_id'] ?? '';
     $content    = $body['content']    ?? '';
 
