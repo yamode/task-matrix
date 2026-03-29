@@ -163,6 +163,7 @@
     .add-task-btn  { padding:8px 12px; color:white; border:none; border-radius:8px; font-size:13px; cursor:pointer; font-weight:600; transition:background .15s; }
     .add-task-btn:disabled { opacity:.5; cursor:not-allowed; }
     .empty-hint { font-size:12px; color:#ccc; text-align:center; padding:14px 0; }
+    .tray-section .task-check:hover,.tray-section .task-item.done .task-check { background:#8e9eab; border-color:#8e9eab; }
     .q1 .task-check:hover,.q1 .task-item.done .task-check { background:#1a2744; border-color:#1a2744; }
     .q2 .task-check:hover,.q2 .task-item.done .task-check { background:#1a2744; border-color:#1a2744; }
     .q3 .task-check:hover,.q3 .task-item.done .task-check { background:#a07820; border-color:#a07820; }
@@ -1733,15 +1734,15 @@
   // ── タスク操作 ────────────────────────────────────────────────
   async function toggleTask(qid, id) {
     const t = tasks[qid].find(t => t.id === id); if (!t) return;
+    // 配布されたタスクは詳細画面から完了報告が必要
+    if (t.assigner_id && t.assigner_id !== currentUser.id) {
+      openTaskDetail(id);
+      return;
+    }
     t.done = !t.done;
     renderMatrix();
     const now = new Date().toISOString();
     const update = { done: t.done, updated_at: now };
-    // 配布されたタスクを完了→アサイナーに通知
-    if (t.assigner_id && t.assigner_id !== currentUser.id) {
-      update.approval_status = t.done ? 'done_pending' : 'accepted';
-      t.approval_status = update.approval_status;
-    }
     const { error } = await sb.from('tasks').update(update).eq('id', id);
     if (error) { t.done = !t.done; renderMatrix(); showToast('❌ 更新に失敗しました'); }
   }
@@ -4656,7 +4657,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-24</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-25</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
