@@ -2401,11 +2401,17 @@
       deadline, updated_at: new Date().toISOString()
     }).eq('id', currentTaskId);
 
-    // 日付が変わったら旧LWイベントを削除してリセット（ボタンを未同期に戻す）
-    if (t.lw_calendar_event_ids && Object.keys(t.lw_calendar_event_ids).length) {
-      await calDelete(t.lw_calendar_event_ids);
-      t.lw_calendar_event_ids = {};
-      await sb.from('tasks').update({ lw_calendar_event_ids: {} }).eq('id', currentTaskId);
+    // 既存LWイベントがあれば日付を更新（削除→再作成ではなくPUT）
+    const existingCalIds = t.lw_calendar_event_ids || {};
+    if (Object.keys(existingCalIds).length) {
+      const normalized = normalizeCalIds(existingCalIds);
+      const updateEvents = Object.entries(normalized).map(([lw_user_id, ev]) => ({
+        lw_user_id, event_id: ev.event_id, cal_id: ev.cal_id || null,
+        summary: t.text, date: deadline,
+      }));
+      const results = await calUpdate(updateEvents);
+      dbg('[期限変更] calUpdate結果=', JSON.stringify(results));
+      // 更新失敗したイベントIDはそのまま保持（次回sync時にフォールバック処理あり）
     }
 
     updateLwSyncBtn(t);
@@ -4637,7 +4643,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-19</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-20</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
