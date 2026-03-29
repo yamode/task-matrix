@@ -2401,8 +2401,9 @@
       deadline, updated_at: new Date().toISOString()
     }).eq('id', currentTaskId);
 
-    // 日付が変わったら同期済み状態をリセット（ボタンを未同期に戻す）
+    // 日付が変わったら旧LWイベントを削除してリセット（ボタンを未同期に戻す）
     if (t.lw_calendar_event_ids && Object.keys(t.lw_calendar_event_ids).length) {
+      await calDelete(t.lw_calendar_event_ids);
       t.lw_calendar_event_ids = {};
       await sb.from('tasks').update({ lw_calendar_event_ids: {} }).eq('id', currentTaskId);
     }
@@ -4636,7 +4637,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-18</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-19</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
