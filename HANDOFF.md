@@ -1,6 +1,6 @@
 # タスク管理アプリ 引き継ぎメモ
 
-> **最終更新**: 2026-03-29（組織管理PhaseB完全実装・LWカレンダー同期リデザイン・月次タスクレポート追加）
+> **最終更新**: 2026-03-29（レポートUI改善: 閉じるボタン右上固定・フッタータブバー化）
 > **次の作業担当への指示**: このファイルを読んでから、**必ず下記「作業開始前の手順」を実行してから** `task-matrix-v2.html` を読むこと。
 
 ---
@@ -54,6 +54,9 @@ areas: id bigserial PK, name text, color text DEFAULT '#667eea', created_at
 - **Storage**: バケット `task-attachments`（private、anon allow_all）
 - **RLS**: 全テーブル `allow_all (TO anon, authenticated)` 設定済み
 - **YAMADO組織**: 全45ユーザーを org_members に登録済み（2026-03-29）
+- **Phase C で追加予定**: `tenants`, `tenant_members`, `plans`, `plan_modules`, `modules`, `contracts`, `ad_campaigns`, `system_admins` + 既存テーブルに `tenant_id` 追加 + `users.org_id` 廃止（`org_members` に統一）+ `organizations.owner_id` 廃止（`tenant_members` に統一）（詳細はロードマップ Phase C 参照）
+- **Phase D で追加予定**: `departments`, `department_members`, `daily_task_masters`, `daily_completions`（詳細はロードマップ Phase D 参照）
+- **ERD**: `96_Claude/output/taskul-erd.html` に全体ER図あり
 
 ---
 
@@ -120,6 +123,411 @@ areas: id bigserial PK, name text, color text DEFAULT '#667eea', created_at
 
 **技術メモ**: Web Speech API は HTTPS 必須。iOS は最初の1回タップが必要（完全ハンズフリー不可）
 
+### 🔲 Phase C — テナント管理・モジュール構造・SaaS基盤（設計済み 2026-03-29）
+
+#### C-1: 設計方針
+
+**テナント = 課金・契約・データ隔離の単位。モジュール = 機能群の論理区分（DBスキーマ分けではない）。**
+
+- ソロユーザーも1テナント（type: individual/corporate で区別）
+- モジュールは `public` スキーマ内のテーブルプレフィックスで区別するだけ（`task_*`, `hr_*`, `acc_*`）
+- データ隔離は `tenant_id` + RLS のみで完結。PostgreSQLスキーマ分けは使わない
+- フロントエンドは将来 GitHub Pages 以外に移行可。Supabase のバックエンド設計は独立
+- **ユーザーは複数組織・複数部署に所属可能**（すべて中間テーブルで多対多管理）
+
+```
+tenant（課金・契約・データ隔離の境界）
+  ├── tenant_members（role: master/member）← 契約マスター
+  ├── contract → plan → plan_modules（どのモジュールが使えるか）
+  ├── ad_campaigns（広告表示ルール）
+  └── organizations[]（店舗・支社・本社）
+       ├── org_members（role: master/member）← 組織マスター
+       └── departments[]（営業部・調理部・経理部）
+            └── department_members（role: master/member）← 部署マスター
+
+権限階層（上位は下位を包含）:
+  契約マスター ⊃ 組織マスター ⊃ 部署マスター ⊃ メンバー
+
+public スキーマ（すべてここ）
+  ├── 共通:   tenants, tenant_members, plans, plan_modules, modules, contracts,
+  │          users, organizations, org_members, departments, department_members ...
+  ├── task_*: tasks, recurring_tasks, task_files, areas ...   ← タスク管理モジュール
+  ├── hr_*:   hr_employees, hr_attendance, hr_shifts ...      ← 人事モジュール（将来）
+  └── acc_*:  acc_journals, acc_invoices, acc_budgets ...     ← 経理モジュール（将来）
+```
+
+#### C-2: 新規テーブル（8テーブル）
+
+**`tenants`**
+```sql
+create table public.tenants (
+  id          bigserial primary key,
+  name        text not null,
+  slug        text unique,                      -- 将来のサブドメイン用
+  type        text not null default 'individual' check (type in ('individual', 'corporate')),
+  status      text not null default 'active' check (status in ('active', 'suspended', 'cancelled')),
+  max_users   int not null default 5,
+  created_at  timestamptz default now(),
+  updated_at  timestamptz default now()
+);
+-- ※ owner_id は廃止 → tenant_members.role='master' で管理
+```
+
+**`tenant_members`**（テナント × ユーザー、契約マスター管理）
+```sql
+create table public.tenant_members (
+  id          bigserial primary key,
+  tenant_id   bigint not null references public.tenants(id) on delete cascade,
+  user_id     uuid not null references public.users(id) on delete cascade,
+  role        text not null default 'member' check (role in ('master', 'member')),
+  unique(tenant_id, user_id)
+);
+```
+
+**`modules`**（モジュール台帳 — システム管理者が管理）
+```sql
+create table public.modules (
+  id          text primary key,                 -- 'task', 'hr', 'accounting'
+  name        text not null,                    -- 'タスク管理'
+  description text,
+  icon        text,                             -- '📋'
+  sort_order  int not null default 0,
+  is_active   boolean not null default true,    -- false = 未リリース（アクセス不可）
+  created_at  timestamptz default now()
+);
+-- 初期データ:
+-- ('task',       'タスク管理', ..., 1, true)
+-- ('hr',         '人事管理',   ..., 2, false)
+-- ('accounting', '経理',       ..., 3, false)
+```
+
+**`plans`**（プランマスタ）
+```sql
+create table public.plans (
+  id            bigserial primary key,
+  name          text not null,                  -- 'free', 'starter', 'business', 'enterprise'
+  display_name  text not null,
+  max_users     int not null default 5,
+  price_monthly int not null default 0,         -- 円
+  price_annual  int not null default 0,
+  plan_config   jsonb not null default '{}',    -- プランレベルの設定（branding, support等）
+  is_active     boolean not null default true,
+  sort_order    int not null default 0,
+  created_at    timestamptz default now()
+);
+```
+
+**`plan_modules`**（プラン × モジュールの紐付け）
+```sql
+create table public.plan_modules (
+  id          bigserial primary key,
+  plan_id     bigint not null references public.plans(id) on delete cascade,
+  module_id   text not null references public.modules(id) on delete cascade,
+  config      jsonb not null default '{}',      -- モジュール別機能フラグ
+  unique(plan_id, module_id)
+);
+-- 例: free プラン × task モジュール
+-- config: {"max_tasks": 100, "recurring_tasks": true, "lw_sync": false, "max_storage_mb": 500}
+```
+
+**`contracts`**（テナント × プランの紐付け）
+```sql
+create table public.contracts (
+  id            bigserial primary key,
+  tenant_id     bigint not null references public.tenants(id) on delete cascade,
+  plan_id       bigint not null references public.plans(id),
+  status        text not null default 'active' check (status in ('active', 'trial', 'expired', 'cancelled')),
+  billing_cycle text not null default 'monthly' check (billing_cycle in ('monthly', 'annual', 'custom')),
+  started_at    timestamptz not null default now(),
+  expires_at    timestamptz,
+  cancelled_at  timestamptz,
+  notes         text,
+  created_at    timestamptz default now(),
+  updated_at    timestamptz default now()
+);
+```
+
+**`ad_campaigns`**（広告設定）
+```sql
+create table public.ad_campaigns (
+  id          bigserial primary key,
+  name        text not null,
+  html        text not null,                    -- #ad-banner に注入するHTML
+  target_type text not null default 'global' check (target_type in ('global', 'plan', 'tenant')),
+  target_id   bigint,                           -- plan_id or tenant_id（global は NULL）
+  priority    int not null default 0,
+  is_active   boolean not null default true,
+  starts_at   timestamptz,
+  ends_at     timestamptz,
+  created_at  timestamptz default now()
+);
+```
+
+**`system_admins`**（サービス運営者）
+```sql
+create table public.system_admins (
+  id         bigserial primary key,
+  user_id    uuid not null references public.users(id) on delete cascade unique,
+  role       text not null default 'admin' check (role in ('admin', 'super_admin')),
+  created_at timestamptz default now()
+);
+```
+
+#### C-3: 既存テーブルの変更
+
+**tenant_id 追加:**
+
+| テーブル | 変更 | 備考 |
+|---------|------|------|
+| `users` | `+ tenant_id bigint FK→tenants` | 移行後 NOT NULL |
+| `organizations` | `+ tenant_id bigint FK→tenants` | 1テナント内に複数 org 可 |
+| `tasks` | `+ tenant_id bigint FK→tenants` + index | RLS隔離キー |
+| `recurring_tasks` | `+ tenant_id bigint FK→tenants` + index | 同上 |
+| `areas` | `+ tenant_id bigint FK→tenants` | テナント内共有 |
+
+FK経由で隔離されるため追加不要: `task_files`, `recurring_instances`, `recurring_instance_files`, `recurring_task_shares`
+
+**廃止・変更:**
+
+| テーブル | 変更 | 理由 |
+|---------|------|------|
+| `users` | `org_id` カラム廃止 | `org_members` で多対多管理に統一（複数組織所属対応） |
+| `organizations` | `owner_id` カラム廃止 | `tenant_members.role='master'` に統一 |
+| `org_members` | `role` の値を `'owner'`→`'master'` に変更 | 権限階層の統一（master/member） |
+
+#### C-4: SQL関数（モジュールアクセス制御 + 権限チェック）
+
+```sql
+-- system_admin 判定
+create or replace function is_system_admin()
+returns boolean language sql security definer stable as $$
+  select exists(select 1 from public.system_admins where user_id = get_my_user_id())
+$$;
+
+-- 現在ユーザーの tenant_id 取得
+create or replace function get_my_tenant_id()
+returns bigint language sql security definer stable as $$
+  select tenant_id from public.users where auth_id = auth.uid()
+$$;
+
+-- テナントが使えるモジュール一覧
+create or replace function get_tenant_modules(p_tenant_id bigint)
+returns setof text language sql security definer stable as $$
+  select pm.module_id
+  from contracts c
+  join plan_modules pm on pm.plan_id = c.plan_id
+  join modules m on m.id = pm.module_id
+  where c.tenant_id = p_tenant_id
+    and c.status in ('active', 'trial')
+    and m.is_active = true
+$$;
+
+-- 契約マスター判定
+create or replace function is_tenant_master(p_tenant_id bigint)
+returns boolean language sql security definer stable as $$
+  select exists(
+    select 1 from public.tenant_members
+    where tenant_id = p_tenant_id and user_id = get_my_user_id() and role = 'master'
+  )
+$$;
+
+-- 組織マスター判定（契約マスターは自動的に組織マスターを兼ねる）
+create or replace function is_org_master(p_org_id bigint)
+returns boolean language sql security definer stable as $$
+  select exists(
+    select 1 from public.org_members
+    where org_id = p_org_id and user_id = get_my_user_id() and role = 'master'
+  ) or exists(
+    select 1 from public.tenant_members tm
+    join public.organizations o on o.tenant_id = tm.tenant_id
+    where o.id = p_org_id and tm.user_id = get_my_user_id() and tm.role = 'master'
+  )
+$$;
+
+-- 部署マスター判定（組織マスターは自動的に部署マスターを兼ねる）
+create or replace function is_dept_master(p_dept_id bigint)
+returns boolean language sql security definer stable as $$
+  select exists(
+    select 1 from public.department_members
+    where department_id = p_dept_id and user_id = get_my_user_id() and role = 'master'
+  ) or exists(
+    select 1 from public.org_members om
+    join public.departments d on d.org_id = om.org_id
+    where d.id = p_dept_id and om.user_id = get_my_user_id() and om.role = 'master'
+  ) or exists(
+    select 1 from public.tenant_members tm
+    join public.organizations o on o.tenant_id = tm.tenant_id
+    join public.departments d on d.org_id = o.id
+    where d.id = p_dept_id and tm.user_id = get_my_user_id() and tm.role = 'master'
+  )
+$$;
+```
+
+フロントエンドはログイン後に `get_tenant_modules()` を呼び、利用可能なモジュール一覧を取得してナビゲーションを構築する。権限チェック関数はRLS・アプリロジック両方から利用する。
+
+#### C-5: プラン例
+
+| プラン | 使えるモジュール | max_users | 月額 |
+|--------|----------------|-----------|------|
+| free | task | 3 | 0円 |
+| starter | task | 10 | 980円 |
+| business | task | 50 | 2,980円 |
+| enterprise | task, hr, accounting | 無制限 | 要相談 |
+| yamado_internal | task, hr, accounting | 無制限 | 0円（自社用） |
+
+#### C-6: Admin Panel
+
+- 同じ Supabase プロジェクト、`system_admins` テーブルで認証
+- フロントエンドは別ファイル（現状は `admin/index.html`、将来は任意）
+
+| 画面 | 内容 |
+|------|------|
+| ダッシュボード | テナント数・アクティブ契約数・総ユーザー数 |
+| テナント管理 | 一覧・詳細編集・停止/再開 |
+| モジュール管理 | モジュール台帳・is_active 切替 |
+| プラン管理 | プラン一覧・編集・plan_modules の設定 |
+| 契約管理 | テナント×プラン紐付け・ステータス変更 |
+| 広告管理 | HTMLエディタ+プレビュー・配信対象・スケジュール |
+| ユーザー検索 | 全テナント横断検索（読み取り中心） |
+
+#### C-7: RLS戦略（2段階）
+
+**Phase 1**（Admin Panel デプロイ時）: 管理テーブルのみ admin only RLS。既存テーブルは allow_all のまま。
+
+**Phase 2**（SaaS公開前）: 全テーブルにテナント隔離を適用。
+```sql
+-- 例: tasks
+create policy "tenant_isolation" on public.tasks
+  for all to authenticated
+  using (tenant_id = get_my_tenant_id())
+  with check (tenant_id = get_my_tenant_id());
+
+create policy "admin_bypass" on public.tasks
+  for all to authenticated using (is_system_admin());
+```
+⚠️ Phase 2 は WOFF ログインフロー（anon アクセス）への影響があるため別途対策が必要。
+
+#### C-8: マイグレーション手順
+
+1. 新テーブル作成（追加のみ、リスクなし）
+2. 既存テーブルに `tenant_id` 追加（nullable）
+3. 初期データ投入（modules シード、yamado_internal プラン、山人テナント、契約、system_admin）
+4. 既存データの `tenant_id` バックフィル
+5. メインアプリの INSERT に `tenant_id` 追加、ログイン後に `get_tenant_modules()` 呼び出し追加
+6. Admin Panel デプロイ + 管理テーブル RLS 有効化
+7. `tenant_id` に NOT NULL 制約追加
+8. 全テーブルのテナント RLS 有効化（⚠️ 要テスト）
+
+### 🔲 Phase D — 日次タスク・部署管理（設計済み 2026-03-29）
+
+部署（フロント・厨房・清掃等）ごとに毎日のルーティンタスクを管理する機能。完了は部署単位（誰か1人がやれば完了）。既存の定型タスク（月次/年次）とは独立したテーブル群。
+
+#### D-1: 部署テーブル + 部署メンバー
+
+```sql
+create table public.departments (
+  id          bigserial primary key,
+  org_id      bigint not null references public.organizations(id) on delete cascade,
+  name        text not null,
+  sort_order  int not null default 0,
+  created_at  timestamptz default now()
+  -- Phase C: + tenant_id bigint FK→tenants
+);
+create unique index departments_org_name_idx on public.departments(org_id, name);
+
+-- ユーザーの部署所属（多対多: 複数部署に所属可能）
+create table public.department_members (
+  id              bigserial primary key,
+  department_id   bigint not null references public.departments(id) on delete cascade,
+  user_id         uuid not null references public.users(id) on delete cascade,
+  role            text not null default 'member' check (role in ('master', 'member')),
+  unique(department_id, user_id)
+);
+```
+
+#### D-2: 日次タスクマスタ
+
+```sql
+create table public.daily_task_masters (
+  id              bigserial primary key,
+  department_id   bigint not null references public.departments(id) on delete cascade,
+  name            text not null,
+  sort_order      int not null default 0,
+  dow_pattern     smallint[] not null default '{0,1,2,3,4,5,6}',
+  -- 0=日, 1=月, ..., 6=土（JS Date.getDay() と一致）
+  -- 例: 平日のみ = '{1,2,3,4,5}'
+  memo            text not null default '',
+  is_active       boolean not null default true,
+  created_at      timestamptz default now()
+  -- Phase C: + tenant_id bigint FK→tenants
+);
+```
+
+#### D-3: 完了トラッキング（完了ログ方式）
+
+```sql
+create table public.daily_completions (
+  id              bigserial primary key,
+  master_id       bigint not null references public.daily_task_masters(id) on delete cascade,
+  completion_date date not null,
+  completed_by    uuid not null references public.users(id),
+  completed_at    timestamptz not null default now(),
+  memo            text,
+  unique(master_id, completion_date)  -- 1タスク1日1回のみ
+);
+```
+
+| 状態 | DBの状態 |
+|------|---------|
+| 未完了 | `daily_completions` に行がない |
+| 完了 | 行あり（誰が・いつ完了したか記録） |
+| 取消 | 行を DELETE |
+
+#### D-4: 既存定型タスクとの比較
+
+| | 定型タスク（既存） | 日次タスク（新規） |
+|---|---|---|
+| 所有 | ユーザー（`user_id`） | 部署（`department_id`） |
+| 頻度 | 月次 / 年次 | 毎日（曜日パターン対応） |
+| インスタンス | 事前生成（`recurring_instances`） | 完了ログのみ（`daily_completions`） |
+| 共有 | `recurring_task_shares` で個別共有 | 部署メンバー全員が自動的に閲覧 |
+
+既存テーブルへの変更なし（`department_members` は新規テーブル）。
+
+#### D-5: UI 概要
+
+**メイン画面 — 日次タスクセクション**
+```
+📋 日次タスク     フロント (3/5完了)
+2026-03-29 (土)              [◀ ▶]
+─────────────────────────────
+[x] 予約確認          田中 09:15
+[x] チェックイン準備    鈴木 10:30
+[ ] 売上日報
+[x] 客室アサイン        田中 08:45
+[ ] 夕食準備確認
+```
+
+**設定画面 — 部門管理（組織マスター以上）**
+- 部門の追加・編集・削除
+- 部門ごとの日次タスクマスタ管理（名前・曜日パターン・並び順）
+- メンバーの部門割り当て（複数部署への所属可）
+- 部署マスターの任命
+
+**レポート — 日次タスクタブ**
+- 全部門の当日完了状況を一覧（組織マスター以上向け）
+
+#### D-6: 実装ステップ
+
+1. DB: `departments` + `department_members` テーブル作成
+2. 設定UI: 部門管理（CRUD + メンバー割当 + 部署マスター任命）
+3. DB: `daily_task_masters` + `daily_completions` 作成
+4. 設定UI: 日次タスクマスタ管理（部門ごと）
+5. メイン画面: 日次タスクセクション + フッターナビ追加
+6. レポート: 日次タスクタブ追加
+
+Phase C（テナント管理）とは独立して実装可能。Phase C が先に入った場合は `tenant_id` を同時に追加。
+
 ---
 
 ## 改善リスト（積み残し）
@@ -133,9 +541,7 @@ areas: id bigserial PK, name text, color text DEFAULT '#667eea', created_at
 ### 新機能
 - [ ] レポート: 人ごとにタスク分布を2次元グラフで可視化
 - [ ] タスクのエクスポート（設定画面から）
-- [ ] 組織管理: 広告管理機能（`#ad-banner` にカスタムHTMLを設定する管理画面）
 - [ ] 多言語対応
-- [ ] Payment機能（製品配布用）
 - [ ] **製品版公開前: リポジトリ・フォルダ名を TASKUL に統一**
   - `96_Claude/task/` → `96_Claude/taskul/`、`task-matrix` → `taskul`
   - GitHub Pages URL 変更 → WOFFアプリURLも同時変更すること
@@ -264,7 +670,52 @@ FTPデプロイ: `curl --ftp-ssl -u "yamado:yamado132586" -T task-cal-cleanup.ph
 
 **残作業:**
 - 月次タスクレポートの動作確認（実機テスト）
-- LW同期ボタンの動作確認（PUT更新・フォールバック）
+- ~~LW同期ボタンの動作確認（PUT更新・フォールバック）~~　→ 完了（2026-03-29）
+
+---
+
+### 2026-03-29（夕方セッション）
+
+**LWカレンダー同期バグ修正:**
+- `syncTaskToLwCalendar` で未定義関数 `getOrCreateTaskCalendarId` を呼んでいた → `ensureCalendarId(lw_user_id, id)` に修正（これが「同期中...」で固まる根本原因）
+- try-catch追加・`calPost`にレスポンスデバッグログ追加（CORSエラーを可視化）
+- 期限変更時に旧LWイベントを `calDelete` していたが、設計意図通り `calUpdate` で日付更新する方式に修正（削除→再作成ではない）
+- `saveDeadlineOnly` のカレンダー処理を修正: 既存イベントがあれば `calUpdate`、期限クリア時のみ `calDelete`
+
+**バージョン:** `v2026-03-29-20`
+
+**コミット:**
+- `5edb19e` fix: メンバー編集でemailが空の場合にnullを送るよう修正
+- `67f8777` feat: 月次タスク メンバー別ビューにスティッキージャンプタグ追加
+- `afbda35` fix: LW同期のgetOrCreateTaskCalendarId未定義エラーを修正＋デバッグログ追加
+- `af64e98` fix: 期限変更時にLWカレンダーの旧イベントを削除してから再同期（後に方針変更）
+- `4f4c374` fix: 期限変更時はLWイベントをcalUpdateで日付更新（削除→再作成をやめる）
+
+**残作業:**
+- デバッグログの削除（リリース前に `DEBUG=false` + calPostのdbg行を整理）
+- 月次タスクレポートの実機テスト
+
+---
+
+### 2026-03-29（夜セッション）
+
+**レポートUI改善（スマホ対応）:**
+- 「閉じる」ボタンがタブ折り返しで下に落ちていた問題を修正
+- 1回目の修正: タブ＋閉じるを同行flexに（`flex-shrink:0`）→ ボタンテキストを「レポートを閉じる」に変更
+- 2回目の修正: タブをフッターナビゲーションバーに移動（iOSアプリ風）
+  - ヘッダー: タイトル（タブ切替でリアルタイム更新）＋「レポートを閉じる」
+  - コンテンツ: `flex:1; overflow-y:auto` でスクロール
+  - フッター: アイコン＋ラベルのタブバー（iPhone home bar 対応）
+
+**バージョン:** `v2026-03-29-22`
+
+**コミット:**
+- `63fcfa5` fix: レポートヘッダーの「閉じる」ボタンを常に右端に固定・テキスト変更
+- `b47c146` feat: レポートタブをフッターナビゲーションバーに変更
+
+**残作業:**
+- レポートフッタータブの実機確認（iPhone）
+- デバッグログの削除（リリース前に `DEBUG=false` + calPostのdbg行を整理）
 
 ---
 
