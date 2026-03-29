@@ -4203,7 +4203,7 @@
     const userPayload = {
       display_name:   get('display_name') || null,
       name:           get('name'),
-      email:          get('email'),
+      email:          get('email') || null,
       lw_user_id:     get('lw_user_id')    || null,
       lw_account_id:  get('lw_account_id') || null,
     };
@@ -4610,7 +4610,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-16</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-17</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
