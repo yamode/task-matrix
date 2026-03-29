@@ -2422,54 +2422,76 @@
     btn.disabled = true; btn.textContent = '同期中...';
     btn.style.background = '#f0f0f0'; btn.style.color = '#888'; btn.style.border = 'none';
 
-    // 同期済みイベントIDを確認
-    const oldCalIds = t.lw_calendar_event_ids || {};
-    const existing  = currentUser?.lw_user_id ? oldCalIds[currentUser.lw_user_id] : null;
+    try {
+      dbg('[LW同期] 開始 taskId=', currentTaskId, 'deadline=', deadline);
+      dbg('[LW同期] currentUser.lw_user_id=', currentUser?.lw_user_id, 'currentUser.id=', currentUser?.id);
 
-    let newCalIds = {};
-    if (currentUser?.lw_user_id) {
-      const calId = await getOrCreateTaskCalendarId(currentUser.id);
-      if (calId) {
-        let results;
-        if (existing?.event_id) {
-          // 既存イベントを更新（PUT）
-          results = await calUpdate([{
-            lw_user_id: currentUser.lw_user_id,
-            event_id:   existing.event_id,
-            cal_id:     existing.cal_id || calId,
-            summary:    t.text,
-            date:       deadline,
-          }]);
-          // LW側でイベントが削除されていた場合（404等）は新規作成にフォールバック
-          if (!results.length || (results[0].status && results[0].status >= 400)) {
-            dbg('calUpdate failed (status=' + (results[0]?.status) + '), fallback to calCreate');
+      // 同期済みイベントIDを確認
+      const oldCalIds = t.lw_calendar_event_ids || {};
+      const existing  = currentUser?.lw_user_id ? oldCalIds[currentUser.lw_user_id] : null;
+      dbg('[LW同期] oldCalIds=', JSON.stringify(oldCalIds), 'existing=', JSON.stringify(existing));
+
+      let newCalIds = {};
+      if (currentUser?.lw_user_id) {
+        dbg('[LW同期] ensureCalendarId 呼び出し lwUserId=', currentUser.lw_user_id, 'supabaseId=', currentUser.id);
+        const calId = await ensureCalendarId(currentUser.lw_user_id, currentUser.id);
+        dbg('[LW同期] calId=', calId);
+        if (calId) {
+          let results;
+          if (existing?.event_id) {
+            // 既存イベントを更新（PUT）
+            dbg('[LW同期] calUpdate 呼び出し event_id=', existing.event_id);
+            results = await calUpdate([{
+              lw_user_id: currentUser.lw_user_id,
+              event_id:   existing.event_id,
+              cal_id:     existing.cal_id || calId,
+              summary:    t.text,
+              date:       deadline,
+            }]);
+            dbg('[LW同期] calUpdate結果=', JSON.stringify(results));
+            // LW側でイベントが削除されていた場合（404等）は新規作成にフォールバック
+            if (!results.length || (results[0].status && results[0].status >= 400)) {
+              dbg('[LW同期] calUpdate失敗 status=', results[0]?.status, '→ calCreateにフォールバック');
+              results = await calCreate([{
+                lw_user_id: currentUser.lw_user_id, cal_id: calId,
+                summary: t.text, date: deadline,
+              }]);
+              dbg('[LW同期] calCreate(フォールバック)結果=', JSON.stringify(results));
+            }
+          } else {
+            // 初回：新規作成
+            dbg('[LW同期] calCreate 初回呼び出し');
             results = await calCreate([{
               lw_user_id: currentUser.lw_user_id, cal_id: calId,
               summary: t.text, date: deadline,
             }]);
+            dbg('[LW同期] calCreate結果=', JSON.stringify(results));
           }
+          results.forEach(r => {
+            if (r.event_id) newCalIds[r.lw_user_id] = { event_id: r.event_id, cal_id: r.cal_id || calId };
+          });
         } else {
-          // 初回：新規作成
-          results = await calCreate([{
-            lw_user_id: currentUser.lw_user_id, cal_id: calId,
-            summary: t.text, date: deadline,
-          }]);
+          dbg('[LW同期] calId取得失敗 → 同期中断');
         }
-        results.forEach(r => {
-          if (r.event_id) newCalIds[r.lw_user_id] = { event_id: r.event_id, cal_id: r.cal_id || calId };
-        });
+      } else {
+        dbg('[LW同期] lw_user_id なし → 同期スキップ');
       }
-    }
 
-    t.lw_calendar_event_ids = newCalIds;
-    await sb.from('tasks').update({
-      lw_calendar_event_ids: newCalIds, updated_at: new Date().toISOString()
-    }).eq('id', currentTaskId);
+      dbg('[LW同期] newCalIds=', JSON.stringify(newCalIds));
+      t.lw_calendar_event_ids = newCalIds;
+      await sb.from('tasks').update({
+        lw_calendar_event_ids: newCalIds, updated_at: new Date().toISOString()
+      }).eq('id', currentTaskId);
 
-    if (Object.keys(newCalIds).length) {
-      showToast('✅ LWカレンダーに同期しました');
-    } else {
-      showToast('⚠️ 同期に失敗しました（LW設定を確認してください）');
+      if (Object.keys(newCalIds).length) {
+        showToast('✅ LWカレンダーに同期しました');
+      } else {
+        showToast('⚠️ 同期に失敗しました（LW設定を確認してください）');
+      }
+    } catch (err) {
+      console.error('[LW同期] エラー:', err);
+      dbg('[LW同期] エラー:', err.message, err.stack);
+      showToast('❌ 同期エラー: ' + err.message);
     }
     updateLwSyncBtn(t);
   }
@@ -2688,13 +2710,17 @@
   // ── LINE WORKS カレンダー同期 ─────────────────────────────────
   async function calPost(payload) {
     try {
+      dbg('[calPost] URL=', CAL_API, 'payload=', JSON.stringify(payload).substring(0, 300));
       const res = await fetch(CAL_API, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      const json = await res.json();
+      const text = await res.text();
+      dbg('[calPost] status=', res.status, 'response=', text.substring(0, 500));
+      let json;
+      try { json = JSON.parse(text); } catch(pe) { dbg('[calPost] JSONパース失敗:', pe.message); return []; }
       return json.ok ? (json.results || []) : [];
-    } catch(e) { console.warn('[CAL]', e); return []; }
+    } catch(e) { console.warn('[CAL]', e); dbg('[calPost] fetchエラー:', e.message); return []; }
   }
 
   // events: [{lw_user_id, summary, date, _meta...}] → results配列
@@ -4610,7 +4636,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-17</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-18</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
