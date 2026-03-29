@@ -9,8 +9,8 @@ cp "task-matrix-v2.html" "dev/index.html"
 git add task-matrix-v2.html dev/index.html
 ```
 
-- `dev/index.html` → `https://yamode.github.io/task-matrix/dev/`（開発・確認用）
-- `index.html` → `https://yamode.github.io/task-matrix/`（リリース時に dev をコピー）
+- `dev/index.html` → `https://yamode.github.io/taskul/dev/`（開発・確認用）
+- `index.html` → `https://yamode.github.io/taskul/`（リリース時に dev をコピー）
 
 コピーを忘れると GitHub Pages の dev 環境が古いバージョンのまま残る。
 
@@ -18,11 +18,11 @@ git add task-matrix-v2.html dev/index.html
 
 | ファイル | URL | 用途 |
 |---|---|---|
-| `dev/index.html` | `https://yamode.github.io/task-matrix/dev/` | **開発中はこちらで確認** |
-| `index.html` | `https://yamode.github.io/task-matrix/` | リリース時に dev をコピーして反映 |
+| `dev/index.html` | `https://yamode.github.io/taskul/dev/` | **開発中はこちらで確認** |
+| `index.html` | `https://yamode.github.io/taskul/` | リリース時に dev をコピーして反映 |
 
-- WOFF（LINE WORKS）は現在 dev 版に向けている（test bot のため開発者のみ閲覧可）
-- リリース時： `cp dev/index.html index.html` → commit → push → WOFF URL を製品版に戻す
+- WOFF（LINE WORKS）は製品版 URL に向けている
+- リリース時： `cp dev/index.html index.html` → commit → push
 
 ## バージョン管理
 
@@ -38,10 +38,10 @@ grep "v2026-" dev/index.html  # コピー後にバージョンが一致してい
 
 ```bash
 # Mac のリポジトリパス
-cd "/Users/hikaru/山人 Dropbox/96_Claude/task"
+cd "/Users/hikaru/山人 Dropbox/96_Claude/taskul"
 
 # .git 内が Dropbox Smart Sync でオンライン専用になっている場合は先にダウンロード
-for f in "/Users/hikaru/山人 Dropbox/96_Claude/task/.git/"*; do
+for f in "/Users/hikaru/山人 Dropbox/96_Claude/taskul/.git/"*; do
   [ -f "$f" ] && open -g "$f"
 done
 sleep 5
@@ -53,7 +53,7 @@ git pull origin main
 ## GitHubへのプッシュ手順（作業後）
 
 ```bash
-cd "/Users/hikaru/山人 Dropbox/96_Claude/task"
+cd "/Users/hikaru/山人 Dropbox/96_Claude/taskul"
 cp task-matrix-v2.html dev/index.html
 # リリース時は dev/index.html → index.html もコピー
 git add task-matrix-v2.html dev/index.html
@@ -66,7 +66,7 @@ git push origin main
 ## ローカル開発サーバー
 
 ```bash
-cd "/Users/hikaru/山人 Dropbox/96_Claude/task"
+cd "/Users/hikaru/山人 Dropbox/96_Claude/taskul"
 python3 -m http.server 8080
 # http://localhost:8080/dev/ でアクセス
 ```
@@ -82,15 +82,15 @@ KEY: sb_publishable_iumeCKdl6tr3AU3DL0roWA_B_WiCOwn
 
 ## LINE WORKS 設定値
 
-- アプリ名: タスクマトリクス（Client ID: `IJaFwFL_nzmI5Thmne4d`）
-- WOFFアプリ: タスクマトリクス（ID: `2sGuLQU8T2BvJXN88QeCIg`）※末尾は大文字I、小文字lではない
-- Endpoint URL: `https://yamode.github.io/task-matrix/`
+- アプリ名: TASKUL（Client ID: `IJaFwFL_nzmI5Thmne4d`）
+- WOFFアプリ: TASKUL（ID: `2sGuLQU8T2BvJXN88QeCIg`）※末尾は大文字I、小文字lではない
+- Endpoint URL: `https://yamode.github.io/taskul/`
 - WOFF URL: `https://woff.worksmobile.com/woff/2sGuLQU8T2BvJXN88QeCIg`
 - Bot ID: `6811651`（固定メニュー「📋 タスク管理」登録済み）
 
 ## デバッグ方針
 
-- `const DEBUG = true;` のままが開発版。リリース時のみ `false` に変更する
+- `const DEBUG = false;` がリリース版。開発時のみ `true` に変更する
 - デバッグパネル（`#debug-panel`）の表示は設定画面の「🐛 開発者設定」でON/OFF可能
 
 ## /handoff 時の追加確認事項
