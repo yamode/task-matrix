@@ -41,8 +41,8 @@
     .user-bar-row1 { position:relative; padding:9px 16px; display:flex; align-items:center; gap:10px; }
     /* モバイル: 2行目アクションバー */
     .user-bar-row2 { padding:6px 16px 8px; display:flex; gap:8px; border-top:1px solid #f0f0f0; }
-    /* ロゴ（将来用・設定時にsrcをセットして表示） */
-    .app-logo { height:28px; width:auto; display:none; flex-shrink:0; }
+    /* ロゴ（モバイル: 表示 / PC: タイトルテキストを優先して非表示） */
+    .app-logo { height:28px; width:auto; display:block; flex-shrink:0; }
     /* タイトルテキスト: モバイルでは非表示（ブラウザ上部にタイトルが出るため重複回避） */
     .app-title { font-size:17px; font-weight:800; color:#1a2744; letter-spacing:2px; flex-shrink:0; display:none; }
     /* 右側まとめ（margin-left:auto で右寄せ） */
@@ -66,6 +66,7 @@
     .hamburger-item + .hamburger-item { border-top:1px solid #f5f5f5; }
     /* PC版レイアウト */
     @media (min-width: 768px) {
+      .app-logo  { display:none; }
       .app-title { display:block; }
       .user-bar-row2 { display:none; }
       .user-bar-pc-actions { display:flex; }
@@ -1237,7 +1238,7 @@
     return '../'.repeat(Math.max(0, segs.length - 1)) + 'img/';
   })();
   document.getElementById('login-logo-img').src = IMG_BASE + 'logo_300.png';
-  document.getElementById('app-logo').src        = IMG_BASE + 'logo_300.png';
+  document.getElementById('app-logo').src        = IMG_BASE + 'logo_250.png';
   // ================================================================
 
   // ── フッターナビ ──────────────────────────────────────────────
@@ -1282,7 +1283,7 @@
   })();
 
   // ── デバッグ設定 ──────────────────────────────────────────────
-  const DEBUG = true; // リリース時に false に変える
+  const DEBUG = false; // リリース時に false に変える
   function dbg(...args) {
     if (!DEBUG) return;
     console.log('[DBG]', ...args);
@@ -4653,10 +4654,11 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-22</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-23</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
+  display:none;
   position:fixed; bottom:calc(88px + env(safe-area-inset-bottom, 20px) + 4px); left:0; right:0;
   background:rgba(0,0,0,.8); color:#0f0;
   font-size:10px; padding:6px; max-height:28vh; overflow:auto;
