@@ -985,6 +985,7 @@
     </div>
     <button class="btn-secondary" onclick="closeReport()" style="font-size:13px;">閉じる</button>
     <div id="area-jump-strip-container" class="area-jump-strip" style="display:none;width:100%;border-top:1px solid #f0f0f0;padding-top:8px;padding-bottom:2px;margin:0;"></div>
+    <div id="monthly-jump-strip-container" class="area-jump-strip" style="display:none;width:100%;border-top:1px solid #f0f0f0;padding-top:8px;padding-bottom:2px;margin:0;"></div>
   </div>
   <div class="master-overlay-body">
     <div id="report-content"><div style="text-align:center;padding:40px;color:#888;">読み込み中...</div></div>
@@ -3637,6 +3638,7 @@
     document.getElementById('area-view-content').style.display     = tab === 'area'   ? '' : 'none';
     document.getElementById('monthly-task-content').style.display  = tab === 'monthly'? '' : 'none';
     document.getElementById('area-jump-strip-container').style.display = tab === 'area' ? 'flex' : 'none';
+    if (tab !== 'monthly') document.getElementById('monthly-jump-strip-container').style.display = 'none';
     document.getElementById('tab-report').classList.toggle('active', tab === 'report');
     document.getElementById('tab-area').classList.toggle('active',   tab === 'area');
     document.getElementById('tab-monthly').classList.toggle('active', tab === 'monthly');
@@ -3707,6 +3709,9 @@
     const instMap = Object.fromEntries((instances||[]).map(i => [i.master_id, i]));
 
     // ── ビュー別レンダリング ──────────────────────────────
+    if (monthlyReportView === 'date') {
+      document.getElementById('monthly-jump-strip-container').style.display = 'none';
+    }
     const bodyHtml = monthlyReportView === 'member'
       ? buildMtrMemberView(masters, instMap, usersMap, memberUserIds, ownerIds)
       : buildMtrDateView(masters, instMap, usersMap);
@@ -3722,6 +3727,18 @@
       const nb = usersMap[b]?.display_name || usersMap[b]?.name || '';
       return na.localeCompare(nb, 'ja');
     });
+
+    // ジャンプタグをヘッダーに注入
+    const strip = document.getElementById('monthly-jump-strip-container');
+    const validIds = sortedIds.filter(uid => masters.some(m => m.user_id === uid));
+    strip.innerHTML = validIds.map(uid => {
+      const uName = usersMap[uid]?.display_name || usersMap[uid]?.name || '不明';
+      // 姓のみ表示（スペース区切りで最初のトークン）
+      const label = uName.split(/[\s　]/)[0];
+      return `<button class="area-jump-tag" style="background:#667eea;"
+        onclick="document.getElementById('mtr-card-${uid}').scrollIntoView({behavior:'smooth',block:'start'})">${esc(label)}</button>`;
+    }).join('');
+    strip.style.display = 'flex';
 
     let html = '<div class="monthly-report-grid">';
     for (const uid of sortedIds) {
@@ -3742,7 +3759,7 @@
         </div>`;
       }).join('');
 
-      html += `<div class="mtr-card">
+      html += `<div class="mtr-card" id="mtr-card-${uid}">
         <div class="mtr-card-header">
           <span class="mtr-name">${esc(uName)}${badge}</span>
           <span class="mtr-progress ${pct===100?'done':''}">${done}/${total} (${pct}%)</span>
@@ -3754,7 +3771,7 @@
     return html + '</div>';
   }
 
-  // ── 日にち別ビュー ────────────────────────────────────────
+  // ── 日にち別ビュー（ストリップ非表示）────────────────────────
   function buildMtrDateView(masters, instMap, usersMap) {
     // day → tasks の Map
     const byDay = new Map();
@@ -4593,7 +4610,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-15</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-16</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
