@@ -1,6 +1,6 @@
 # タスク管理アプリ 引き継ぎメモ
 
-> **最終更新**: 2026-03-29（ロードマップ追記: 領域タグ×部署連携・部署共有ビュー・AI日次コメント・印刷機能）
+> **最終更新**: 2026-03-29（TEST BOT固定メニューをdev WOFF（TASKUL_DEV）に変更、dev/index.htmlのWOFF ID自動切り替え対応）
 > **次の作業担当への指示**: このファイルを読んでから、**必ず下記「作業開始前の手順」を実行してから** `task-matrix-v2.html` を読むこと。
 
 ---
@@ -776,9 +776,7 @@ FTPデプロイ: `curl --ftp-ssl -u "yamado:yamado132586" -T task-cal-cleanup.ph
 - `ced1175` chore: リポジトリ・フォルダ名を TASKUL に統一
 
 **残作業:**
-- ⚠️ **LINE WORKS Developer Console** で WOFF アプリの Endpoint URL を手動変更
-  - 変更先: `https://yamode.github.io/taskul/`
-  - WOFF アプリ ID: `2sGuLQU8T2BvJXN88QeCIg`
+- ~~LINE WORKS Developer Console で WOFF Endpoint URL を手動変更~~ → 完了（2026-03-29）
 - 社内45名への展開・周知
 - 次フェーズ: Phase 4（音声入力）または Phase D（日次タスク）
 
@@ -797,7 +795,24 @@ FTPデプロイ: `curl --ftp-ssl -u "yamado:yamado132586" -T task-cal-cleanup.ph
 
 **残作業:**
 - 次フェーズ: Phase 4（音声入力）または Phase D（日次タスク・部署管理）
-- LINE WORKS Developer Console で WOFF Endpoint URL を手動変更（未対応）
+- ~~LINE WORKS Developer Console で WOFF Endpoint URL を手動変更~~ → 完了（2026-03-29）
+
+---
+
+### 2026-03-29（TEST BOT dev WOFF 設定）
+
+**実施内容:**
+- LINE WORKS Developer Console で WOFF アプリ「TASKUL_DEV」を新規登録（ID: `bthr5fNolL7gx96noEJbbQ`、Endpoint URL: `https://yamode.github.io/taskul/dev/`）
+- TEST BOT（Bot ID: `6811651`）の固定メニュー「✅ タスク」を dev WOFF URL に変更（`setup_persist_menu.php` 更新 → Xserver アップロード → 実行 → 削除）
+- `dev/index.html` と `task-matrix-v2.html` で WOFF ID を URL パスで自動切り替えするよう修正
+  - `/taskul/dev/` → `bthr5fNolL7gx96noEJbbQ`（TASKUL_DEV）
+  - それ以外 → `2sGuLQU8T2BvJXN88QeCIg`（TASKUL 本番）
+
+**コミット:**
+- `757ac6f` fix: dev環境でdev WOFFのIDを使うよう自動切り替え
+
+**残作業:**
+- 次フェーズ: Phase 4（音声入力）または Phase D（日次タスク・部署管理）
 
 ---
 
