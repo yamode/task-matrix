@@ -412,7 +412,7 @@
     .footer { text-align:center; margin-top:20px; font-size:12px; color:#bbb; }
 
     /* ── レポートオーバーレイ ── */
-    .report-overlay { position:fixed; inset:0; z-index:1200; background:#fff; overflow-y:auto; display:none; flex-direction:column; }
+    .report-overlay { position:fixed; inset:0; z-index:1200; background:#fff; overflow:hidden; display:none; flex-direction:column; }
     .report-overlay.open { display:flex; }
     .btn-report { padding:6px 13px; background:none; border:1px solid #667eea; border-radius:6px; font-size:12px; cursor:pointer; color:#667eea; font-family:inherit; font-weight:700; transition:all .15s; }
     .btn-report:hover { background:#f0f0ff; }
@@ -435,10 +435,11 @@
     .report-task-item:last-child { border-bottom:none; }
     .report-task-done { text-decoration:line-through; color:#aaa; }
     .report-task-private { color:#bbb; font-style:italic; }
-    /* ── レポートタブ ── */
-    .report-tabs { display:flex; gap:4px; }
-    .report-tab { padding:5px 13px; border-radius:6px; border:1px solid #ddd; background:#fff; font-size:12px; font-weight:700; color:#888; cursor:pointer; font-family:inherit; transition:all .15s; }
-    .report-tab.active { background:#667eea; color:#fff; border-color:#667eea; }
+    /* ── レポートフッタータブ ── */
+    .report-footer-tabs { display:flex; background:#fff; border-top:1px solid #eee; flex-shrink:0; padding-bottom:env(safe-area-inset-bottom,0); }
+    .report-footer-tab { flex:1; padding:10px 4px 8px; background:none; border:none; font-size:11px; font-weight:700; color:#bbb; cursor:pointer; font-family:inherit; line-height:1.5; transition:color .15s; display:flex; flex-direction:column; align-items:center; gap:2px; }
+    .report-footer-tab .tab-icon { font-size:20px; line-height:1; }
+    .report-footer-tab.active { color:#667eea; }
     /* ── 月次タスクレポート ── */
     .monthly-report-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
     .mtr-card { background:#fff; border:1px solid #e8eaf0; border-radius:12px; padding:16px; box-shadow:0 1px 4px rgba(0,0,0,.05); }
@@ -977,22 +978,27 @@
 
 <!-- レポートオーバーレイ -->
 <div class="report-overlay" id="report-overlay">
-  <div class="master-overlay-header" style="flex-direction:column;align-items:stretch;gap:0;">
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap;">
-      <div class="report-tabs" style="flex:1;flex-wrap:nowrap;overflow-x:auto;min-width:0;">
-        <button class="report-tab active" id="tab-report" onclick="switchReportTab('report')">📊 レポート</button>
-        <button class="report-tab" id="tab-area" onclick="switchReportTab('area')">🏷 領域別</button>
-        <button class="report-tab" id="tab-monthly" onclick="switchReportTab('monthly')">📅 月次タスク</button>
-      </div>
-      <button class="btn-secondary" onclick="closeReport()" style="font-size:13px;flex-shrink:0;white-space:nowrap;">レポートを閉じる</button>
-    </div>
-    <div id="area-jump-strip-container" class="area-jump-strip" style="display:none;width:100%;border-top:1px solid #f0f0f0;padding-top:8px;padding-bottom:2px;margin:0;"></div>
-    <div id="monthly-jump-strip-container" class="area-jump-strip" style="display:none;width:100%;border-top:1px solid #f0f0f0;padding-top:8px;padding-bottom:2px;margin:0;"></div>
+  <div class="master-overlay-header">
+    <div class="master-overlay-title" id="report-header-title">📊 レポート</div>
+    <button class="btn-secondary" onclick="closeReport()" style="font-size:13px;padding:6px 16px;white-space:nowrap;">レポートを閉じる</button>
   </div>
-  <div class="master-overlay-body">
+  <div id="area-jump-strip-container" class="area-jump-strip" style="display:none;width:100%;border-top:1px solid #f0f0f0;padding:8px 20px 4px;flex-shrink:0;"></div>
+  <div id="monthly-jump-strip-container" class="area-jump-strip" style="display:none;width:100%;border-top:1px solid #f0f0f0;padding:8px 20px 4px;flex-shrink:0;"></div>
+  <div class="master-overlay-body" style="flex:1;overflow-y:auto;">
     <div id="report-content"><div style="text-align:center;padding:40px;color:#888;">読み込み中...</div></div>
     <div id="area-view-content" style="display:none;"></div>
     <div id="monthly-task-content" style="display:none;padding:20px 24px 40px;"></div>
+  </div>
+  <div class="report-footer-tabs">
+    <button class="report-footer-tab active" id="tab-report" onclick="switchReportTab('report')">
+      <span class="tab-icon">📊</span>レポート
+    </button>
+    <button class="report-footer-tab" id="tab-area" onclick="switchReportTab('area')">
+      <span class="tab-icon">🏷</span>領域別
+    </button>
+    <button class="report-footer-tab" id="tab-monthly" onclick="switchReportTab('monthly')">
+      <span class="tab-icon">📅</span>月次タスク
+    </button>
   </div>
 </div>
 
@@ -3677,6 +3683,8 @@
     document.getElementById('tab-report').classList.toggle('active', tab === 'report');
     document.getElementById('tab-area').classList.toggle('active',   tab === 'area');
     document.getElementById('tab-monthly').classList.toggle('active', tab === 'monthly');
+    const titles = { report:'📊 レポート', area:'🏷 領域別', monthly:'📅 月次タスク' };
+    document.getElementById('report-header-title').textContent = titles[tab];
     if (tab === 'report')  loadReport();
     if (tab === 'area')    renderAreaView();
     if (tab === 'monthly') renderMonthlyTaskReport();
@@ -4645,7 +4653,7 @@
 </script>
 
 <!-- バージョン表記 -->
-<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-21</div>
+<div style="text-align:center;padding:12px;font-size:11px;color:#bbb;">v2026-03-29-22</div>
 
 <!-- デバッグパネル（リリース時は style="display:none" を追加） -->
 <pre id="debug-panel" style="
